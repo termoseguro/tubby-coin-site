@@ -1,12 +1,10 @@
 export default function HeroMascot() {
   return (
     <div className="hero-mascot">
-      <video
-        src="/hero-video.mp4"
-        autoPlay
-        loop
-        muted
-        playsInline
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/hero-video.gif"
+        alt="Hero animation"
         style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "18px" }}
       />
     </div>
