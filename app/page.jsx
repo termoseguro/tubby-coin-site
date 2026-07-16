@@ -98,7 +98,7 @@ export default function Page() {
           </section>
 
           {/* ============ BANNER ============ */}
-          <section className="banner-section" style={{ background: "var(--white)", padding: "0 0 64px 0" }}>
+          <section className="banner-section" style={{ background: "var(--dark)", padding: "0 0 64px 0" }}>
             <div className="wrap" style={{ maxWidth: "100%", padding: 0 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/coin-banner.png" alt="Tubby Coin Banner" style={{ width: "100%", height: "auto", display: "block" }} />
