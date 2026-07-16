@@ -204,9 +204,9 @@ export default function Page() {
             <div className="wrap">
               <div className="sec-head">
                 <span className="super">We love the memes</span>
-                <h2>Art</h2>
+                <h2>Onchain Positivity</h2>
                 <p>
-                  Every tubby cat is public domain by design — open, verifiable, remix encouraged.
+                  Every tubby cat is inspirated by community designs — open, verifiable, remix encouraged.
                   Here&apos;s a wall of them.
                 </p>
               </div>
@@ -374,9 +374,9 @@ export default function Page() {
               <div>
                 <h3>Legal Disclaimer</h3>
                 <p>
-                  {token.ticker} is a memecoin created purely for entertainment and community fun. 
-                  It has no intrinsic value and should not be viewed as an investment. 
-                  Nothing on this website constitutes financial or investment advice. 
+                  {token.ticker} is a memecoin created purely for entertainment and community fun.
+                  It has no intrinsic value and should not be viewed as an investment.
+                  Nothing on this website constitutes financial or investment advice.
                   Please enjoy the project responsibly and have fun!
                 </p>
               </div>
