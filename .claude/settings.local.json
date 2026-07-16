@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la \"C:/Users/Rafa/tubby-coin-site\" 2>/dev/null; echo \"---DOWNLOADS IMG---\"; ls \"C:/Users/Rafa/Downloads/\" | grep -iE \"dc98b9ff|coin|tubby|\\\\.jpg|\\\\.png\" 2>/dev/null | head -30)",
+      "Bash(npm -v)",
+      "Bash(cd \"C:/Users/Rafa/tubby-coin-site\" && mkdir -p public/art app/components lib && cp \"C:/Users/Rafa/Downloads/dc98b9ff-f1b8-4241-a9e8-6a36be4cd77d.jpg\" public/coin.jpg && echo \"coin copied:\" && ls -la public/)",
+      "Bash(npm install *)",
+      "Bash(node -e \"console.log\\(require\\('next/package.json'\\).version\\)\")",
+      "Bash(npm run *)",
+      "Bash(curl -sL -A \"Mozilla/5.0\" --max-time 25 \"https://topcats.online/\" -o /tmp/topcats.html)",
+      "Bash(echo \"exit:$?\")",
+      "Read(//tmp/**)",
+      "Bash(cd \"C:/Users/Rafa/tubby-coin-site\" && rm -f public/art/tubby-01.avif && cp \"C:/Users/Rafa/Downloads/\"*.avif public/art/ 2>/dev/null && echo \"=== copied files ===\" && ls public/art/ | wc -l && ls public/art/)",
+      "WebFetch(domain:www.toshithecat.com)"
+    ]
+  }
+}
