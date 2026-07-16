@@ -91,8 +91,7 @@ export default function Page() {
                 </div>
               )}
               <p className="risk-note">
-                {token.ticker} is a memecoin — a high-risk, volatile asset with no promise of profit.
-                Only spend what you can afford to lose.
+                {token.ticker} is a memecoin — made by the community for the community.
               </p>
             </div>
           </section>
