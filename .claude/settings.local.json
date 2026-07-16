@@ -11,7 +11,8 @@
       "Bash(echo \"exit:$?\")",
       "Read(//tmp/**)",
       "Bash(cd \"C:/Users/Rafa/tubby-coin-site\" && rm -f public/art/tubby-01.avif && cp \"C:/Users/Rafa/Downloads/\"*.avif public/art/ 2>/dev/null && echo \"=== copied files ===\" && ls public/art/ | wc -l && ls public/art/)",
-      "WebFetch(domain:www.toshithecat.com)"
+      "WebFetch(domain:www.toshithecat.com)",
+      "Bash(awk '{print $6, $7}')"
     ]
   }
 }

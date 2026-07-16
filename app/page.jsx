@@ -351,10 +351,8 @@ export default function Page() {
                     is public, so you can always check what came in and where it went.</div>
                 </details>
                 <details>
-                  <summary>Can I lose money on this?</summary>
-                  <div className="a">Yes. Absolutely. {token.ticker} is a memecoin — a volatile, speculative
-                    asset with no intrinsic value and no guarantee of anything. Most memecoins go to zero.
-                    Nothing here is investment advice. Only spend what you&apos;re fully prepared to lose.</div>
+                  <summary>Are there any guarantees?</summary>
+                  <div className="a">The only guarantee is that we love tubby cats! {token.ticker} is an entertainment token with no intrinsic value. It&apos;s all about community and good vibes, so please remember this isn&apos;t financial advice.</div>
                 </details>
               </div>
             </div>
@@ -367,15 +365,12 @@ export default function Page() {
             <div className="footer-tagline">We like the tubby cat.</div>
             <div className="cols">
               <div>
-                <h3>⚠️ Read this before anything else</h3>
+                <h3>Legal Disclaimer</h3>
                 <p>
-                  {token.ticker} is a memecoin created for entertainment and community purposes. It is an
-                  extremely high-risk, highly volatile digital asset with no intrinsic value and no
-                  expectation of profit. Nothing on this website is financial, investment, legal or tax
-                  advice, and no one involved in this project promises, projects or implies any return.
-                  Digital assets may be unregulated in your jurisdiction and you may have no legal protection
-                  or recourse. By interacting with {token.ticker} you accept full responsibility for your own
-                  decisions. Do your own research. Only use money you can afford to lose entirely.
+                  {token.ticker} is a memecoin created purely for entertainment and community fun. 
+                  It has no intrinsic value and should not be viewed as an investment. 
+                  Nothing on this website constitutes financial or investment advice. 
+                  Please enjoy the project responsibly and have fun!
                 </p>
               </div>
               <div>
