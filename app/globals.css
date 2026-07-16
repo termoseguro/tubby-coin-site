@@ -1,14 +1,14 @@
 :root{
-  --brand:#FF4FA3;        /* primary — full-bleed sections + accents (Toshi's blue, our pink) */
-  --brand-deep:#E23B8F;
-  --gold:#FFC42F;
-  --gold-deep:#E09B12;
-  --dark:#221019;         /* dark sections + marquee + footer (Toshi's navy, our plum) */
-  --dark-2:#160a10;
-  --cream:#FFF7EF;
+  --brand:#0052FF;        /* Toshi Blue */
+  --brand-deep:#0043CC;
+  --gold:#FFD500;
+  --gold-deep:#CCAA00;
+  --dark:#000000;         /* Pure Black */
+  --dark-2:#111111;
+  --cream:#FFFFFF;        /* Pure White instead of cream for contrast */
   --white:#FFFFFF;
-  --ink:#1B0F16;          /* near-black text on light */
-  --muted:rgba(27,15,22,.62);
+  --ink:#000000;          /* Pure Black text */
+  --muted:rgba(0,0,0,.62);
   --radius:18px;
   --pill:999px;
   --font-body:'Inter Tight',system-ui,Arial,sans-serif;
