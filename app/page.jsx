@@ -4,21 +4,13 @@ import { BuyProvider, BuyButton } from "./components/BuyModal";
 import LiveArtFund from "./components/LiveArtFund";
 import CopyCA from "./components/CopyCA";
 import HeroMascot from "./components/HeroMascot";
+import NavBar from "./components/NavBar";
+import Band from "./components/Band";
+import Footer from "./components/Footer";
 
-function Band({ text, cls }) {
-  const items = new Array(14).fill(text);
-  return (
-    <div className={`tagline-band ${cls}`} aria-hidden="true">
-      <div className="tt">
-        {items.map((t, i) => (
-          <span key={i}>
-            {t} <b>★</b>{" "}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
+// a link only renders when it's real — no "#" placeholders shown to visitors
+const isReal = (u) => Boolean(u) && u !== "#" && u !== "https://x.com/";
+const isRealWallet = (w) => Boolean(w) && !w.startsWith("{{");
 
 function TileGrid({ images, limit }) {
   const list = (images || []).slice(0, limit || images.length);
@@ -35,34 +27,16 @@ function TileGrid({ images, limit }) {
 }
 
 export default function Page() {
-  const { links, wallets, token, feeSplit, merch, art, brand, venues, socials } = config;
+  const { links, wallets, token, feeSplit, merch, art, communityArt, brand, venues, socials } = config;
   const social = socials
     .map((s) => ({ name: s.name, url: links[s.key] }))
-    .filter((s) => s.url && s.url !== "#" && s.url !== "");
+    .filter((s) => isReal(s.url));
 
   return (
     <FundProvider>
       <BuyProvider>
         {/* ============ TOP BAR ============ */}
-        <header className="bar">
-          <div className="bar-in">
-            <a className="logo" href="#top">
-              <span className="dot">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/coin.jpg" alt="" />
-              </span>{" "}
-              {token.ticker}
-            </a>
-            <nav>
-              <a href="#find">Find $TUBBY</a>
-              <a href="#nfts">NFTs</a>
-              <a href="#art">Art</a>
-              <a href="#merch">Merch</a>
-              <a href="#faq">FAQ</a>
-              <BuyButton className="btn">Buy</BuyButton>
-            </nav>
-          </div>
-        </header>
+        <NavBar ticker={token.ticker} />
 
         <main id="top">
           {/* ============ HERO ============ */}
@@ -97,10 +71,17 @@ export default function Page() {
           </section>
 
           {/* ============ BANNER ============ */}
-          <section className="banner-section" style={{ background: "var(--dark)", padding: "0 0 64px 0" }}>
+          <section className="banner-section" style={{ background: "var(--brand)", padding: "0 0 64px 0" }}>
             <div className="wrap" style={{ maxWidth: "100%", padding: 0 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/coin-banner.png" alt="Tubby Coin Banner" style={{ width: "100%", height: "auto", display: "block" }} />
+              <img
+                src="/coin-banner.webp"
+                alt="Tubby Coin Banner"
+                width={2560}
+                height={846}
+                loading="lazy"
+                style={{ width: "100%", height: "auto", display: "block" }}
+              />
             </div>
           </section>
           <Band text={brand.taglinePrimary} cls="band-a" />
@@ -205,11 +186,12 @@ export default function Page() {
                 <span className="super">We love the memes</span>
                 <h2>Onchain Positivity</h2>
                 <p>
-                  Every tubby cat is inspirated by community designs — open, verifiable, remix encouraged.
-                  Here&apos;s a wall of them.
+                  Straight from the official tubby cats X — fan art, PFPs and community love.
+                  Follow{" "}
+                  <a href={links.brandX} target="_blank" rel="noopener">@tubbycatsnft</a> for more.
                 </p>
               </div>
-              <TileGrid images={[...art].reverse()} limit={18} />
+              <TileGrid images={communityArt && communityArt.length ? communityArt : art} limit={18} />
             </div>
           </section>
 
@@ -220,9 +202,13 @@ export default function Page() {
                 <span className="super">Brand style guide</span>
                 <h2>Media pack</h2>
                 <p>Grab the tubby coin logo, art files and brand assets for your posts and threads.</p>
-                <a className="btn" href={brand.mediaKit} target="_blank" rel="noopener">
-                  Download assets
-                </a>
+                {isReal(brand.mediaKit) ? (
+                  <a className="btn" href={brand.mediaKit} target="_blank" rel="noopener">
+                    Download assets
+                  </a>
+                ) : (
+                  <span className="chip">Coming soon</span>
+                )}
               </div>
             </div>
           </section>
@@ -246,20 +232,36 @@ export default function Page() {
                     a signed message from a project-linked wallet. The NFT channels stay dedicated to art;
                     this account and site run the coin.</p>
                   <div className="links">
-                    <a className="chip" href={links.endorsementPost} target="_blank" rel="noopener">Endorsement post</a>
-                    <a className="chip" href={links.signedMsg} target="_blank" rel="noopener">Signed wallet proof</a>
+                    {isReal(links.endorsementPost) && (
+                      <a className="chip" href={links.endorsementPost} target="_blank" rel="noopener">Endorsement post</a>
+                    )}
+                    {isReal(links.signedMsg) && (
+                      <a className="chip" href={links.signedMsg} target="_blank" rel="noopener">Signed wallet proof</a>
+                    )}
                   </div>
                 </div>
 
                 <div className="receipt">
                   <span className="stamp">verify it</span>
-                  <h3>{feeSplit.art}/{feeSplit.ops} fee split, enforced on-chain</h3>
+                  <h3>{feeSplit.art}/{feeSplit.ops}/{feeSplit.treats}/{feeSplit.bite} fee split, enforced on-chain</h3>
                   <p>The creator-fee split is configured in pump.fun&apos;s fee sharing — not a promise,
-                    a setting anyone can inspect.</p>
-                  <div className="wallet"><b>🎨 Project fund:</b> {wallets.art}</div>
-                  <div className="wallet"><b>⚙️ Operations:</b> {wallets.ops}</div>
+                    a setting anyone can inspect. All 4 wallets are configured at launch.</p>
+                  {isRealWallet(wallets.art) && (
+                    <div className="wallet"><b>🎨 Project fund ({feeSplit.art}%):</b> {wallets.art}</div>
+                  )}
+                  {isRealWallet(wallets.ops) && (
+                    <div className="wallet"><b>⚙️ Operations ({feeSplit.ops}%):</b> {wallets.ops}</div>
+                  )}
+                  {isRealWallet(wallets.treats) && (
+                    <div className="wallet"><b>🎁 Treats ({feeSplit.treats}%):</b> {wallets.treats}</div>
+                  )}
+                  {isRealWallet(wallets.bite) && (
+                    <div className="wallet"><b>🔥 The Bite ({feeSplit.bite}%):</b> {wallets.bite}</div>
+                  )}
                   <div className="links">
-                    <a className="chip" href={links.feeConfig} target="_blank" rel="noopener">View fee config</a>
+                    {isReal(links.feeConfig) && (
+                      <a className="chip" href={links.feeConfig} target="_blank" rel="noopener">View fee config</a>
+                    )}
                   </div>
                 </div>
 
@@ -281,7 +283,9 @@ export default function Page() {
                     what went out at any time. It&apos;s reinvested into the project — no fixed promises,
                     just an open wallet you can always check.</p>
                   <div className="links">
-                    <a className="chip" href={links.reports} target="_blank" rel="noopener">Updates</a>
+                    {isReal(links.reports) && (
+                      <a className="chip" href={links.reports} target="_blank" rel="noopener">Updates</a>
+                    )}
                   </div>
                 </div>
               </div>
@@ -346,9 +350,9 @@ export default function Page() {
                 </details>
                 <details>
                   <summary>How are the creator fees split?</summary>
-                  <div className="a">{feeSplit.art}/{feeSplit.ops}, enforced on-chain by pump.fun&apos;s fee
-                    sharing: {feeSplit.art}% goes back to the project owner to fund the project itself,
-                    {feeSplit.ops}% funds the team running the coin. Both wallets are public.</div>
+                  <div className="a">{feeSplit.art}/{feeSplit.ops}/{feeSplit.treats}/{feeSplit.bite}, enforced on-chain by pump.fun&apos;s fee
+                    sharing into 4 distinct wallets: {feeSplit.art}% goes back to the project creator to fund the universe itself,
+                    {feeSplit.ops}% funds the team running the coin, {feeSplit.treats}% is for community rewards, and {feeSplit.bite}% is dedicated to Buyback & Burn. All wallets are public.</div>
                 </details>
                 <details>
                   <summary>What does the project fund pay for?</summary>
@@ -366,40 +370,7 @@ export default function Page() {
         </main>
 
         {/* ============ FOOTER ============ */}
-        <footer>
-          <div className="wrap">
-            <div className="footer-tagline">We like the tubby cat.</div>
-            <div className="cols">
-              <div>
-                <h3>Legal Disclaimer</h3>
-                <p>
-                  {token.ticker} is a memecoin created purely for entertainment and community fun.
-                  It has no intrinsic value and should not be viewed as an investment.
-                  Nothing on this website constitutes financial or investment advice.
-                  Please enjoy the project responsibly and have fun!
-                </p>
-              </div>
-              <div>
-                <h3>Find the cats</h3>
-                <div className="links">
-                  <a className="chip" href={links.coinX} target="_blank" rel="noopener">𝕏 coin account</a>
-                  <a className="chip" href={links.brandX} target="_blank" rel="noopener">𝕏 tubby cats</a>
-                  <a className="chip" href={links.opensea} target="_blank" rel="noopener">NFT collection</a>
-                  {links.telegram ? (
-                    <a className="chip" href={links.telegram} target="_blank" rel="noopener">Telegram</a>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-            <p className="fine">
-              tubby cats artwork is in the public domain (CC0). {token.ticker} creator fees are split
-              {" "}{feeSplit.art}/{feeSplit.ops} between the project fund and coin operations via pump.fun
-              creator fee sharing; both wallets are published in the receipts section. We will never DM you,
-              never ask for your seed phrase, and never post a contract address anywhere before posting it
-              here first.
-            </p>
-          </div>
-        </footer>
+        <Footer />
       </BuyProvider>
     </FundProvider>
   );

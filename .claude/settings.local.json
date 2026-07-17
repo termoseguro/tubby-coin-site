@@ -12,7 +12,26 @@
       "Read(//tmp/**)",
       "Bash(cd \"C:/Users/Rafa/tubby-coin-site\" && rm -f public/art/tubby-01.avif && cp \"C:/Users/Rafa/Downloads/\"*.avif public/art/ 2>/dev/null && echo \"=== copied files ===\" && ls public/art/ | wc -l && ls public/art/)",
       "WebFetch(domain:www.toshithecat.com)",
-      "Bash(awk '{print $6, $7}')"
+      "Bash(awk '{print $6, $7}')",
+      "Bash(node -e ' *)",
+      "Bash(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate,nb_frames -of csv=p=0 hero-video.gif)",
+      "Bash(ffprobe -v error -show_entries format=duration -of csv=p=0 hero-video.gif)",
+      "Bash(ffmpeg -y -v error -i hero-video.gif -vf \"scale=-2:720:flags=lanczos\" -c:v libwebp_anim -q:v 65 -compression_level 6 -loop 0 hero.webp)",
+      "Bash(awk '{print $5/1024 \" KB\"}')",
+      "Bash(ffprobe -v error -select_streams v:0 -show_entries stream=pix_fmt -of csv=p=0 hero.webp)",
+      "Bash(ffmpeg -y -v error -i coin-banner.png -vf \"scale=2560:-2:flags=lanczos\" -q:v 82 coin-banner.webp)",
+      "Bash(ffmpeg -y -v error -i coin-banner.png -vf \"crop=ih*1200/630:ih,scale=1200:630:flags=lanczos\" -q:v 86 og.jpg)",
+      "Bash(awk '{print $9, $5/1024 \" KB\"}')",
+      "Bash(magick \"hero.webp[0]\" -format \"opaque=%[opaque] size=%wx%h\\\\n\" info:)",
+      "Bash(magick identify *)",
+      "Bash(magick coin.jpg -resize 96x96 -quality 85 coin-96.webp)",
+      "Bash(npx next *)",
+      "WebFetch(domain:github.com)",
+      "WebSearch",
+      "Bash(mkdir -p \"C:/Users/Rafa/tubby-coin-site/public/memes-raw\")",
+      "Bash(curl -sL -A \"Mozilla/5.0\" \"https://pbs.twimg.com/media/FM4jbYsXoAAgQFU?format=jpg&name=large\" -o FM4jbYsXoAAgQFU.jpg --max-time 15)",
+      "Bash(curl -sL -A \"Mozilla/5.0\" \"https://pbs.twimg.com/media/FMLk_DAWYAEmzMg?format=jpg&name=large\" -o FMLk_DAWYAEmzMg.jpg --max-time 15)",
+      "Bash(rm -f \"C:/Users/Rafa/tubby-coin-site/public/memes-raw/\"*.jpg 2>/dev/null; ls \"C:/Users/Rafa/tubby-coin-site/public/memes-raw/\" 2>/dev/null || echo \"cleared\")"
     ]
   }
 }
