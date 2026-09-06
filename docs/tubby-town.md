@@ -135,7 +135,47 @@ tuning numbers and wrong the moment money is involved. Required before then:
 
 ---
 
-## 6. Open questions
+## 6. Characters (planned, not built)
+
+The two creators of the tubby cats project become the game's opposing forces —
+this gives the town a story instead of just a spreadsheet:
+
+- **Palis — the boss / antagonist.** Interferes with the town in some malicious
+  way. Design space: periodic raids that steal a slice of the bowl, a "heat"
+  state that slows production until dealt with, or a timed boss the town has to
+  push back collectively. Whatever the form, he should create a *reason to come
+  back at a specific time*, which is the strongest retention lever an idle game
+  has.
+- **Icy — the helper.** Counterweight to Palis: buffs, rescues, a free boost
+  when things go wrong. Also the natural tutorial voice.
+
+Keeping both as real project figures makes the lore honest — these are the
+people who actually made the tubby cats universe.
+
+Not designed in detail yet. Do not build until the core loop is server-side.
+
+## 7. Visual direction
+
+The prototype's look is deliberate, after a first pass was rejected for looking
+machine-made. What fixed it:
+
+- **No emoji as icons** — a hand-rolled SVG set lives in `app/game/icons.jsx`.
+  Emoji icons are the loudest "a template made this" tell in a game UI.
+- **Chunky casual-game chrome** in the spirit of Axie Infinity's UI: thick
+  bevels, inner highlights, `0 5px 0` slab shadows, rarity-coloured frames with
+  glow. No third-party game art is used — everything is CSS or inline SVG.
+- **The town is a place, not a grid.** Sky, drifting clouds, a skyline of
+  houses, ground the cats stand on, and per-cat idle breathing with a shadow
+  that squashes in time. Animation delays are staggered off `--i` so the town
+  never pulses in unison.
+- **Visible work.** Each cat has a fill bar whose cycle length is derived from
+  its actual production rate (`cycleFor()`), so rarer cats visibly hustle
+  faster, plus coins that pop off on the same clock. Idle production has to
+  *look* like production or the game reads as dead.
+- Data is shown as bars, never as an HTML table — the drop-rate list and the
+  leaderboard are both bar/row components.
+
+## 8. Open questions
 
 - Which Tubby Town domain to register (`.xyz`, `playtubbytown.com`, `.fun` —
   the plain `.com` is likely taken).

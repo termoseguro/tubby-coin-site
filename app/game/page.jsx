@@ -22,6 +22,19 @@ import {
   rollCat,
   shardsToLevel,
 } from "../../lib/gameConfig";
+import {
+  IconBack,
+  IconBowl,
+  IconBox,
+  IconCart,
+  IconCoin,
+  IconHouse,
+  IconLock,
+  IconPaw,
+  IconPlus,
+  IconTreat,
+  IconTrophy,
+} from "./icons";
 import "./game.css";
 
 const SAVE_KEY = "tubbytown.v1";
@@ -63,6 +76,12 @@ function fmtDur(sec) {
   if (h > 0) return `${h}h ${m}m`;
   if (m > 0) return `${m}m`;
   return `${Math.floor(sec)}s`;
+}
+
+/** Visual work-cycle length for a cat, in seconds. Rarer cats visibly hustle
+ *  faster — the bar filling is what makes idle production *feel* like work. */
+function cycleFor(rate) {
+  return Math.max(0.7, Math.min(6, 3 / Math.sqrt(Math.max(rate, 0.01))));
 }
 
 export default function TubbyTown() {
@@ -143,8 +162,7 @@ export default function TubbyTown() {
     if (!save) return [];
     return Object.values(save.cats).sort(
       (a, b) =>
-        RARITY_ORDER.indexOf(b.rarity) - RARITY_ORDER.indexOf(a.rarity) ||
-        b.level - a.level
+        RARITY_ORDER.indexOf(b.rarity) - RARITY_ORDER.indexOf(a.rarity) || b.level - a.level
     );
   }, [save]);
 
@@ -188,10 +206,7 @@ export default function TubbyTown() {
           let forceMin = pity >= game.pity.hardAt ? "legendary" : null;
           // …and every 10× carries an Epic+ floor on its last roll if nothing hit
           if (!forceMin && count >= 10 && i === count - 1) {
-            const best = rolls.reduce(
-              (m, r) => Math.max(m, RARITY_ORDER.indexOf(r.rarity)),
-              -1
-            );
+            const best = rolls.reduce((m, r) => Math.max(m, RARITY_ORDER.indexOf(r.rarity)), -1);
             if (best < RARITY_ORDER.indexOf(game.pity.tenPullFloor)) {
               forceMin = game.pity.tenPullFloor;
             }
@@ -329,7 +344,12 @@ export default function TubbyTown() {
   if (!save) {
     return (
       <main className="ttown">
-        <div className="tt-boot">Waking the cats…</div>
+        <div className="tt-boot">
+          <span className="tt-boot-paw">
+            <IconPaw size={40} />
+          </span>
+          Waking the cats…
+        </div>
       </main>
     );
   }
@@ -339,58 +359,49 @@ export default function TubbyTown() {
 
   return (
     <main className={"ttown" + (save.skin ? " tt-gold" : "")}>
+      <div className="tt-sky" aria-hidden="true" />
+
       {/* ---------- header ---------- */}
       <header className="tt-bar">
         <a className="tt-back" href="/">
-          ← {config.token.ticker}
+          <IconBack size={18} />
+          <span>{config.token.ticker}</span>
         </a>
         <div className="tt-title">
-          TUBBY TOWN <span className="tt-proto">prototype</span>
+          <span className="tt-title-main">Tubby Town</span>
+          <span className="tt-proto">proto</span>
         </div>
-        <div className="tt-wallet">
-          <span className="tt-tier" title="Your $TUBBY hold tier">
-            {tier.name} ×{tier.mult}
-          </span>
+        <div className="tt-tier" title="Your $TUBBY hold tier">
+          <IconPaw size={16} />
+          <span>{tier.name}</span>
+          <b>×{tier.mult}</b>
         </div>
       </header>
 
-      {/* ---------- resource strip ---------- */}
-      <section className="tt-strip">
-        <div className="tt-res">
-          <span className="tt-res-n mono">{fmt(save.treats)}</span>
-          <span className="tt-res-l">treats</span>
-        </div>
-        <div className="tt-res">
-          <span className="tt-res-n mono">{fmtRate(rate)}/s</span>
-          <span className="tt-res-l">production</span>
-        </div>
-        <div className="tt-res">
-          <span className="tt-res-n mono">
-            {save.slotted.length}/{save.slots}
-          </span>
-          <span className="tt-res-l">town slots</span>
-        </div>
-        <div className="tt-res">
-          <span className="tt-res-n mono">{save.bowlHours}h</span>
-          <span className="tt-res-l">bowl size</span>
-        </div>
+      {/* ---------- resource HUD ---------- */}
+      <section className="tt-hud">
+        <Res icon={<IconTreat />} value={fmt(save.treats)} label="treats" accent />
+        <Res icon={<IconPaw />} value={`${fmtRate(rate)}/s`} label="production" />
+        <Res icon={<IconHouse />} value={`${save.slotted.length}/${save.slots}`} label="slots" />
+        <Res icon={<IconBowl />} value={`${save.bowlHours}h`} label="bowl" />
       </section>
 
       {/* ---------- tabs ---------- */}
       <nav className="tt-tabs">
         {[
-          ["town", "🏠 Town"],
-          ["litter", "🎁 Litter Box"],
-          ["board", "🏆 Board"],
-          ["shop", "🛒 Shop"],
-        ].map(([id, label]) => (
+          ["town", "Town", <IconHouse key="i" size={19} />],
+          ["litter", "Litter Box", <IconBox key="i" size={19} />],
+          ["board", "Board", <IconTrophy key="i" size={19} />],
+          ["shop", "Shop", <IconCart key="i" size={19} />],
+        ].map(([id, label, icon]) => (
           <button
             key={id}
             className={"tt-tab" + (tab === id ? " on" : "")}
             onClick={() => setTab(id)}
             type="button"
           >
-            {label}
+            {icon}
+            <span>{label}</span>
           </button>
         ))}
       </nav>
@@ -409,36 +420,48 @@ export default function TubbyTown() {
         {tab === "litter" && (
           <LitterTab save={save} canPull={canPull} pityLeft={pityLeft} onPull={doPull} />
         )}
-        {tab === "board" && <BoardTab save={save} onHold={(h) => setSave((s) => ({ ...s, hold: h }))} />}
+        {tab === "board" && (
+          <BoardTab save={save} onHold={(h) => setSave((s) => ({ ...s, hold: h }))} />
+        )}
         {tab === "shop" && <ShopTab onBuy={mockBuy} onReset={hardReset} />}
       </div>
 
       {/* ---------- overlays ---------- */}
       {welcomeBack && (
         <Modal onClose={() => setWelcomeBack(null)} title="The bowl was waiting">
-          <p className="tt-p">
-            You were away <b>{fmtDur(welcomeBack.away)}</b>. The bowl collected{" "}
-            <b className="mono">{fmt(welcomeBack.gained)}</b> treats.
-          </p>
+          <div className="tt-wb">
+            <IconBowl size={54} />
+            <div className="tt-wb-n mono">+{fmt(welcomeBack.gained)}</div>
+            <p className="tt-p">
+              You were away <b>{fmtDur(welcomeBack.away)}</b>.
+            </p>
+          </div>
           {welcomeBack.full && (
             <p className="tt-warn">
               Your bowl filled up after {save.bowlHours}h and production stopped. A bigger bowl
               catches everything.
             </p>
           )}
-          <button className="btn" type="button" onClick={() => setWelcomeBack(null)}>
+          <button className="tt-btn" type="button" onClick={() => setWelcomeBack(null)}>
             Collect
           </button>
         </Modal>
       )}
 
       {pullResult && (
-        <Modal onClose={() => setPullResult(null)} title={`${pullResult.length}× pull`}>
+        <Modal onClose={() => setPullResult(null)} title={`${pullResult.length}× pull`} wide>
           <div className="tt-pulls">
             {pullResult.map((r, i) => (
-              <figure key={i} className={"tt-pull r-" + r.rarity}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={r.art} alt="" loading="lazy" />
+              <figure
+                key={i}
+                className={"tt-pull r-" + r.rarity}
+                style={{ animationDelay: `${i * 70}ms` }}
+              >
+                <span className="tt-pull-rays" aria-hidden="true" />
+                <span className="tt-frame">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={r.art} alt="" loading="eager" />
+                </span>
                 <figcaption>
                   {RARITIES[r.rarity].name}
                   {r.dupe && <span className="tt-dupe">+1 shard</span>}
@@ -446,7 +469,7 @@ export default function TubbyTown() {
               </figure>
             ))}
           </div>
-          <button className="btn" type="button" onClick={() => setPullResult(null)}>
+          <button className="tt-btn" type="button" onClick={() => setPullResult(null)}>
             Nice
           </button>
         </Modal>
@@ -454,6 +477,18 @@ export default function TubbyTown() {
 
       {toast && <div className="tt-toast">{toast}</div>}
     </main>
+  );
+}
+
+function Res({ icon, value, label, accent }) {
+  return (
+    <div className={"tt-res" + (accent ? " accent" : "")}>
+      <span className="tt-res-i">{icon}</span>
+      <span className="tt-res-t">
+        <b className="mono">{value}</b>
+        <small>{label}</small>
+      </span>
+    </div>
   );
 }
 
@@ -480,57 +515,85 @@ function TownTab({ save, collection, onToggle, onLevel, onBuySlot, onBuyBowl }) 
 
   return (
     <>
-      <h2 className="tt-h">Your town</h2>
-      <p className="tt-sub">
-        Slotted cats earn treats every second, online or off. Rarer cats earn dramatically more.
-      </p>
+      <SectionHead title="Your town" hint="Only slotted cats earn. Rarer cats earn far more." />
 
-      <div className="tt-slots">
-        {Array.from({ length: save.slots }).map((_, i) => {
-          const key = save.slotted[i];
-          const cat = key ? save.cats[key] : null;
-          if (!cat) {
+      {/* ---- the scene ----
+          A town has to look inhabited: parallax sky, drifting clouds, a
+          skyline behind, and the cats standing ON ground with shadows and an
+          idle breathing bob — not portraits floating in a grid. */}
+      <div className="tt-scene">
+        <div className="tt-clouds" aria-hidden="true">
+          <i /><i /><i />
+        </div>
+        <div className="tt-skyline" aria-hidden="true" />
+        <div className="tt-scene-glow" aria-hidden="true" />
+        <div className="tt-slots">
+          {Array.from({ length: save.slots }).map((_, i) => {
+            const key = save.slotted[i];
+            const cat = key ? save.cats[key] : null;
+            if (!cat) {
+              return (
+                <div key={i} className="tt-slot empty" style={{ "--i": i }}>
+                  <span className="tt-plot">
+                    <IconPlus size={24} />
+                  </span>
+                  <span className="tt-shadow" aria-hidden="true" />
+                </div>
+              );
+            }
+            const r = catRate(cat.rarity, cat.level);
+            const cycle = cycleFor(r);
             return (
-              <div key={i} className="tt-slot empty">
-                <span>empty</span>
-              </div>
+              <button
+                key={i}
+                type="button"
+                className={"tt-slot r-" + cat.rarity}
+                onClick={() => onToggle(key)}
+                title="Click to take out of town"
+                style={{ "--cycle": `${cycle}s`, "--i": i }}
+              >
+                <span className="tt-coin c1" aria-hidden="true">
+                  <IconCoin size={16} />
+                </span>
+                <span className="tt-coin c2" aria-hidden="true">
+                  <IconCoin size={12} />
+                </span>
+                <span className="tt-char">
+                  <span className="tt-slot-art">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={cat.art} alt="" loading="lazy" />
+                  </span>
+                  <span className="tt-lvl">{cat.level}</span>
+                  <span className="tt-sparkle s1" aria-hidden="true" />
+                  <span className="tt-sparkle s2" aria-hidden="true" />
+                </span>
+                <span className="tt-shadow" aria-hidden="true" />
+                <span className="tt-work" aria-hidden="true">
+                  <i />
+                </span>
+                <span className="tt-slot-rate mono">{fmtRate(r)}/s</span>
+              </button>
             );
-          }
-          return (
-            <button
-              key={i}
-              type="button"
-              className={"tt-slot r-" + cat.rarity}
-              onClick={() => onToggle(key)}
-              title="Click to remove from town"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={cat.art} alt="" loading="lazy" />
-              <span className="tt-lvl">Lv{cat.level}</span>
-              <span className="tt-slot-rate mono">
-                {fmtRate(catRate(cat.rarity, cat.level))}/s
-              </span>
-            </button>
-          );
-        })}
+          })}
+        </div>
+        <div className="tt-ground" aria-hidden="true" />
       </div>
 
       <div className="tt-upgrades">
-        <button className="btn ghost" type="button" onClick={onBuySlot} disabled={slotsMaxed}>
-          {slotsMaxed ? "Slots 9–12 are in the shop" : `+1 slot — ${fmt(slotCost)} treats`}
+        <button className="tt-btn wide" type="button" onClick={onBuySlot} disabled={slotsMaxed}>
+          <IconHouse size={18} />
+          {slotsMaxed ? "Slots 9–12 in the shop" : `+1 slot · ${fmt(slotCost)}`}
         </button>
-        <button className="btn ghost" type="button" onClick={onBuyBowl} disabled={bowlMaxed}>
-          {bowlMaxed
-            ? `Bowl maxed (${game.maxBowlHours}h)`
-            : `Bowl → ${save.bowlHours + game.bowlStep}h — ${fmt(bowlCost)} treats`}
+        <button className="tt-btn wide alt" type="button" onClick={onBuyBowl} disabled={bowlMaxed}>
+          <IconBowl size={18} />
+          {bowlMaxed ? `Bowl maxed · ${game.maxBowlHours}h` : `Bowl ${save.bowlHours + game.bowlStep}h · ${fmt(bowlCost)}`}
         </button>
       </div>
 
-      <h2 className="tt-h">Collection ({collection.length})</h2>
-      <p className="tt-sub">
-        Duplicates become shards. Shards level a cat up, and a level is worth more than a new
-        Common.
-      </p>
+      <SectionHead
+        title={`Collection · ${collection.length}`}
+        hint="Duplicates become shards. Shards raise a cat's level, and a level beats a new Common."
+      />
       <div className="tt-grid">
         {collection.map((cat) => {
           const key = `${cat.rarity}|${cat.art}`;
@@ -538,19 +601,22 @@ function TownTab({ save, collection, onToggle, onLevel, onBuySlot, onBuyBowl }) 
           const needShards = shardsToLevel(cat.rarity, cat.level);
           const needTreats = game.levelUpTreats(cat.level, RARITIES[cat.rarity].mult);
           const ready = cat.shards >= needShards && save.treats >= needTreats;
+          const pct = Math.min(100, (cat.shards / needShards) * 100);
           return (
-            <article key={key} className={"tt-card r-" + cat.rarity}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={cat.art} alt="" loading="lazy" />
+            <article key={key} className={"tt-card r-" + cat.rarity + (inTown ? " in" : "")}>
+              <span className="tt-ribbon">{RARITIES[cat.rarity].name}</span>
+              <span className="tt-frame">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={cat.art} alt="" loading="lazy" />
+                <span className="tt-lvl">{cat.level}</span>
+              </span>
               <div className="tt-card-b">
-                <div className="tt-card-r" style={{ color: RARITIES[cat.rarity].color }}>
-                  {RARITIES[cat.rarity].name}
-                </div>
-                <div className="tt-card-l mono">
-                  Lv{cat.level} · {fmtRate(catRate(cat.rarity, cat.level))}/s
-                </div>
-                <div className="tt-shards mono">
-                  shards {cat.shards}/{needShards}
+                <div className="tt-card-l mono">{fmtRate(catRate(cat.rarity, cat.level))}/s</div>
+                <div className="tt-shardbar" title={`${cat.shards} / ${needShards} shards`}>
+                  <i style={{ width: `${pct}%` }} />
+                  <span className="mono">
+                    {cat.shards}/{needShards}
+                  </span>
                 </div>
                 <div className="tt-card-actions">
                   <button
@@ -562,12 +628,12 @@ function TownTab({ save, collection, onToggle, onLevel, onBuySlot, onBuyBowl }) 
                   </button>
                   <button
                     type="button"
-                    className="tt-mini"
+                    className="tt-mini gold"
                     onClick={() => onLevel(key)}
                     disabled={!ready}
                     title={`${needShards} shards + ${fmt(needTreats)} treats`}
                   >
-                    Level up
+                    Level
                   </button>
                 </div>
               </div>
@@ -580,75 +646,68 @@ function TownTab({ save, collection, onToggle, onLevel, onBuySlot, onBuyBowl }) 
 }
 
 function LitterTab({ save, canPull, pityLeft, onPull }) {
-  const total = RARITY_ORDER.reduce((a, k) => a + RARITIES[k].odds, 0);
+  const pityPct = Math.min(100, (save.pity / game.pity.hardAt) * 100);
   return (
     <>
-      <h2 className="tt-h">Litter Box</h2>
-      <p className="tt-sub">
-        Every drop rate is published below and never changes silently. What you see is what rolls.
-      </p>
+      <SectionHead
+        title="Litter Box"
+        hint="Every drop rate is published below and never changes silently."
+      />
 
       <div className="tt-pullbox">
-        <button
-          className="btn"
-          type="button"
-          disabled={!canPull}
-          onClick={() => onPull(1)}
-        >
-          Pull ×1 — {fmt(game.pullCostTreats)} treats
-        </button>
-        <button
-          className="btn ghost"
-          type="button"
-          disabled={save.treats < game.pullCostTreats * 10}
-          onClick={() => onPull(10)}
-        >
-          Pull ×10 — {fmt(game.pullCostTreats * 10)} treats
-        </button>
-        <div className="tt-pity mono">
-          Guaranteed Legendary+ in {pityLeft} {pityLeft === 1 ? "pull" : "pulls"} · {save.pulls}{" "}
-          pulled all time
+        <div className="tt-pullbox-art" aria-hidden="true">
+          <span className="tt-pullglow" />
+          <IconBox size={68} />
+        </div>
+        <div className="tt-pullbox-b">
+          <div className="tt-pullrow">
+            <button className="tt-btn" type="button" disabled={!canPull} onClick={() => onPull(1)}>
+              Pull ×1 · {fmt(game.pullCostTreats)}
+            </button>
+            <button
+              className="tt-btn alt"
+              type="button"
+              disabled={save.treats < game.pullCostTreats * 10}
+              onClick={() => onPull(10)}
+            >
+              Pull ×10 · {fmt(game.pullCostTreats * 10)}
+            </button>
+          </div>
+          <div className="tt-pitybar" title="Progress to the guaranteed Legendary+">
+            <i style={{ width: `${pityPct}%` }} />
+          </div>
+          <div className="tt-pity mono">
+            Guaranteed Legendary+ in {pityLeft} {pityLeft === 1 ? "pull" : "pulls"} · {save.pulls}{" "}
+            pulled all time
+          </div>
         </div>
       </div>
 
       <h3 className="tt-h3">Drop rates</h3>
-      <table className="tt-odds">
-        <thead>
-          <tr>
-            <th>Rarity</th>
-            <th>Chance</th>
-            <th>Earns</th>
-            <th>Pieces in pool</th>
-          </tr>
-        </thead>
-        <tbody>
-          {[...RARITY_ORDER].reverse().map((k) => (
-            <tr key={k}>
-              <td style={{ color: RARITIES[k].color, fontWeight: 800 }}>{RARITIES[k].name}</td>
-              <td className="mono">{RARITIES[k].odds.toFixed(2)}%</td>
-              <td className="mono">×{RARITIES[k].mult}</td>
-              <td className="mono">{POOL_SIZES[k]}</td>
-            </tr>
-          ))}
-          <tr className="tt-odds-total">
-            <td>Total</td>
-            <td className="mono">{total.toFixed(2)}%</td>
-            <td />
-            <td />
-          </tr>
-        </tbody>
-      </table>
+      <div className="tt-odds">
+        {[...RARITY_ORDER].reverse().map((k) => (
+          <div key={k} className={"tt-odd r-" + k}>
+            <span className="tt-odd-name">{RARITIES[k].name}</span>
+            <span className="tt-odd-track">
+              <i style={{ width: `${Math.max(2.5, RARITIES[k].odds)}%` }} />
+            </span>
+            <span className="tt-odd-pct mono">{RARITIES[k].odds.toFixed(2)}%</span>
+            <span className="tt-odd-mult mono">×{RARITIES[k].mult}</span>
+            <span className="tt-odd-pool mono">{POOL_SIZES[k]} art</span>
+          </div>
+        ))}
+      </div>
+
       <ul className="tt-rules">
         <li>
-          <b>Hard guarantee:</b> {game.pity.hardAt} pulls without a Legendary or better and the
+          <b>Hard guarantee</b> — {game.pity.hardAt} pulls without a Legendary or better and the
           next pull is one.
         </li>
         <li>
-          <b>10× floor:</b> every ten-pull contains at least one Epic or better.
+          <b>10× floor</b> — every ten-pull contains at least one Epic or better.
         </li>
         <li>
-          <b>Duplicates are never wasted</b> — they become shards that level the cat you already
-          own.
+          <b>No wasted pulls</b> — duplicates become shards that level the cat you already own.
         </li>
       </ul>
     </>
@@ -674,40 +733,33 @@ function BoardTab({ save, onHold }) {
     { name: "gigachad.sol", score: 184_200, hold: "48.0M" },
     { name: "meowmeow", score: 151_900, hold: "31.2M" },
     { name: "tubbymaxi", score: 133_400, hold: "22.7M" },
-    { name: "you", score: Math.floor(save.treats / 10) + save.pulls * 25, hold: fmt(save.hold), me: true },
+    {
+      name: "you",
+      score: Math.floor(save.treats / 10) + save.pulls * 25,
+      hold: fmt(save.hold),
+      me: true,
+    },
     { name: "catlady99", score: 71_500, hold: "6.1M" },
   ].sort((a, b) => b.score - a.score);
 
   return (
     <>
-      <h2 className="tt-h">Season board</h2>
-      <p className="tt-sub">
-        Rank is time-weighted hold × play score. Top {game.board.plushieTopN} each season receive
-        the ultra-rare collectible plushie — shipped, one per address.
-      </p>
+      <SectionHead
+        title="Season board"
+        hint={`Rank is time-weighted hold × play score. Top ${game.board.plushieTopN} receive the ultra-rare plushie — shipped, one per address.`}
+      />
 
-      <table className="tt-board">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Player</th>
-            <th>Score</th>
-            <th>Hold</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={r.name} className={r.me ? "me" : undefined}>
-              <td className="mono">{i + 1}</td>
-              <td>
-                {r.name} {i < 3 && "🧸"}
-              </td>
-              <td className="mono">{fmt(r.score)}</td>
-              <td className="mono">{r.hold}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="tt-board">
+        {rows.map((r, i) => (
+          <div key={r.name} className={"tt-brow" + (r.me ? " me" : "") + (i < 3 ? " top" : "")}>
+            <span className={"tt-rank rank-" + (i + 1)}>{i + 1}</span>
+            <span className="tt-bname">{r.name}</span>
+            {i < game.board.plushieTopN && i < 3 && <span className="tt-plush">plushie</span>}
+            <span className="tt-bscore mono">{fmt(r.score)}</span>
+            <span className="tt-bhold mono">{r.hold}</span>
+          </div>
+        ))}
+      </div>
 
       <h3 className="tt-h3">Why farming this is pointless</h3>
       <p className="tt-sub">
@@ -716,7 +768,9 @@ function BoardTab({ save, onHold }) {
       </p>
       <div className="tt-sim">
         <label className="tt-simlabel">
-          Wallets a farmer splits into: <b className="mono">{wallets}</b>
+          <span>
+            Wallets a farmer splits into: <b className="mono">{wallets}</b>
+          </span>
           <input
             type="range"
             min="1"
@@ -727,14 +781,14 @@ function BoardTab({ save, onHold }) {
         </label>
         <div className="tt-simout">
           <div className="ok">
-            <span className="tt-res-l">Our rule (proportional)</span>
-            <span className="tt-res-n mono">{proportional.toFixed(3)} SOL/day</span>
-            <small>unchanged at any wallet count</small>
+            <small>Our rule · proportional</small>
+            <b className="mono">{proportional.toFixed(3)} SOL/day</b>
+            <em>unchanged at any wallet count</em>
           </div>
           <div className="bad">
-            <span className="tt-res-l">Flat per-wallet bonus</span>
-            <span className="tt-res-n mono">{flatBonus.toFixed(2)} SOL/day</span>
-            <small>scales with wallets — never ship this</small>
+            <small>Flat per-wallet bonus</small>
+            <b className="mono">{flatBonus.toFixed(2)} SOL/day</b>
+            <em>scales with wallets — never ship this</em>
           </div>
         </div>
       </div>
@@ -751,7 +805,7 @@ function BoardTab({ save, onHold }) {
             className={"tt-mini" + (holdTier(save.hold).min === t.min ? " on" : "")}
             onClick={() => onHold(t.min)}
           >
-            {t.name} — {fmt(t.min)} (×{t.mult})
+            {t.name} · ×{t.mult}
           </button>
         ))}
       </div>
@@ -762,35 +816,44 @@ function BoardTab({ save, onHold }) {
 function ShopTab({ onBuy, onReset }) {
   return (
     <>
-      <h2 className="tt-h">Shop</h2>
-      <p className="tt-sub tt-warn">
-        Prototype: nothing is charged. Buttons grant the item so the pricing can be play-tested.
-      </p>
+      <SectionHead
+        title="Shop"
+        hint="Prototype: nothing is charged. Buttons grant the item so pricing can be play-tested."
+      />
       <div className="tt-shop">
         {game.shop.map((item) => (
           <article key={item.id} className={"tt-item" + (item.best ? " best" : "")}>
             {item.best && <span className="tt-badge">Best value</span>}
             <h4>{item.name}</h4>
             <p>{item.desc}</p>
-            <button className="btn" type="button" onClick={() => onBuy(item)}>
+            <button className={"tt-btn" + (item.best ? "" : " alt")} type="button" onClick={() => onBuy(item)}>
               {item.sol} SOL
             </button>
           </article>
         ))}
       </div>
       <div className="tt-danger">
-        <button className="btn ghost" type="button" onClick={onReset}>
-          Wipe save (start over)
+        <button className="tt-mini" type="button" onClick={onReset}>
+          Wipe save
         </button>
       </div>
     </>
   );
 }
 
-function Modal({ title, children, onClose }) {
+function SectionHead({ title, hint }) {
+  return (
+    <div className="tt-shead">
+      <h2>{title}</h2>
+      {hint && <p>{hint}</p>}
+    </div>
+  );
+}
+
+function Modal({ title, children, onClose, wide }) {
   return (
     <div className="tt-modal" role="dialog" aria-modal="true" onClick={onClose}>
-      <div className="tt-modal-in" onClick={(e) => e.stopPropagation()}>
+      <div className={"tt-modal-in" + (wide ? " wide" : "")} onClick={(e) => e.stopPropagation()}>
         <button className="tt-x" type="button" aria-label="Close" onClick={onClose}>
           ✕
         </button>
