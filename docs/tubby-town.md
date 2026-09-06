@@ -7,6 +7,14 @@ continue without losing context.
 Status: **playable prototype** at `/game`. Nothing charges money, nothing is
 secure, no real rewards are attached yet.
 
+> **This file is the overview.** The detail lives in:
+> - **`game-design.md`** — the full city-builder design (currencies, buildings,
+>   workers, Catdex, fusion, monetisation). The game has since grown from a
+>   simple idle/gacha into a cat-city builder; that file supersedes the loop
+>   described in §2 below.
+> - **`roadmap.md`** — past, present and future in phases. Read this first.
+> - **`security.md`** — threat model and the standing two-pass rule.
+
 ---
 
 ## 1. What this is

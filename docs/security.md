@@ -158,6 +158,30 @@ webhook signature — never on the client saying "payment succeeded".
 
 ---
 
+## 4b. City-builder attack surface
+
+The city builder (`game-design.md`) turns **timers into the product**. Every
+timer is something we sell a skip for, which makes every timer an attack
+target. New surface, and the defence for each:
+
+| Attack | Defence |
+|---|---|
+| Client claims a build finished | `finishes_at` is a **server** timestamp. Completion is server-computed; the client only asks "is it done?" |
+| Instant-finish without paying | Skip is a purchase like any other — verified on-chain / via Stars webhook **before** the state changes |
+| **Start → cancel → refund loop** to farm resources | Cancel refunds **at most** what was actually spent, is idempotent, and is recorded. Never refund more than the ledger says was deducted |
+| Start more builds than you have builders | Builder availability checked server-side inside the same transaction that starts the build |
+| Upgrade past what the Cat Hall allows | Every upgrade validates the full precondition set server-side: ownership, Cat Hall level, resources, free builder, not already upgrading |
+| Collect more than the Pantry cap | Cap applied server-side at collection time, from the server's record of Pantry level |
+| Double-collect via concurrent requests | Conditional `UPDATE … WHERE last_collected_at = $expected`; check rows-affected |
+| Assign a cat you do not own (IDOR) | Every cat/building id scoped to the session user |
+| Fuse cats you do not own, or fuse the same cat twice | Consume-and-create in **one transaction**; the fusion result is rolled server-side |
+| Stamina never drains / infinite work | Stamina is derived server-side from worked time, never sent by the client |
+| Replay a "nap finished" call | Nap completion derived from server timestamps, not client events |
+
+**The general rule for this whole phase:** a timer the client can influence is
+a timer we are giving away for free. The client may *display* a countdown; it
+may never *decide* one.
+
 ## 5. Anti-sybil
 
 Covered in `tubby-town.md` section 3 — it is an **economic** design, not a
@@ -186,6 +210,13 @@ Status of every attack considered. `open` items block the related feature.
 | 10 | Login signature replay | planned | Single-use nonce + domain binding |
 | 11 | Negative quantities | planned | Schema validation, unsigned ints |
 | 12 | Session theft via XSS | planned | httpOnly cookie, never localStorage |
+| 13 | Client declares a build finished | planned | Server-owned `finishes_at` |
+| 14 | Build start→cancel refund farm | planned | Refund ≤ ledger, idempotent |
+| 15 | More builds than builders | planned | Checked in the same transaction |
+| 16 | Collect past the Pantry cap | planned | Cap applied server-side |
+| 17 | Double-collect race | planned | Conditional UPDATE + rows-affected |
+| 18 | Fuse cats not owned / double-fuse | planned | Consume+create in one transaction |
+| 19 | Stamina never drains | planned | Derived server-side from worked time |
 
 ---
 
