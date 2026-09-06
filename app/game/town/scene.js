@@ -429,15 +429,16 @@ export async function createTown(host, cats, opts = {}) {
 
   // ---- sky -----------------------------------------------------------------
   const sky = new Graphics();
-  sky.rect(0, 0, WORLD.w, HORIZON + 40).fill({
+  // full-height so no bare band can ever show above the land
+  sky.rect(0, 0, WORLD.w, WORLD.h).fill({
     type: "linear",
     start: { x: 0, y: 0 },
     end: { x: 0, y: 1 },
     colorStops: [
-      { offset: 0, color: 0x8fd8f7 },
-      { offset: 0.45, color: 0xbfe9ff },
-      { offset: 0.78, color: 0xffd9ec },
-      { offset: 1, color: 0xffc2e0 },
+      { offset: 0, color: 0x7ed0f5 },
+      { offset: 0.1, color: 0xa5e0fb },
+      { offset: 0.2, color: 0xd6f0ff },
+      { offset: 1, color: 0xffd9ec },
     ],
   });
   root.addChild(sky);
