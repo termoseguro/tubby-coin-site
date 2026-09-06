@@ -37,7 +37,22 @@ import {
 } from "./icons";
 import TownCanvas from "./town/TownCanvas";
 import BuildingSheet from "./town/BuildingSheet";
-import { BUILDINGS, buildSeconds, upgradeCost } from "../../lib/townConfig";
+import { BUILDINGS, BUILDING_INFO } from "../../lib/townConfig";
+import ResourceBar from "./town/ResourceBar";
+import {
+  PRODUCERS,
+  RESOURCE_ORDER,
+  addCapped,
+  buildSecondsFor,
+  canAfford,
+  holdCap,
+  maxLevelFor,
+  pending,
+  ratePerHour,
+  rushCost,
+  storeCap,
+  upgradeCostFor,
+} from "../../lib/townEconomy";
 import "./game.css";
 
 const SAVE_KEY = "tubbytown.v1";
@@ -48,8 +63,12 @@ const catKey = (c) => `${c.rarity}|${c.art}`;
 function freshSave() {
   const starter = { rarity: "common", art: rollCat("common").art, level: 1, shards: 0 };
   return {
-    v: 1,
-    treats: 0,
+    v: 2,
+    // Kingshot-shaped economy: five gathered resources plus the premium one,
+    // each produced by its own building and capped by the Storehouse.
+    res: { fish: 400, wood: 400, stone: 60, catnip: 0, treats: 200, gold: 30 },
+    // when each producer was last emptied
+    collected: {},
     cats: { [catKey(starter)]: starter },
     slotted: [catKey(starter)],
     slots: game.startSlots,
@@ -70,6 +89,20 @@ function freshSave() {
 }
 
 const levelOf = (s, id) => s.buildings?.[id] || 1;
+const T = (s) => s?.res?.treats || 0;
+
+/** Old saves kept a single loose `treats` number. Fold it into the new resource
+ *  bag so nobody loses a balance to a schema change. */
+function migrate(s) {
+  if (!s.res) {
+    s.res = { fish: 400, wood: 400, stone: 60, catnip: 0, treats: Math.floor(s.treats || 0), gold: 30 };
+  } else if (s.treats != null) {
+    s.res = { ...s.res, treats: Math.max(s.res.treats || 0, Math.floor(s.treats)) };
+  }
+  if (!s.collected) s.collected = {};
+  delete s.treats;
+  return s;
+}
 
 // ---- formatting ------------------------------------------------------------
 function fmt(n) {
@@ -103,6 +136,10 @@ export default function TubbyTown() {
   const [picked, setPicked] = useState(null);
   const [welcomeBack, setWelcomeBack] = useState(null);
   const [toast, setToast] = useState(null);
+  // A once-a-second clock. Production accrues against wall time now, so the
+  // derived values (what is ready, build countdowns) need a reason to recompute
+  // even on ticks where the save itself does not change.
+  const [clock, setClock] = useState(0);
   const saveRef = useRef(null);
   saveRef.current = save;
 
@@ -111,19 +148,22 @@ export default function TubbyTown() {
     let s;
     try {
       const raw = localStorage.getItem(SAVE_KEY);
-      s = raw ? { ...freshSave(), ...JSON.parse(raw) } : freshSave();
+      s = raw ? migrate({ ...freshSave(), ...JSON.parse(raw) }) : freshSave();
     } catch {
       s = freshSave();
     }
 
-    // The bowl: production keeps running while away, but only until it is full.
+    // No global "bowl" any more: each producer accumulates on its own and stops
+    // when its store is full, so a returning player finds bubbles waiting over
+    // the buildings. That is the Kingshot shape, and it is a better hook — the
+    // reward is attached to a place you tap, not to a modal you dismiss.
     const away = Math.max(0, (Date.now() - (s.lastSeen || Date.now())) / 1000);
-    const capped = Math.min(away, s.bowlHours * 3600);
-    const rate = townRate(s);
-    const gained = rate * capped;
-    if (gained > 1) {
-      s.treats += gained;
-      setWelcomeBack({ gained, away, capped, full: away >= s.bowlHours * 3600 });
+    if (away > 120) {
+      const waiting = Object.keys(PRODUCERS).reduce(
+        (a, id) => a + pending(id, levelOf(s, id), s.collected?.[id] ?? s.lastSeen ?? Date.now()),
+        0
+      );
+      if (waiting > 0) setWelcomeBack({ gained: waiting, away });
     }
     s.lastSeen = Date.now();
     setSave(s);
@@ -160,7 +200,7 @@ export default function TubbyTown() {
     const id = setInterval(() => {
       setSave((s) => {
         if (!s) return s;
-        let next = { ...s, treats: s.treats + townRate(s) * (TICK_MS / 1000) };
+        let next = s; // production now accrues per building, collected by tapping
         // complete any build whose time is up
         const now = Date.now();
         const done = Object.entries(s.jobs || {}).filter(([, j]) => j.finishesAt <= now);
@@ -178,6 +218,11 @@ export default function TubbyTown() {
     }, TICK_MS);
     return () => clearInterval(id);
   }, [save !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const id = setInterval(() => setClock((c) => c + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const flash = useCallback((msg) => {
     setToast(msg);
@@ -223,7 +268,7 @@ export default function TubbyTown() {
       setSave((s) => {
         if (!s) return s;
         const cost = free ? 0 : game.pullCostTreats * count;
-        if (s.treats < cost) {
+        if (T(s) < cost) {
           flash("Not enough treats.");
           return s;
         }
@@ -244,7 +289,7 @@ export default function TubbyTown() {
           if (RARITY_ORDER.indexOf(roll.rarity) >= RARITY_ORDER.indexOf("legendary")) pity = 0;
           rolls.push(roll);
         }
-        const { next, results } = addCats({ ...s, treats: s.treats - cost, pity }, rolls);
+        const { next, results } = addCats({ ...s, res: { ...s.res, treats: T(s) - cost }, pity }, rolls);
         setPullResult(results);
         return { ...next, pulls: s.pulls + count };
       });
@@ -264,13 +309,13 @@ export default function TubbyTown() {
           flash(`Needs ${needShards} shards — pull duplicates of this cat.`);
           return s;
         }
-        if (s.treats < needTreats) {
+        if (T(s) < needTreats) {
           flash("Not enough treats.");
           return s;
         }
         return {
           ...s,
-          treats: s.treats - needTreats,
+          res: { ...s.res, treats: T(s) - needTreats },
           cats: {
             ...s.cats,
             [key]: { ...cat, level: cat.level + 1, shards: cat.shards - needShards },
@@ -306,11 +351,11 @@ export default function TubbyTown() {
         return s;
       }
       const cost = game.slotCost(s.slots);
-      if (s.treats < cost) {
+      if (T(s) < cost) {
         flash("Not enough treats.");
         return s;
       }
-      return { ...s, treats: s.treats - cost, slots: s.slots + 1 };
+      return { ...s, res: { ...s.res, treats: T(s) - cost }, slots: s.slots + 1 };
     });
   }, [flash]);
 
@@ -322,11 +367,11 @@ export default function TubbyTown() {
         return s;
       }
       const cost = game.bowlCost(s.bowlHours);
-      if (s.treats < cost) {
+      if (T(s) < cost) {
         flash("Not enough treats.");
         return s;
       }
-      return { ...s, treats: s.treats - cost, bowlHours: s.bowlHours + game.bowlStep };
+      return { ...s, res: { ...s.res, treats: T(s) - cost }, bowlHours: s.bowlHours + game.bowlStep };
     });
   }, [flash]);
 
@@ -341,7 +386,7 @@ export default function TubbyTown() {
         if (!s) return s;
         if (item.kind === "bowl") {
           flash("Bowl filled.");
-          return { ...s, treats: s.treats + townRate(s) * s.bowlHours * 3600 };
+          return { ...s, res: { ...s.res, fish: s.res.fish + 2000, wood: s.res.wood + 2000, stone: s.res.stone + 400 } };
         }
         if (item.kind === "slot") {
           if (s.slots >= game.maxSlots) {
@@ -367,20 +412,26 @@ export default function TubbyTown() {
         if (!s) return s;
         if (s.jobs?.[id]) return s;
         const level = levelOf(s, id);
-        const cost = upgradeCost(level);
+        if (level >= maxLevelFor(id, levelOf(s, "hall"))) {
+          flash("Upgrade the Cat Hall first.");
+          return s;
+        }
         const busy = Object.keys(s.jobs || {}).length;
         if (busy >= s.builders) {
           flash("Every builder is busy.");
           return s;
         }
-        if (s.treats < cost) {
-          flash("Not enough treats.");
+        const cost = upgradeCostFor(id, level);
+        if (!canAfford(cost, s.res)) {
+          flash("Not enough resources.");
           return s;
         }
-        const secs = buildSeconds(level);
+        const res = { ...s.res };
+        for (const [k, v] of Object.entries(cost)) res[k] -= v;
+        const secs = buildSecondsFor(id, level);
         return {
           ...s,
-          treats: s.treats - cost,
+          res,
           jobs: {
             ...s.jobs,
             [id]: { toLevel: level + 1, startedAt: Date.now(), finishesAt: Date.now() + secs * 1000 },
@@ -397,14 +448,65 @@ export default function TubbyTown() {
     (id) => {
       setSave((s) => {
         if (!s || !s.jobs?.[id]) return s;
-        const jobs = { ...s.jobs };
-        jobs[id] = { ...jobs[id], finishesAt: Date.now() };
+        const left = Math.max(0, (s.jobs[id].finishesAt - Date.now()) / 1000);
+        const price = rushCost(left);
+        if ((s.res.gold || 0) < price) {
+          flash(`Need ${price} Golden Fish.`);
+          return s;
+        }
+        const jobs = { ...s.jobs, [id]: { ...s.jobs[id], finishesAt: Date.now() } };
         flash("Finished instantly.");
-        return { ...s, jobs };
+        return { ...s, res: { ...s.res, gold: s.res.gold - price }, jobs };
       });
     },
     [flash]
   );
+
+  /** Empty one building's little store into the Storehouse. This tap is the
+   *  retention loop — it is why the player opens the game. */
+  const collect = useCallback(
+    (id) => {
+      setSave((s) => {
+        if (!s || !PRODUCERS[id]) return s;
+        const level = levelOf(s, id);
+        const since = s.collected?.[id] ?? s.lastSeen ?? Date.now();
+        const amount = pending(id, level, since);
+        if (amount <= 0) return s;
+        const resId = PRODUCERS[id].res;
+        const { res, wasted } = addCapped(s.res, { [resId]: amount }, levelOf(s, "storehouse"));
+        if (wasted > 0) flash(`Storehouse is full — ${Math.floor(wasted)} lost.`);
+        return { ...s, res, collected: { ...s.collected, [id]: Date.now() } };
+      });
+    },
+    [flash]
+  );
+
+  /** Collect everything that has something waiting, in one tap. */
+  const collectAll = useCallback(() => {
+    setSave((s) => {
+      if (!s) return s;
+      const gains = {};
+      const collected = { ...s.collected };
+      let any = false;
+      for (const id of Object.keys(PRODUCERS)) {
+        const since = s.collected?.[id] ?? s.lastSeen ?? Date.now();
+        const amount = pending(id, levelOf(s, id), since);
+        if (amount > 0) {
+          const r = PRODUCERS[id].res;
+          gains[r] = (gains[r] || 0) + amount;
+          collected[id] = Date.now();
+          any = true;
+        }
+      }
+      if (!any) {
+        flash("Nothing ready yet.");
+        return s;
+      }
+      const { res, wasted } = addCapped(s.res, gains, levelOf(s, "storehouse"));
+      if (wasted > 0) flash(`Storehouse is full — ${Math.floor(wasted)} lost.`);
+      return { ...s, res, collected };
+    });
+  }, [flash]);
 
   const hardReset = useCallback(() => {
     try {
@@ -428,7 +530,22 @@ export default function TubbyTown() {
     );
   }
 
-  const canPull = save.treats >= game.pullCostTreats;
+  const canPull = T(save) >= game.pullCostTreats;
+
+  // Resources appear as their producer comes online — six counters on day one
+  // is how you lose a player on day one.
+  const unlockedResources = RESOURCE_ORDER.filter(
+    (r) => r === "fish" || r === "wood" || r === "treats" || (save.res[r] || 0) > 0 || levelOf(save, "hall") >= 2
+  );
+
+  // How much is sitting in every producer right now — drives the collect badges
+  // and the one-tap collect button.
+  // Plain computation, not a hook: this sits after the early return above, and
+  // a conditional hook is a crash. It is five buildings — cheap every render.
+  const readyTotal = Object.keys(PRODUCERS).reduce(
+    (a, id) => a + pending(id, levelOf(save, id), save.collected?.[id] ?? save.lastSeen ?? Date.now()),
+    0
+  );
   const pityLeft = game.pity.hardAt - save.pity;
 
   return (
@@ -452,13 +569,15 @@ export default function TubbyTown() {
         </div>
       </header>
 
-      {/* ---------- resource HUD ---------- */}
-      <section className="tt-hud">
-        <Res icon={<IconTreat />} value={fmt(save.treats)} label="treats" accent />
-        <Res icon={<IconPaw />} value={`${fmtRate(rate)}/s`} label="production" />
-        <Res icon={<IconHouse />} value={`${save.slotted.length}/${save.slots}`} label="slots" />
-        <Res icon={<IconBowl />} value={`${save.bowlHours}h`} label="bowl" />
-      </section>
+      {/* ---------- resource bar ----------
+          Always on screen, every resource with its cap. This is the single
+          most-glanced-at element in a city builder. */}
+      <ResourceBar
+        res={save.res}
+        storehouseLevel={levelOf(save, "storehouse")}
+        unlocked={unlockedResources}
+        onBuy={() => setTab("shop")}
+      />
 
       {/* ---------- tabs ---------- */}
       <nav className="tt-tabs">
@@ -493,6 +612,10 @@ export default function TubbyTown() {
             onPick={setPicked}
             onUpgrade={startUpgrade}
             onRush={rushUpgrade}
+            onCollect={collect}
+            onCollectAll={collectAll}
+            readyTotal={readyTotal}
+            clock={clock}
           />
         )}
         {tab === "litter" && (
@@ -506,22 +629,23 @@ export default function TubbyTown() {
 
       {/* ---------- overlays ---------- */}
       {welcomeBack && (
-        <Modal onClose={() => setWelcomeBack(null)} title="The bowl was waiting">
+        <Modal onClose={() => setWelcomeBack(null)} title="The town kept working">
           <div className="tt-wb">
-            <IconBowl size={54} />
-            <div className="tt-wb-n mono">+{fmt(welcomeBack.gained)}</div>
+            <IconTreat size={54} />
+            <div className="tt-wb-n mono">{fmt(welcomeBack.gained)}</div>
             <p className="tt-p">
-              You were away <b>{fmtDur(welcomeBack.away)}</b>.
+              waiting across your buildings after <b>{fmtDur(welcomeBack.away)}</b> away.
             </p>
           </div>
-          {welcomeBack.full && (
-            <p className="tt-warn">
-              Your bowl filled up after {save.bowlHours}h and production stopped. A bigger bowl
-              catches everything.
-            </p>
-          )}
-          <button className="tt-btn" type="button" onClick={() => setWelcomeBack(null)}>
-            Collect
+          <button
+            className="tt-btn"
+            type="button"
+            onClick={() => {
+              collectAll();
+              setWelcomeBack(null);
+            }}
+          >
+            Collect everything
           </button>
         </Modal>
       )}
@@ -596,6 +720,10 @@ function TownTab({
   onPick,
   onUpgrade,
   onRush,
+  onCollect,
+  onCollectAll,
+  readyTotal,
+  clock,
 }) {
   const slotCost = game.slotCost(save.slots);
   const bowlCost = game.bowlCost(save.bowlHours);
@@ -609,8 +737,18 @@ function TownTab({
     const out = {};
     for (const b of BUILDINGS) {
       const job = save.jobs?.[b.id];
+      const level = levelOf(save, b.id);
+      const since = save.collected?.[b.id] ?? save.lastSeen ?? now;
+      const ready = PRODUCERS[b.id] ? pending(b.id, level, since, now) : 0;
       out[b.id] = {
-        level: levelOf(save, b.id),
+        level,
+        ready,
+        readyFull: PRODUCERS[b.id] ? ready >= holdCap(b.id, level) : false,
+        res: PRODUCERS[b.id]?.res || null,
+        canUpgrade:
+          !job &&
+          level < maxLevelFor(b.id, levelOf(save, "hall")) &&
+          canAfford(upgradeCostFor(b.id, level), save.res),
         job: job
           ? {
               ...job,
@@ -623,7 +761,7 @@ function TownTab({
       };
     }
     return out;
-  }, [save]);
+  }, [save, clock]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Rough head-count per building, so the panel can say who is there.
   const workingAt = useMemo(() => {
@@ -674,11 +812,15 @@ function TownTab({
           id={picked}
           level={levelOf(save, picked)}
           job={buildingState[picked]?.job}
-          treats={save.treats}
+          ready={buildingState[picked]?.ready || 0}
+          res={save.res}
+          hallLevel={levelOf(save, "hall")}
+          storehouseLevel={levelOf(save, "storehouse")}
           buildersFree={save.builders - Object.keys(save.jobs || {}).length}
           workingHere={workingAt[picked] || 0}
           onUpgrade={() => onUpgrade(picked)}
           onRush={() => onRush(picked)}
+          onCollect={() => onCollect(picked)}
           onClose={() => onPick(null)}
         />
       )}
@@ -737,6 +879,14 @@ function TownTab({
         </div>
       </div>
 
+      {readyTotal > 0 && (
+        <button className="tt-collectall" type="button" onClick={onCollectAll}>
+          <IconTreat size={18} />
+          Collect everything
+          <span className="mono">{Math.floor(readyTotal)}</span>
+        </button>
+      )}
+
       <div className="tt-upgrades">
         <button className="tt-btn wide" type="button" onClick={onBuySlot} disabled={slotsMaxed}>
           <IconHouse size={18} />
@@ -758,7 +908,7 @@ function TownTab({
           const inTown = save.slotted.includes(key);
           const needShards = shardsToLevel(cat.rarity, cat.level);
           const needTreats = game.levelUpTreats(cat.level, RARITIES[cat.rarity].mult);
-          const ready = cat.shards >= needShards && save.treats >= needTreats;
+          const ready = cat.shards >= needShards && T(save) >= needTreats;
           const pct = Math.min(100, (cat.shards / needShards) * 100);
           return (
             <article key={key} className={"tt-card r-" + cat.rarity + (inTown ? " in" : "")}>
@@ -825,7 +975,7 @@ function LitterTab({ save, canPull, pityLeft, onPull }) {
             <button
               className="tt-btn alt"
               type="button"
-              disabled={save.treats < game.pullCostTreats * 10}
+              disabled={T(save) < game.pullCostTreats * 10}
               onClick={() => onPull(10)}
             >
               Pull ×10 · {fmt(game.pullCostTreats * 10)}
@@ -893,7 +1043,7 @@ function BoardTab({ save, onHold }) {
     { name: "tubbymaxi", score: 133_400, hold: "$2,270" },
     {
       name: "you",
-      score: Math.floor(save.treats / 10) + save.pulls * 25,
+      score: Math.floor(T(save) / 10) + save.pulls * 25,
       hold: "$" + fmt(save.hold),
       me: true,
     },

@@ -5,22 +5,48 @@
 // A bottom sheet, not a full-screen modal, on purpose: the player keeps seeing
 // their town while they decide. That is what makes an upgrade feel like it is
 // happening to a place rather than inside a menu.
+//
+// Structured the way Kingshot structures it: what it produces NOW, what it will
+// produce at the next level, the full multi-resource cost with have/need on
+// every line, the build time, and whether a builder is free.
 
-import { BUILDINGS, BUILDING_INFO, MAX_LEVEL, buildSeconds, upgradeCost } from "../../../lib/townConfig";
-import { IconCoin, IconHouse, IconPaw } from "../icons";
+import { BUILDINGS, BUILDING_INFO } from "../../../lib/townConfig";
+import {
+  PRODUCERS,
+  RESOURCES,
+  buildSecondsFor,
+  holdCap,
+  maxLevelFor,
+  ratePerHour,
+  rushCost,
+  shortfall,
+  upgradeCostFor,
+} from "../../../lib/townEconomy";
+import {
+  IconBiscuit,
+  IconCatnip,
+  IconGoldFish,
+  IconHouse,
+  IconPaw,
+  IconStone,
+  IconTreat,
+  IconWood,
+} from "../icons";
 
-const RESOURCE_LABEL = {
-  treats: "Treats",
-  kibble: "Kibble",
-  planks: "Planks",
-  pebbles: "Pebbles",
-  catnip: "Catnip",
+const ICON = {
+  fish: IconTreat,
+  wood: IconWood,
+  stone: IconStone,
+  catnip: IconCatnip,
+  treats: IconBiscuit,
 };
 
 function fmt(n) {
+  n = Math.floor(n || 0);
   if (n >= 1e6) return (n / 1e6).toFixed(2) + "M";
+  if (n >= 1e4) return (n / 1e3).toFixed(0) + "K";
   if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
-  return String(Math.floor(n));
+  return String(n);
 }
 
 function clock(sec) {
@@ -37,21 +63,28 @@ export default function BuildingSheet({
   id,
   level,
   job,
-  treats,
+  ready,
+  res,
+  hallLevel,
+  storehouseLevel,
   buildersFree,
   workingHere,
   onUpgrade,
   onRush,
+  onCollect,
   onClose,
 }) {
   const b = BUILDINGS.find((x) => x.id === id);
   if (!b) return null;
   const info = BUILDING_INFO[id] || {};
+  const prod = PRODUCERS[id];
 
-  const maxed = level >= MAX_LEVEL;
-  const cost = upgradeCost(level);
-  const secs = buildSeconds(level);
-  const canAfford = treats >= cost;
+  const capLevel = maxLevelFor(id, hallLevel);
+  const hallCapped = level >= capLevel && id !== "hall";
+  const cost = upgradeCostFor(id, level);
+  const missing = shortfall(cost, res);
+  const canAfford = Object.keys(missing).length === 0;
+  const secs = buildSecondsFor(id, level);
   const remaining = job ? Math.max(0, (job.finishesAt - Date.now()) / 1000) : 0;
 
   return (
@@ -67,23 +100,34 @@ export default function BuildingSheet({
         </button>
 
         <header className="tt-sheet-head">
-          <span className="tt-sheet-swatch" style={{ background: `#${b.roof.toString(16).padStart(6, "0")}` }} />
+          <span
+            className="tt-sheet-swatch"
+            style={{ background: `#${b.roof.toString(16).padStart(6, "0")}` }}
+          />
           <div>
             <h3>{b.name}</h3>
-            <p className="tt-sheet-lvl">
-              Level {level}
-              {maxed && " · max"}
-            </p>
+            <p className="tt-sheet-lvl">Level {level}</p>
           </div>
         </header>
 
         <p className="tt-sheet-desc">{info.desc}</p>
 
+        {/* what it does now, and what the next level buys */}
         <div className="tt-sheet-stats">
-          {info.produces && (
+          {prod && (
             <div>
               <small>Produces</small>
-              <b>{RESOURCE_LABEL[info.produces] || info.produces}</b>
+              <b>
+                {fmt(ratePerHour(id, level))} {RESOURCES[prod.res].short}/h
+              </b>
+            </div>
+          )}
+          {prod && (
+            <div>
+              <small>Next level</small>
+              <b className="up">
+                {fmt(ratePerHour(id, level + 1))} {RESOURCES[prod.res].short}/h
+              </b>
             </div>
           )}
           {info.unlocksAt && (
@@ -100,6 +144,14 @@ export default function BuildingSheet({
           </div>
         </div>
 
+        {/* ready to collect */}
+        {prod && ready > 0 && (
+          <button className="tt-btn collect" type="button" onClick={onCollect}>
+            Collect {fmt(ready)} {RESOURCES[prod.res].short}
+            {ready >= holdCap(id, level) && <em>· store full</em>}
+          </button>
+        )}
+
         {job ? (
           <div className="tt-sheet-job">
             <div className="tt-sheet-jobrow">
@@ -110,26 +162,38 @@ export default function BuildingSheet({
               <i style={{ width: `${Math.min(100, job.pct * 100)}%` }} />
             </div>
             <button className="tt-btn alt" type="button" onClick={onRush}>
-              Finish now · 12 <IconCoin size={15} />
+              Finish now · {rushCost(remaining)} <IconGoldFish size={16} />
             </button>
-            <p className="tt-sheet-note">
-              A builder is busy until this finishes. More builders means more at once.
-            </p>
+            <p className="tt-sheet-note">A builder is busy until this finishes.</p>
           </div>
-        ) : maxed ? (
-          <p className="tt-sheet-note">This building is at its maximum level.</p>
+        ) : hallCapped ? (
+          <p className="tt-sheet-note locked">
+            Level {level} is the most the Cat Hall allows. Upgrade the Cat Hall to go further.
+          </p>
         ) : (
           <div className="tt-sheet-job">
             <div className="tt-sheet-jobrow">
               <span>Upgrade to level {level + 1}</span>
               <b className="mono">{clock(secs)}</b>
             </div>
-            <div className={"tt-sheet-cost" + (canAfford ? "" : " short")}>
-              <span>Treats</span>
-              <b className="mono">
-                {fmt(treats)} / {fmt(cost)}
-              </b>
+
+            <div className="tt-costs">
+              {Object.entries(cost).map(([k, v]) => {
+                const Icon = ICON[k];
+                const have = res[k] || 0;
+                const short = have < v;
+                return (
+                  <div key={k} className={"tt-cost" + (short ? " short" : "")}>
+                    <span style={{ color: RESOURCES[k].color }}>
+                      <Icon size={17} />
+                    </span>
+                    <b className="mono">{fmt(v)}</b>
+                    <small className="mono">have {fmt(have)}</small>
+                  </div>
+                );
+              })}
             </div>
+
             <button
               className="tt-btn"
               type="button"
@@ -138,7 +202,7 @@ export default function BuildingSheet({
             >
               <IconHouse size={17} />
               {!canAfford
-                ? `Need ${fmt(cost - treats)} more Treats`
+                ? `Short on ${Object.keys(missing).map((k) => RESOURCES[k].short).join(", ")}`
                 : buildersFree <= 0
                   ? "All builders are busy"
                   : "Start upgrade"}

@@ -535,6 +535,23 @@ export async function createTown(host, cats, opts = {}) {
         ov.addChild(chip, t);
       }
 
+      // ready to collect — the bouncing bubble that is the whole reason a
+      // player opens a city builder at all
+      if (st.ready > 0) {
+        const bubble = new Container();
+        bubble.y = -30;
+        const g = new Graphics();
+        g.circle(0, 0, 17).fill(0xffffff);
+        g.circle(0, 0, 17).stroke({ width: 3, color: st.readyFull ? 0xff7a9c : 0xffc327, alignment: 0 });
+        g.moveTo(-6, 14).lineTo(6, 14).lineTo(0, 22).closePath().fill(0xffffff);
+        const dot = new Graphics();
+        const rc = { fish: 0x5bb8e8, wood: 0xc08b4f, stone: 0x8a97ad, catnip: 0x78be4f, treats: 0xf2a03d }[st.res] || 0xf2a03d;
+        dot.circle(0, 0, 8).fill(rc);
+        bubble.addChild(g, dot);
+        bubble.__bounce = true;
+        ov.addChild(bubble);
+      }
+
       // under construction: scaffolding tint + a progress bar
       if (st.job) {
         const bar = new Graphics();
@@ -663,6 +680,7 @@ export async function createTown(host, cats, opts = {}) {
   // ---- the loop ------------------------------------------------------------
   const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
 
+  let bounceT = 0;
   app.ticker.add((ticker) => {
     const dt = Math.min(ticker.deltaMS, 60) / 1000;
 
@@ -758,6 +776,19 @@ export async function createTown(host, cats, opts = {}) {
       }
 
       a.node.zIndex = a.node.y + 1;
+    }
+
+    // bounce the collect bubbles — a still badge does not pull the eye
+    bounceT += dt * 4.2;
+    for (const b of BUILDINGS) {
+      const node = buildingNodes[b.id];
+      if (!node) continue;
+      for (const ch of node.__overlay.children) {
+        if (ch.__bounce) {
+          ch.y = -30 - Math.abs(Math.sin(bounceT)) * 9;
+          ch.scale.set(1 + Math.abs(Math.sin(bounceT)) * 0.06);
+        }
+      }
     }
 
     // Nap House bed counter — the state of the beds, readable at a glance

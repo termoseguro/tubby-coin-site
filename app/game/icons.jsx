@@ -139,3 +139,70 @@ export function IconCoin({ size = 16, ...rest }) {
     </svg>
   );
 }
+
+// ---- resource icons --------------------------------------------------------
+// One per gathered resource. Solid, chunky shapes that stay readable at 18px in
+// the top bar — the bar is glanced at, never studied.
+
+export function IconWood(p) {
+  return (
+    <Svg {...p}>
+      <rect x="3.2" y="8.6" width="17.6" height="7.2" rx="3.6" fill="currentColor" opacity=".35" />
+      <rect x="3.2" y="8.6" width="17.6" height="7.2" rx="3.6" {...S} />
+      <ellipse cx="6.6" cy="12.2" rx="2.1" ry="3.2" fill="currentColor" />
+      <path d="M12.4 9.4h6M12.4 15h6" {...S} strokeWidth="1.6" opacity=".7" />
+    </Svg>
+  );
+}
+
+export function IconStone(p) {
+  return (
+    <Svg {...p}>
+      <path d="M4.6 14.4 8 7.6l6.2-1.2 5.4 5.2-1.6 6.2H6.4Z" fill="currentColor" opacity=".35" />
+      <path d="M4.6 14.4 8 7.6l6.2-1.2 5.4 5.2-1.6 6.2H6.4Z" {...S} />
+      <path d="m8 7.6 2.8 5 6.4-.2M10.8 12.6l-1.2 5.2" {...S} strokeWidth="1.6" opacity=".8" />
+    </Svg>
+  );
+}
+
+export function IconCatnip(p) {
+  return (
+    <Svg {...p}>
+      <path d="M12 20.4V11" {...S} />
+      <path d="M12 12.6C9.4 12.6 5 11 4.4 6.2c4.8-.6 7 2.8 7.6 6.4Z" fill="currentColor" opacity=".4" />
+      <path d="M12 12.6C9.4 12.6 5 11 4.4 6.2c4.8-.6 7 2.8 7.6 6.4Z" {...S} />
+      <path d="M12 11.4c2.6 0 7-1.6 7.6-6.4-4.8-.6-7 2.8-7.6 6.4Z" fill="currentColor" opacity=".4" />
+      <path d="M12 11.4c2.6 0 7-1.6 7.6-6.4-4.8-.6-7 2.8-7.6 6.4Z" {...S} />
+    </Svg>
+  );
+}
+
+export function IconBiscuit(p) {
+  return (
+    <Svg {...p}>
+      <circle cx="12" cy="12" r="8.4" fill="currentColor" opacity=".3" />
+      <circle cx="12" cy="12" r="8.4" {...S} />
+      <circle cx="9.4" cy="10" r="1.35" fill="currentColor" />
+      <circle cx="14.4" cy="9.6" r="1.15" fill="currentColor" />
+      <circle cx="12.6" cy="14.6" r="1.3" fill="currentColor" />
+    </Svg>
+  );
+}
+
+/** Premium currency — a golden fish, distinct from the plain Fish resource. */
+export function IconGoldFish({ size = 22, ...rest }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" {...rest}>
+      <path
+        d="M2.6 12c3.7-4.6 8.3-6.9 13.7-6.9.9 2.2 1.4 4.5 1.4 6.9s-.5 4.7-1.4 6.9C10.9 18.9 6.3 16.6 2.6 12Z"
+        fill="#ffd23f"
+        stroke="#c98a00"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path d="M17.6 8.4 21.6 5v14l-4-3.4" fill="#ffd23f" stroke="#c98a00" strokeWidth="1.8" strokeLinejoin="round" />
+      <circle cx="7.6" cy="11.1" r="1.3" fill="#7a5400" />
+      <path d="M5.4 8.2c1.8-1 3.8-1.4 5.8-1.3" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity=".75" />
+    </svg>
+  );
+}

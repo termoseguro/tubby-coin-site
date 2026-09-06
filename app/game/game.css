@@ -1025,3 +1025,115 @@
   .tt-sheet-wrap { padding: 0; }
   .tt-sheet { max-width: none; border-radius: 28px 28px 0 0; }
 }
+
+/* ---------- resource bar ----------
+   Always on screen, glanced at constantly. Numbers big, caps small, and a
+   resource sitting at its cap turns red because that is the moment to act. */
+.tt-resbar {
+  max-width: 1120px;
+  margin: 14px auto 0;
+  padding: 0 22px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tt-resbar-item {
+  flex: 1 1 118px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--card), var(--card-2));
+  border: 2.5px solid var(--line);
+  box-shadow: inset 0 2px 0 #fff, 0 4px 0 var(--line-2);
+  color: var(--ink);
+  font: inherit;
+  cursor: default;
+}
+.tt-resbar-item.full { border-color: #ff9db1; background: linear-gradient(180deg, #fff, #ffedf1); }
+.tt-resbar-i {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 10px;
+  background: #fff;
+  border: 2px solid var(--line);
+}
+.tt-resbar-n { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.tt-resbar-n b { font-size: 1.02rem; font-weight: 800; }
+.tt-resbar-n small { font-size: 0.66rem; color: var(--ink-soft); font-weight: 700; }
+.tt-resbar-item.gold {
+  cursor: pointer;
+  border-color: var(--g2);
+  box-shadow: inset 0 2px 0 #fff, 0 4px 0 var(--g3);
+  position: relative;
+}
+.tt-resbar-item.gold:hover { filter: brightness(1.03); }
+.tt-resbar-plus {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--g1), var(--g2));
+  color: #6a4300;
+  font-weight: 900;
+  font-size: 0.95rem;
+  line-height: 1;
+  box-shadow: 0 2px 0 var(--g3);
+}
+
+/* ---------- collect all ---------- */
+.tt-collectall {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 14px;
+  font: 800 0.95rem/1 var(--font-body);
+  color: #2f6b46;
+  background: linear-gradient(180deg, #b6f0d2, #7fdcae);
+  border: 2.5px solid #fff;
+  border-radius: 18px;
+  padding: 13px 22px;
+  cursor: pointer;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.8), 0 5px 0 #46a97c;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.tt-collectall:active { transform: translateY(4px); box-shadow: inset 0 2px 0 rgba(255,255,255,.7), 0 1px 0 #46a97c; }
+.tt-collectall span {
+  background: rgba(255, 255, 255, 0.75);
+  padding: 4px 9px;
+  border-radius: 9px;
+  font-weight: 800;
+}
+
+/* ---------- multi-resource upgrade cost ---------- */
+.tt-costs { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
+.tt-cost {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 11px;
+  border-radius: 14px;
+  background: #fff;
+  border: 2px solid var(--line);
+}
+.tt-cost b { font-size: 0.92rem; font-weight: 800; }
+.tt-cost small { font-size: 0.64rem; color: var(--ink-soft); margin-left: auto; }
+.tt-cost.short { border-color: #ff9db1; background: #ffedf1; }
+.tt-cost.short b { color: #99203c; }
+
+.tt-sheet-stats b.up { color: #2f8f5f; }
+.tt-sheet-note.locked { color: var(--g3); font-weight: 700; }
+.tt-btn.collect {
+  width: 100%;
+  margin-bottom: 12px;
+  color: #2f6b46;
+  background: linear-gradient(180deg, #b6f0d2, #7fdcae);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.8), 0 5px 0 #46a97c;
+}
+.tt-btn.collect em { font-style: normal; opacity: 0.7; font-size: 0.82em; }

@@ -47,6 +47,27 @@ art direction is not decoration — for a memecoin audience it *is* the product.
 
 ---
 
+## 1b. The Kingshot model — what we copied and why
+
+The reference is now **Kingshot** (Century Games, $200M+ in its first six
+months, same 4X spine as Whiteout Survival). What we took, and the reason each
+one exists:
+
+| Kingshot | Ours | Why it works |
+|---|---|---|
+| Four gathered resources at a **20 : 20 : 4 : 1** abundance ratio | Fish, Wood (abundant) · Stone (scarce) · Catnip (rare) | Two resources you swim in and two you are always short of. The shortage *is* the product the shop sells into. |
+| Every producer accumulates on its own and **stops when its store is full** | Same, 4-hour store per building | The bubble over the building is the entire reason a player opens the game. The reward is attached to a *place you tap*, not a modal you dismiss. |
+| **Storehouse** caps everything globally | Same | Success itself forces the next upgrade — you literally watch resources being wasted. |
+| **Town Center gates every other building's max level** | Cat Hall does the same | Every route of progress funnels back through one decision, so there is always an obvious next move. |
+| Speed-ups priced by **time remaining** | Same | A nearly-done job is cheap to nudge; a fresh one is not. Cheap nudges are what convert. |
+| Resource bar always on screen with caps | Same | The single most-glanced-at element in the genre. |
+
+Replaced by this: the old single "bowl" that capped all offline earnings. Per
+building accumulation is strictly better — it gives the player five things to
+tap instead of one number to accept.
+
+**Sources:** [Kingshot buildings & resources](https://www.kingshotguide.org/buildings) · [resource ratios and Storehouse](https://kingshotmastery.com/guides/resource-protection-guide) · [revenue and design analysis](https://www.blog.udonis.co/mobile-marketing/mobile-games/kingshot) · [the third-builder bottleneck](https://pocketgamer.biz/monetizer/55614/monetizer-why-the-third-builder-bottleneck-is-crucial-to-monetising-clash-of-cla)
+
 ## 2. Currencies
 
 Introduced in stages, not all at once — six currencies on day one is
