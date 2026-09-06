@@ -35,6 +35,7 @@ import {
   IconTreat,
   IconTrophy,
 } from "./icons";
+import TownCanvas from "./town/TownCanvas";
 import "./game.css";
 
 const SAVE_KEY = "tubbytown.v1";
@@ -513,20 +514,32 @@ function TownTab({ save, collection, onToggle, onLevel, onBuySlot, onBuyBowl }) 
   const slotsMaxed = save.slots >= game.freeSlotLimit;
   const bowlMaxed = save.bowlHours >= game.maxBowlHours;
 
+  // Only cats on shift walk the town — the scene shows who is actually working.
+  const townCats = useMemo(
+    () =>
+      save.slotted
+        .map((k) => save.cats[k])
+        .filter(Boolean)
+        .map((c) => ({ key: `${c.rarity}|${c.art}`, art: c.art, rarity: c.rarity })),
+    [save.slotted, save.cats]
+  );
+
   return (
     <>
-      <SectionHead title="Your town" hint="Only slotted cats earn. Rarer cats earn far more." />
+      <SectionHead
+        title="Your town"
+        hint="Cats on shift walk between the buildings and work. Only they earn — rarer cats earn far more."
+      />
 
-      {/* ---- the scene ----
-          A town has to look inhabited: parallax sky, drifting clouds, a
-          skyline behind, and the cats standing ON ground with shadows and an
-          idle breathing bob — not portraits floating in a grid. */}
-      <div className="tt-scene">
-        <div className="tt-clouds" aria-hidden="true">
-          <i /><i /><i />
-        </div>
-        <div className="tt-skyline" aria-hidden="true" />
-        <div className="tt-scene-glow" aria-hidden="true" />
+      {/* ---- the living town ----
+          A real scene: drawn buildings the cats walk between, each labelled
+          with what it does. Rendered on canvas because DOM does not survive
+          this many moving things. */}
+      <TownCanvas cats={townCats} />
+
+      {/* ---- the slot strip ----
+          Who is on shift, and the empty plots waiting to be filled. */}
+      <div className="tt-scene compact">
         <div className="tt-slots">
           {Array.from({ length: save.slots }).map((_, i) => {
             const key = save.slotted[i];
@@ -576,7 +589,6 @@ function TownTab({ save, collection, onToggle, onLevel, onBuySlot, onBuyBowl }) 
             );
           })}
         </div>
-        <div className="tt-ground" aria-hidden="true" />
       </div>
 
       <div className="tt-upgrades">

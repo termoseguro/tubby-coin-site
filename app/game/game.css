@@ -308,7 +308,39 @@
 .r-legendary { --rc: var(--r-legendary); }
 .r-mythic { --rc: var(--r-mythic); }
 
-/* ---------- the town scene ----------
+/* ---------- the living town (canvas) ---------- */
+.tt-town {
+  position: relative;
+  border-radius: 26px;
+  overflow: hidden;
+  border: 3px solid #fff;
+  background: linear-gradient(180deg, #cfeaff, #ffe3f1);
+  box-shadow: 0 0 0 3px var(--line-2, #ffbcdb), 0 8px 0 var(--line-2, #ffbcdb),
+    0 20px 34px var(--drop-2, rgba(196, 78, 141, 0.2));
+  margin-bottom: 16px;
+  min-height: 180px;
+}
+.tt-town-host { display: block; line-height: 0; }
+.tt-town-host canvas { border-radius: 22px; }
+.tt-town-msg {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: var(--ink);
+  background: linear-gradient(180deg, #cfeaff, #ffe3f1);
+}
+
+/* the slot strip below the town */
+.tt-scene.compact {
+  min-height: 0;
+  padding: 18px 18px 6px;
+  background: linear-gradient(180deg, var(--card), var(--card-2));
+}
+.tt-scene.compact .tt-slots { padding-bottom: 10px; }
+
+/* ---------- legacy CSS scene (kept for the compact strip) ----------
    A place, not a shelf: pastel sky, drifting clouds, a candy skyline, ground
    the cats stand on, and idle breathing so the town is never still. */
 .tt-scene {
