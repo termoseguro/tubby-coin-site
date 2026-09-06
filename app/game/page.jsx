@@ -37,6 +37,8 @@ import {
 } from "./icons";
 import TownCanvas from "./town/TownCanvas";
 import BuildingSheet from "./town/BuildingSheet";
+import QuestBook from "./town/QuestBook";
+import { claimableCount } from "../../lib/townQuests";
 import { BUILDINGS, BUILDING_INFO } from "../../lib/townConfig";
 import ResourceBar from "./town/ResourceBar";
 import {
@@ -53,6 +55,8 @@ import {
   storeCap,
   upgradeCostFor,
   BOOST,
+  catPower,
+  crewPower,
   MAX_PER_BUILDING,
   RESOURCE_USES,
   REFINERS,
@@ -103,6 +107,10 @@ function freshSave() {
     extraSlots: 0,
     // active building boosts: { [buildingId]: endsAt }
     boosts: {},
+    // where the player has moved buildings to
+    positions: {},
+    // quest rewards already taken
+    claimed: {},
   };
 }
 
@@ -121,9 +129,21 @@ const levelsOf = (s) => {
 const totalSlots = (s) => workerCap(levelOf(s, "nap")) + (s.extraSlots || 0);
 const assignedCount = (s) => Object.keys(s.assign || {}).length;
 
-/** Which building each cat works at. Read from the player's own assignment, so
- *  the panel, the canvas and the production maths can never disagree. */
+/** Crew POWER per building, not head count. A Legendary pulls far more weight
+ *  than a stray, and that difference has to reach the production maths or
+ *  rarity is decoration. */
 function catsPerBuilding(s) {
+  const out = {};
+  for (const [key, id] of Object.entries(s.assign || {})) {
+    const cat = s.cats[key];
+    if (!cat) continue;
+    out[id] = (out[id] || 0) + catPower(cat.rarity, cat.level);
+  }
+  return out;
+}
+
+/** Head count per building, for the slot UI. */
+function headsPerBuilding(s) {
   const out = {};
   for (const id of Object.values(s.assign || {})) out[id] = (out[id] || 0) + 1;
   return out;
@@ -142,7 +162,7 @@ function pendingAt(s, id, now = Date.now(), cats = null) {
   const hours = Math.max(0, (now - since) / 3_600_000);
   const here = (cats || catsPerBuilding(s))[id] || 0;
   const boosted = (s.boosts?.[id] || 0) > now ? BOOST.multiplier : 1;
-  const rate = effectiveRate(id, level, { catsHere: here, starving: isStarving(s) }) * boosted;
+  const rate = effectiveRate(id, level, { power: here, starving: isStarving(s) }) * boosted;
   return Math.min(holdCap(id, level) * boosted, Math.floor(rate * hours));
 }
 
@@ -173,6 +193,8 @@ function migrate(s) {
   if (!s.assign) s.assign = {};
   if (s.extraSlots == null) s.extraSlots = 0;
   if (!s.boosts) s.boosts = {};
+  if (!s.positions) s.positions = {};
+  if (!s.claimed) s.claimed = {};
   delete s.treats;
   return s;
 }
@@ -207,6 +229,8 @@ export default function TubbyTown() {
   const [tab, setTab] = useState("town");
   const [pullResult, setPullResult] = useState(null);
   const [picked, setPicked] = useState(null);
+  const [moving, setMoving] = useState(null);
+  const [book, setBook] = useState(false);
   const [welcomeBack, setWelcomeBack] = useState(null);
   const [toast, setToast] = useState(null);
   // A once-a-second clock. Production accrues against wall time now, so the
@@ -673,6 +697,59 @@ export default function TubbyTown() {
     [flash]
   );
 
+  /** Put the strongest cats to work, best first, spreading them so no building
+   *  is left empty. Saves the player a dozen taps and teaches the ordering:
+   *  the cats it picks first are the ones worth pulling for. */
+  const autoAssign = useCallback(() => {
+    setSave((s) => {
+      if (!s) return s;
+      const slots = totalSlots(s);
+      const ranked = Object.entries(s.cats)
+        .map(([key, c]) => ({ key, ...c, p: catPower(c.rarity, c.level) }))
+        .sort((a, b) => b.p - a.p)
+        .slice(0, slots);
+      const producers = Object.keys(PRODUCERS);
+      const assign = {};
+      const per = {};
+      // round-robin the best cats across the buildings, so the strongest cat
+      // lands somewhere different each pass rather than stacking in one shed
+      ranked.forEach((c, i) => {
+        for (let t = 0; t < producers.length; t++) {
+          const id = producers[(i + t) % producers.length];
+          if ((per[id] || 0) < MAX_PER_BUILDING) {
+            assign[c.key] = id;
+            per[id] = (per[id] || 0) + 1;
+            return;
+          }
+        }
+      });
+      const n = Object.keys(assign).length;
+      flash(`${n} cat${n === 1 ? "" : "s"} put to work.`);
+      return { ...s, assign };
+    });
+  }, [flash]);
+
+  const moveBuilding = useCallback((id, x, y) => {
+    setSave((s) => (s ? { ...s, positions: { ...s.positions, [id]: { x, y } } } : s));
+    setMoving(null);
+    flash("Moved.");
+  }, [flash]);
+
+  /** Take a quest reward. Claims are keyed by task id and never re-payable. */
+  const claimReward = useCallback(
+    (id, reward) => {
+      setSave((s) => {
+        if (!s || s.claimed?.[id]) return s;
+        const { res } = addCapped(s.res, reward, levelOf(s, "storehouse"));
+        // Golden Fish is never capped by the Storehouse
+        if (reward.gold) res.gold = (s.res.gold || 0) + reward.gold;
+        flash("Reward claimed.");
+        return { ...s, res, claimed: { ...s.claimed, [id]: true } };
+      });
+    },
+    [flash]
+  );
+
   const hardReset = useCallback(() => {
     try {
       localStorage.removeItem(SAVE_KEY);
@@ -697,6 +774,51 @@ export default function TubbyTown() {
 
   const canPull = T(save) >= game.pullCostTreats;
 
+  /** The single most useful thing to do right now, and a way to do it.
+   *
+   *  This is the hook Century Games builds every one of their games around: a
+   *  button that always knows what is next, so the player never opens the game
+   *  and wonders what to touch. It removes all decision friction, which is
+   *  exactly why it works. */
+  function nextAction() {
+    // Collecting comes first: it is what the player is here to do, it is the
+    // common case, and the big gold button in the middle is where they look.
+    if (readyTotal > 0) {
+      return {
+        label: `Collect everything · ${Math.floor(readyTotal)}`,
+        run: () => {
+          setTab("town");
+          collectAll();
+        },
+      };
+    }
+    // Only when there is nothing to collect does the button offer the next
+    // best thing — an empty centre of the screen is wasted.
+    if (claims > 0) {
+      return { label: `${claims} reward${claims === 1 ? "" : "s"} in the Town Book`, run: () => setBook(true) };
+    }
+    if (isStarving(save)) {
+      return { label: "Out of Fish — grow the Kitchen", run: () => { setTab("town"); setPicked("kitchen"); } };
+    }
+    const idle = idleCats(save).length;
+    if (idle > 0 && assignedCount(save) < totalSlots(save)) {
+      return { label: `Put ${idle} idle cat${idle === 1 ? "" : "s"} to work`, run: autoAssign };
+    }
+    const upgradable = BUILDINGS.find((b) => buildingStateTop[b.id]?.canUpgrade);
+    if (upgradable) {
+      return { label: `Upgrade the ${upgradable.name}`, run: () => { setTab("town"); setPicked(upgradable.id); } };
+    }
+    const running = Object.keys(save.jobs || {})[0];
+    if (running) {
+      const b = BUILDINGS.find((x) => x.id === running);
+      return { label: `${b.name} is building…`, run: () => { setTab("town"); setPicked(running); } };
+    }
+    if (canPull) {
+      return { label: "Adopt a new cat", run: () => setTab("litter") };
+    }
+    return { label: "Nothing waiting — the town is working", run: () => setTab("town") };
+  }
+
   // Resources appear as their producer comes online — six counters on day one
   // is how you lose a player on day one.
   const unlockedResources = RESOURCE_ORDER.filter(
@@ -709,6 +831,23 @@ export default function TubbyTown() {
   // a conditional hook is a crash. It is five buildings — cheap every render.
   const catsHere = catsPerBuilding(save);
   const starving = isStarving(save);
+  const claims = claimableCount(save);
+  const levelsTop = levelsOf(save);
+  const buildingStateTop = Object.fromEntries(
+    BUILDINGS.map((b) => {
+      const level = levelOf(save, b.id);
+      return [
+        b.id,
+        {
+          canUpgrade:
+            !save.jobs?.[b.id] &&
+            level < maxLevelFor(b.id, levelsTop.hall) &&
+            unmetRequirements(b.id, level, levelsTop).length === 0 &&
+            canAfford(upgradeCostFor(b.id, level), save.res),
+        },
+      ];
+    })
+  );
   const readyTotal = Object.keys(PRODUCERS).reduce(
     (a, id) => a + pendingAt(save, id, Date.now(), catsHere),
     0
@@ -748,6 +887,15 @@ export default function TubbyTown() {
 
 
       <div className="tt-stage">
+        <button
+          className={"tt-book-btn" + (claims > 0 ? " ready" : "")}
+          type="button"
+          onClick={() => setBook(true)}
+        >
+          <IconBox size={19} />
+          Town Book
+          {claims > 0 && <span className="mono">{claims}</span>}
+        </button>
         {tab === "town" && (
           <TownTab
             save={save}
@@ -764,6 +912,13 @@ export default function TubbyTown() {
             onUnassign={unassignCat}
             onBuySlot={buyWorkerSlot}
             onBoost={boostBuilding}
+            onAutoAssign={autoAssign}
+            moving={moving}
+            onStartMove={(id) => {
+              setMoving(id);
+              setPicked(null);
+            }}
+            onMoved={moveBuilding}
             readyTotal={readyTotal}
             clock={clock}
           />
@@ -785,6 +940,25 @@ export default function TubbyTown() {
       </div>
 
       {/* ---------- bottom nav, over the city ---------- */}
+      {book && (
+        <QuestBook
+          save={save}
+          onClaimTask={claimReward}
+          onClaimChapter={claimReward}
+          onClose={() => setBook(false)}
+        />
+      )}
+
+      {(() => {
+        const a = nextAction();
+        return (
+          <button className="tt-next" type="button" onClick={a.run}>
+            <IconTreat size={18} />
+            {a.label}
+          </button>
+        );
+      })()}
+
       <nav className="tt-tabs">
         {[
           ["town", "Town", <IconHouse key="i" size={19} />],
@@ -902,6 +1076,10 @@ function TownTab({
   onUnassign,
   onBuySlot,
   onBoost,
+  onAutoAssign,
+  moving,
+  onStartMove,
+  onMoved,
   readyTotal,
   clock,
 }) {
@@ -910,6 +1088,7 @@ function TownTab({
   const buildingState = useMemo(() => {
     const now = Date.now();
     const catsPer = catsPerBuilding(save);
+    const heads = headsPerBuilding(save);
     const levels = levelsOf(save);
     const out = {};
     for (const b of BUILDINGS) {
@@ -920,7 +1099,8 @@ function TownTab({
       out[b.id] = {
         level,
         ready,
-        cats,
+        cats: heads[b.id] || 0,
+        power: cats,
         readyFull: PRODUCERS[b.id] ? ready >= holdCap(b.id, level) : false,
         res: PRODUCERS[b.id]?.res || null,
         blocked: unmetRequirements(b.id, level, levels),
@@ -981,7 +1161,10 @@ function TownTab({
         buildingState={buildingState}
         selected={picked}
         napBeds={1 + levelOf(save, "nap") * 2}
+        positions={save.positions}
+        moving={moving}
         onSelect={onPick}
+        onMoved={onMoved}
       />
 
       {picked && (
@@ -996,6 +1179,7 @@ function TownTab({
           blocked={buildingState[picked]?.blocked || []}
           starving={isStarving(save)}
           cats={buildingState[picked]?.cats || 0}
+          power={buildingState[picked]?.power || 0}
           buildersFree={save.builders - Object.keys(save.jobs || {}).length}
           workingHere={workingAt[picked] || 0}
           crew={crewAt(picked)}
@@ -1011,6 +1195,7 @@ function TownTab({
           onUnassign={onUnassign}
           onBuySlot={onBuySlot}
           onBoost={() => onBoost(picked)}
+          onMove={() => onStartMove(picked)}
           onClose={() => onPick(null)}
         />
       )}
@@ -1069,13 +1254,11 @@ function TownTab({
         </div>
       </div>
 
-      {readyTotal > 0 && (
-        <button className="tt-collectall" type="button" onClick={onCollectAll}>
-          <IconTreat size={18} />
-          Collect everything
-          <span className="mono">{Math.floor(readyTotal)}</span>
-        </button>
-      )}
+      <button className="tt-auto" type="button" onClick={onAutoAssign}>
+        <IconPaw size={17} />
+        Auto-assign best cats
+      </button>
+
 
 
     </>

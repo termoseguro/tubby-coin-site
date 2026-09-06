@@ -12,11 +12,13 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export default function TownCanvas({ cats, buildingState, selected, napBeds, onSelect }) {
+export default function TownCanvas({ cats, buildingState, selected, napBeds, positions, moving, onSelect, onMoved }) {
   const hostRef = useRef(null);
   const townRef = useRef(null);
   const selectRef = useRef(onSelect);
   selectRef.current = onSelect;
+  const movedRef = useRef(onMoved);
+  movedRef.current = onMoved;
 
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -36,6 +38,7 @@ export default function TownCanvas({ cats, buildingState, selected, napBeds, onS
         if (cancelled) return;
         const town = await createTown(host, cats, {
           onSelect: (id) => selectRef.current?.(id),
+          onMoved: (id, x, y) => movedRef.current?.(id, x, y),
         });
         if (cancelled) {
           town.destroy();
@@ -65,6 +68,17 @@ export default function TownCanvas({ cats, buildingState, selected, napBeds, onS
   }, [ready, buildingState, selected]);
 
   useEffect(() => {
+    if (!ready) return;
+    townRef.current?.setPositions(positions || {});
+  }, [ready, positions]);
+
+  useEffect(() => {
+    if (!ready) return;
+    if (moving) townRef.current?.beginMove(moving);
+    else townRef.current?.cancelMove();
+  }, [ready, moving]);
+
+  useEffect(() => {
     if (!ready || !napBeds) return;
     townRef.current?.setNapBeds(napBeds);
   }, [ready, napBeds]);
@@ -72,6 +86,7 @@ export default function TownCanvas({ cats, buildingState, selected, napBeds, onS
   return (
     <div className="tt-town">
       <div ref={hostRef} className="tt-town-host" />
+      {moving && <div className="tt-moving">Drag it where you want it, then let go</div>}
       {ready && (
         <div className="tt-zoom">
           <button type="button" aria-label="Zoom in" onClick={() => townRef.current?.zoomIn()}>

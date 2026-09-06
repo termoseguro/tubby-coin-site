@@ -396,6 +396,19 @@ export async function createTown(host, cats, opts = {}) {
       moved = 99;
       return;
     }
+    if (moving) {
+      const w = screenToWorld(e.clientX, e.clientY);
+      const sp = snap(w.x, w.y);
+      moving.node.x = sp.x;
+      moving.node.y = sp.y;
+      moving.node.zIndex = sp.y;
+      ghost.clear();
+      ghost.ellipse(sp.x, sp.y + 6, 92, 30).fill({ color: 0xffd23f, alpha: 0.35 });
+      ghost.ellipse(sp.x, sp.y + 6, 92, 30).stroke({ width: 4, color: 0xffc327, alpha: 0.9 });
+      ghost.visible = true;
+      moved = 99;
+      return;
+    }
     if (!dragging || !last) return;
     const dx = e.clientX - last.x;
     const dy = e.clientY - last.y;
@@ -412,6 +425,10 @@ export async function createTown(host, cats, opts = {}) {
     if (pointers.size === 0) {
       dragging = false;
       last = null;
+      if (moving) {
+        const done = endMove(true);
+        if (done) opts.onMoved?.(done.id, done.x, done.y);
+      }
     }
   };
   canvas.addEventListener("pointerdown", onDown);
@@ -647,6 +664,71 @@ export async function createTown(host, cats, opts = {}) {
 
     buildingNodes[b.id] = node;
     world.addChild(node);
+  }
+
+  // ---- moving a building ---------------------------------------------------
+  // The map has empty land around the ring on purpose. Being able to rearrange
+  // it is what turns "a picture of a town" into "my town".
+  let moving = null;
+
+  function screenToWorld(clientX, clientY) {
+    const r = app.canvas.getBoundingClientRect();
+    return {
+      x: (clientX - r.left - cam.x) / cam.zoom,
+      y: (clientY - r.top - cam.y) / cam.zoom,
+    };
+  }
+
+  const ghost = new Graphics();
+  ghost.visible = false;
+  ghost.zIndex = 99999;
+  world.addChild(ghost);
+
+  function beginMove(id) {
+    const node = buildingNodes[id];
+    if (!node) return;
+    moving = { id, node };
+    node.alpha = 0.75;
+    app.canvas.style.cursor = "grabbing";
+  }
+
+  function endMove(commit) {
+    if (!moving) return null;
+    const { id, node } = moving;
+    node.alpha = 1;
+    ghost.visible = false;
+    moving = null;
+    app.canvas.style.cursor = "grab";
+    return commit ? { id, x: Math.round(node.x), y: Math.round(node.y) } : null;
+  }
+
+  /** Keep a moved building on the grass and clear of the plaza. */
+  function snap(x, y) {
+    const m = 120;
+    let nx = Math.min(WORLD.w - m, Math.max(m, x));
+    let ny = Math.min(WORLD.h - 70, Math.max(HORIZON + 90, y));
+    const dx = nx - PLAZA.x;
+    const dy = (ny - PLAZA.y) * 1.6;
+    const d = Math.hypot(dx, dy);
+    if (d < 230) {
+      const k = 230 / (d || 1);
+      nx = PLAZA.x + dx * k;
+      ny = PLAZA.y + (dy * k) / 1.6;
+    }
+    return { x: nx, y: ny };
+  }
+
+  /** Apply saved positions on top of the layout in townConfig. */
+  function setPositions(positions = {}) {
+    for (const b of BUILDINGS) {
+      const node = buildingNodes[b.id];
+      if (!node) continue;
+      const pos = positions[b.id];
+      node.x = pos ? pos.x : b.x;
+      node.y = pos ? pos.y : b.y;
+      node.zIndex = node.y;
+      node.__baseY = node.y;
+    }
   }
 
   /** Paint per-building state: { hall: { level, job: {pct} , ready } } */
@@ -972,6 +1054,9 @@ export async function createTown(host, cats, opts = {}) {
   return {
     setCats,
     setBuildingState,
+    setPositions,
+    beginMove,
+    cancelMove: () => endMove(false),
     zoomIn: () => {
       const w = app.renderer.width / app.renderer.resolution;
       const h = app.renderer.height / app.renderer.resolution;

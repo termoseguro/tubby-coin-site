@@ -19,6 +19,8 @@ import {
   buildSecondsFor,
   holdCap,
   maxLevelFor,
+  catPower,
+  crewPower,
   effectiveRate,
   ratePerHour,
   rushCost,
@@ -75,6 +77,7 @@ export default function BuildingSheet({
   hallLevel,
   storehouseLevel,
   cats = 0,
+  power = 0,
   blocked = [],
   starving = false,
   buildersFree,
@@ -92,6 +95,7 @@ export default function BuildingSheet({
   onUnassign,
   onBuySlot,
   onBoost,
+  onMove,
   onClose,
 }) {
   const b = BUILDINGS.find((x) => x.id === id);
@@ -117,6 +121,9 @@ export default function BuildingSheet({
       >
         <button className="tt-sheet-x" type="button" aria-label="Close" onClick={onClose}>
           ✕
+        </button>
+        <button className="tt-sheet-move" type="button" onClick={onMove}>
+          Move
         </button>
 
         <header className="tt-sheet-head">
@@ -160,7 +167,7 @@ export default function BuildingSheet({
                       const Icon = ICON[prod.res];
                       return <Icon size={16} />;
                     })()}{" "}
-                    {fmt(effectiveRate(id, level, { catsHere: cats, starving }))}/h
+                    {fmt(effectiveRate(id, level, { power, starving }))}/h
                   </span>
                 </div>
               </div>
@@ -185,9 +192,7 @@ export default function BuildingSheet({
         {prod && (
           <div className="tt-crew">
             <div className="tt-crew-head">
-              <small>
-                Crew · ×{staffing(crew.length)} output
-              </small>
+              <small>Crew · ×{staffing(power).toFixed(2)} output</small>
               <b className="mono">
                 {slotsUsed}/{slotsTotal} spots used
               </b>
@@ -207,6 +212,7 @@ export default function BuildingSheet({
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={c.art} alt="" />
                       <span>×</span>
+                      <em>{catPower(c.rarity, c.level).toFixed(1)}</em>
                     </button>
                   );
                 }
@@ -244,7 +250,7 @@ export default function BuildingSheet({
             <div>
               <small>Next level makes</small>
               <b className="up">
-                {fmt(effectiveRate(id, level + 1, { catsHere: cats, starving }))}/h
+                {fmt(effectiveRate(id, level + 1, { power, starving }))}/h
               </b>
             </div>
           )}
