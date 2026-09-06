@@ -1,5 +1,8 @@
 # Tubby Town — monetisation & reward economy
 
+> Governed by **the three rules** in `roadmap.md`: profit, nothing
+> hackable, healthy ecosystem — in that order.
+
 **The rule above every rule: profit.** Everything here is built to serve that.
 Which is exactly why some of it says "do not do X" — the failure modes below
 are the ones that destroy the revenue, not the ones that offend anyone.
@@ -48,6 +51,61 @@ Ranked by how much they matter, from the genre's own data:
 
 ---
 
+## 2.5 The in-game currency — $TUBBY or SOL?
+
+**Decision: both rails, with $TUBBY discounted.**
+
+The flywheel argument for $TUBBY is correct and it is the strongest strategic
+idea in the project: if players must buy $TUBBY to spend it, **every purchase
+is trading volume, volume is creator fees, and fees are the reward pool that
+brings the next player in.** The player's spending funds the player's own
+reward. There is no better marketing than that, and it is exactly what
+CrimeOnChain is built on.
+
+Three real problems stop it from being $TUBBY-only:
+
+1. **Friction kills conversion.** A newcomer would need: fiat → SOL → swap to
+   $TUBBY → approve → spend. Every step loses a large share of users, and the
+   people we lose are precisely the non-crypto players we most want.
+2. **Telegram forbids it.** Digital goods in a Mini App must go through
+   Telegram Stars. A second rail is mandatory there regardless.
+3. **Volatility.** A pull priced at a flat 1,000 $TUBBY costs 5× more in real
+   money if the token 5×s, and becomes free if it dumps.
+
+So:
+
+- **Everything is priced in USD internally.** The $TUBBY amount is computed at
+  order creation from a price read, and locked for ~5 minutes — the same
+  mechanism the payment flow already uses (`security.md` §3).
+- **Pay with SOL or Stars at full price.**
+- **Pay with $TUBBY at a ~25% discount.**
+
+The discount is the flywheel's engine. It costs a quarter of the margin on
+token-paid sales and in exchange routes buying pressure through the token,
+generates the fees that fund rewards, and gives holders a real reason to hold
+beyond speculation. Most spenders will take a 25% discount; the ones who will
+not were never going to touch a swap anyway.
+
+### What happens to the $TUBBY we receive
+
+This gets **published on the tokenomics page**, because transparency is what
+makes people trust the payout — and trust is the actual product.
+
+| Share | Where it goes | Why |
+|---|---|---|
+| **50%** | Operations (us) | The profit |
+| **30%** | **Burned** | Permanent supply reduction, verifiable on-chain, feeds the existing "bite" narrative |
+| **20%** | Season reward pool | Straight back to players |
+
+Half the game's token revenue visibly returns to the token. That is a story
+worth telling, and it is true.
+
+**What we never do: quietly sell player-spent $TUBBY into the market.** People
+watch that wallet. Visible dumping from the shop wallet is the single fastest
+way to turn a working game into a rug accusation.
+
+---
+
 ## 3. Products
 
 ### 3.1 Starter pack — the conversion tool
@@ -67,15 +125,50 @@ smart choice, which is the whole point.
 
 | Pack | Price | Golden Fish | Bonus |
 |---|---|---|---|
-| Pawful | $0.99 | 100 | — |
-| Pouch | $4.99 | 550 | +10% |
-| Basket | $9.99 | 1,200 | +20% |
-| Crate | $19.99 | 2,500 | +25% |
-| Wagon | $49.99 | 6,500 | +30% |
-| Hoard | $99.99 | 14,000 | +40% |
+| Pawful | $0.99 | 120 | — |
+| Pouch | $4.99 | 660 | +10% |
+| **Basket** | **$9.99** | **1,440** | +20% |
+| Crate | $19.99 | 3,000 | +25% |
+| Wagon | $49.99 | 7,800 | +30% |
+| Hoard | $99.99 | 16,800 | +40% |
 
-Prices are quoted in USD and converted to lamports **at order creation**, then
-locked for ~5 minutes (see `security.md` §3). Telegram sales use Stars.
+Prices are quoted in USD, converted at order creation and locked ~5 minutes
+(`security.md` §3). Telegram uses Stars. **$TUBBY payers get ~25% off.**
+
+### Why this ladder, from the data
+
+- The **top 5% of payers produce 48% of revenue** and the top 10% produce 64%.
+  Without $49.99 and $99.99 tiers, roughly half the money has nowhere to go.
+- **Mid-tier spenders are 30–40% of revenue** — the most under-served segment
+  in most games. The $4.99–$19.99 band is not filler, it is a third of the take.
+- **60–70% of players never spend.** The free game has to be genuinely good on
+  its own, or there is no audience for the spenders to perform in front of.
+
+### On "cheap for the US audience"
+
+A $30 ten-pull is **not** cheap — that is roughly Genshin pricing, the premium
+end of the market. Genshin can charge it because it has years of brand trust.
+A new memecoin game has none, so we price under it:
+
+**Target: a ten-pull costs one $9.99 Basket** (1,440 GF), or about **$7.50 paid
+in $TUBBY.** That is half the premium-market rate — genuinely cheap — while the
+upper packs still capture the whales who produce half the revenue.
+
+### Costs in Golden Fish
+
+| Item | GF | ≈ USD |
+|---|---|---|
+| Single pull | 160 | $1.10 |
+| **Ten-pull** | **1,440** | **$9.99** |
+| Guarantee bundle (30 pulls) | 4,000 | $27 |
+| **Builder Cat 3** | **600** | **~$4** |
+| Builder Cat 4 | 1,500 | ~$10 |
+| Instant nap | 12 | ~$0.08 |
+| Storehouse expansion | 250 | ~$1.70 |
+
+Builder Cat 3 is deliberately cheap. It is not a revenue product, it is the
+**door**: the industry's most common first purchase, and a first purchase
+strongly predicts every purchase after it.
 
 ### 3.3 VIP — cumulative, permanent, never resets
 
@@ -86,7 +179,7 @@ progress toward permanent perks.
 | VIP | Cumulative EXP | Perks (cumulative) |
 |---|---|---|
 | **1** | 500 | +1 free daily pull · +10% offline cap |
-| **2** | 2,000 | Bigger Pantry cap · −10% construction time |
+| **2** | 2,000 | Bigger Storehouse cap · −10% construction time |
 | **3** | 6,000 | Auto-collect resources · Happiness decays 20% slower |
 | **4** | 15,000 | 2nd free daily pull · 1 free instant-nap per day |
 | **5** | 40,000 | Exclusive skin · name colour · profile aura |
@@ -100,7 +193,7 @@ progress toward permanent perks.
 > protects its free population deliberately — the F2P crowd *is* the product
 > the spender is buying status in front of.
 
-### 3.4 Golden Litter Box + tickets — selling certainty
+### 3.4 Golden Adoption + tickets — selling certainty
 
 A premium banner, separate from the free box, with its **own pity counter**.
 
@@ -163,119 +256,101 @@ and a paying player becomes a walking advertisement inside the game.
 
 ## 4. The reward economy
 
-### Sources
+**Season 1 pays a share of creator fees, from day one, delivered in $TUBBY.**
 
-1. **The `treats` bucket — 25% of creator fees.** Already reserved in
-   `lib/config.js`. This is the season pool.
-2. **Plushies.** Physical, ultra-rare, top 10 per season, one per shipping
-   address.
-3. **Scarcity rewards.** Founder cats, exclusive Catdex entries, badges.
-   These cost nothing and carry enormous perceived value.
+Paying in the token rather than SOL is deliberate and it compounds: the winner
+receives $TUBBY, operates with it, trades it — and that trading generates more
+creator fees, which fund the next payout. The reward keeps working for the
+project after it is paid.
 
-Shop revenue is **not** a reward source. It is the profit.
+### How the payout is actually funded — buy, then distribute
 
-### The rules that keep it from collapsing
+The `treats` bucket (25% of creator fees) accumulates in **SOL**. The payout is
+in **$TUBBY**. The bridge between them matters enormously:
 
-1. **Never promise a fixed amount.** Always "a share of the pool, whatever the
-   pool is." A fixed number is a debt the moment volume drops, and volume
-   always drops sometime.
-2. **Payouts are proportional to time-weighted hold × play score** — the
-   anti-sybil design in `tubby-town.md` §3. Splitting capital across wallets
-   gains nothing.
-3. **Communicated as discretionary marketing.** Never as return, yield or
-   income. No investment language, anywhere, ever.
-4. **The pool can be zero.** If fees are zero that week, the payout is zero and
-   the game still works, because the game is the retention and the payout was
-   only the acquisition.
+> **Use the fee SOL to buy $TUBBY on the open market, then distribute that
+> $TUBBY to winners.**
 
-### The grace period vs. sybil — and how the ranking resolves it
+Not from a treasury allocation. The difference is everything:
 
-The **state of grace** (`game-design.md` §1) hands a brand-new account
-abundance on purpose. That is, on its face, an invitation to farm accounts.
-It is the sharpest tension in the whole design, and it is resolved by one
-principle:
+| | Buy-then-distribute | Distribute from treasury |
+|---|---|---|
+| Effect on price | **Real buy pressure** | Pure sell pressure when winners sell |
+| Verifiable | Every buy is an on-chain transaction anyone can check | "Trust us" |
+| Second-order | Winners who sell create volume → more fees | Same, but the supply came from nowhere |
 
-> **Be generous with what cannot leave the account. Be ruthless with what can.**
+It is a buyback that happens to be paid out instead of burned, and it pairs
+with the existing "bite" bucket. It is also the single most convincing
+transparency artefact we can produce: a public buy transaction followed by
+public distributions.
 
-A farmer wants something *extractable*. A new player wants to feel unblocked.
-Those are different things, so we can give one without giving the other.
+### Not 100% goes out
 
-**The rules that make grace safe:**
+The reward pool is a **share** of the fee bucket, not all of it. The remainder
+is operations. The exact split gets published on the tokenomics page and is
+never changed quietly.
 
-1. **Nothing is transferable between accounts. No trading, no gifting, ever.**
-   This single rule kills "farm a thousand accounts and funnel it to the main"
-   outright. Everything granted during grace — Treats, Planks, Pebbles, Kibble
-   — is bound to the account and worthless outside it.
-2. **Grace gives soft resources, never Golden Fish and never reward
-   eligibility.** A token amount of Golden Fish to teach what it does, and
-   nothing more.
-3. **Grace unlocks over real days, not over actions.** Spread across the first
-   ~7 days, a farmer must *wait* per account, and still ends with nothing
-   extractable.
-4. **Reward eligibility has a floor a fresh account cannot meet:** a minimum
-   time-weighted $TUBBY hold, sampled at random times. The cost of an eligible
-   account is the cost of that hold — so a thousand accounts cost a thousand
-   holds, for the same total payout. No gain, a thousand times the gas.
+The hard constraint stays: **rewards out ≤ fees in.** Never funded from shop
+revenue, never from treasury. If the pool is small this season, the payout is
+small — and the game still works, because the game is the retention and the
+payout is the acquisition.
 
-### The ranking formula
+### Plushies — top 3, two colours
 
-The brief: the board must be **fiercely contested** and **very hard to climb**.
-Those two requirements plus anti-sybil point at the same answer — score must
-come from **depth that takes real time**, not from volume that can be spun up.
+Physical, ultra-rare, and the most cost-efficient reward we have: the cost is
+**fixed and known**, not proportional to how many people play. A cash pool gets
+more expensive as the game succeeds. A plushie does not. It also dedupes sybils
+by itself, through the shipping address.
 
-```
-score  =  town depth  ×  hold multiplier  ×  collection factor
-```
-
-- **Town depth** — Cat Hall level, total building levels, total cat levels.
-  Every one of these is gated by construction timers and Builder Cats, so depth
-  cannot be conjured; it costs weeks, or money to compress weeks.
-- **Hold multiplier** — the existing capped tiers, **1.0× to 2.25×**. Money
-  helps and is visible, but it **caps**. Nobody buys rank #1 outright.
-- **Collection factor** — Catdex completion, which needs many pulls across
-  time.
-
-Why this satisfies all three goals at once:
-
-| Goal | How the formula delivers it |
+| Rank | Reward |
 |---|---|
-| Hard to climb | Depth is timer-gated. There is no shortcut, only acceleration. |
-| Fiercely contested | The hold multiplier caps, so whales and veterans actually fight instead of one wallet ending the contest. |
-| Sybil-proof | A fresh account has near-zero depth and near-zero collection. Score ≈ 0, no matter how many you make. |
+| **1st** | The fee share **+ both plushies (pink and black)** |
+| **2nd** | The **black** plushie |
+| **3rd** | The **pink** plushie |
 
-**Rank decay.** A score that only ever rises turns the top into a museum. Score
-decays with inactivity, so holding a position costs continuous play. This is
-what keeps the board contested *after* launch, which is when it matters.
+Only first place taking both is the right call: it makes rank 1 a genuinely
+different prize rather than a slightly larger one, which is what makes the top
+of the board worth fighting over.
 
-**Launch founder rewards are the exception to watch.** Founder cats and badges
-are genuinely valuable and go to new accounts — exactly what a farmer targets.
-Gate them: pre-registration snapshot, minimum hold, one per wallet, and require
-prior on-chain history (wallet age, real transactions). Freshly created empty
-wallets get nothing.
+One per shipping address, verified before dispatch.
 
-### Why the plushie is the best reward we have
+### Founder packs — paid, limited, and the pre-launch war chest
 
-It is scarce, physical, and emotionally enormous — but its cost is **fixed and
-known**, not proportional to how many people play. A cash pool gets more
-expensive as the game succeeds. A plushie does not. It also dedupes sybils by
-itself through the shipping address.
+Founder cats are **not** given away for pre-registering. They are bought, in a
+limited and expensive pack. Pre-registration gets a wallet on the list and
+early access; the founder cat is a purchase.
 
-Lean on plushies and scarcity harder than on cash. They buy more loyalty per
-dollar than SOL does.
+| Tier | Price | Limit | Contains |
+|---|---|---|---|
+| **Founder** | $49 | 2,000 | Founder badge · 1 exclusive Founder cat · VIP 2 · 3,000 GF |
+| **Gold Founder** | $199 | 300 | Gold badge · 2 exclusive Founder cats · VIP 4 · 15,000 GF · credited by name |
 
-### Launch sequencing — important
+Both cats are **exclusive in appearance, never in power** — Legendary-tier
+stats, permanently unobtainable afterwards, and listed forever in the Catdex as
+a Founder set. Scarcity of identity, not of strength, so the leaderboard stays
+clean (§3.3).
 
-At launch there are **no creator fees yet**: no coin, no volume, no pool.
-Promising SOL payouts on day one creates an obligation with no income behind
-it.
+Sold out means sold out. Re-issuing a "limited" item later is the one thing
+collectors never forgive.
 
-So launch rewards are **scarcity, not cash**:
+> **Sell these only once there is a playable demo.** Selling a founder pack
+> before the game exists is selling a promise; if the build slips, that promise
+> becomes the story. With a demo live it is a pre-order, which is normal — and
+> it front-loads the cash that funds the rest of development.
 
-- Pre-registration → **founder cats**, permanent Catdex entries, a founder badge
-- Early season top ranks → **plushies**
-- Fee-share switches on **only once fees actually exist**, announced then
+### Transparency is the product
 
-This costs nothing, generates real urgency, and creates no debt.
+All of it — the fee split, the reward share, the buy transactions, the
+distribution list, the plushie winners — gets a permanent, plainly written
+section on the **tokenomics page**. Not a promise page: a **receipts** page.
+
+This is not decoration. For a crypto audience, verifiable transparency is the
+single strongest retention and acquisition asset there is, and it is the thing
+that separates a game with a token from a rug. Show the maths, show the
+transactions, and let anyone check them.
+
+Language stays clean throughout: rewards, prizes, pool share. Never return,
+yield, income or investment.
 
 ---
 

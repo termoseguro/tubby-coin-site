@@ -3,6 +3,9 @@
 The full design. `tubby-town.md` is the overview, `roadmap.md` is the plan,
 `security.md` is the threat model. This file is the *what and why*.
 
+> Governed by **the three rules** in `roadmap.md`: profit, nothing
+> hackable, healthy ecosystem — in that order.
+
 Status: **design**. The playable prototype at `/game` is the previous, simpler
 idle/gacha loop and does not implement this yet.
 
@@ -53,13 +56,13 @@ overwhelming. The Cat Hall level gates what exists.
 |---|---|---|
 | **Treats** | Primary soft currency, from the Treat Factory | Start |
 | **Kibble** | Food. Working cats consume it | Start |
-| **Planks** | Construction, from the Scratch Mill | Cat Hall 2 |
-| **Pebbles** | Construction, from the Pebble Pit | Cat Hall 3 |
+| **Planks** | Construction, from the Lumber Yard | Cat Hall 2 |
+| **Pebbles** | Construction, from the Stone Quarry | Cat Hall 3 |
 | **Catnip** | Restores Happiness | Cat Hall 4 |
 | **Golden Fish** | **Premium.** Bought with SOL / Telegram Stars | Start |
 
 Rules:
-- Every soft currency is capped by the **Pantry** level. Hitting the cap is a
+- Every soft currency is capped by the **Storehouse** level. Hitting the cap is a
   designed pressure point (Hay Day's oldest trick).
 - Golden Fish is never earned in meaningful quantities from play. Small
   amounts from milestones only — enough to teach what it does.
@@ -69,18 +72,24 @@ Rules:
 
 ## 3. Buildings
 
-| Building | Does | Notes |
+Names are chosen so the **function is obvious from the name alone** — a player
+should never have to tap a building to find out what it does.
+
+| Building | Does | Why this name |
 |---|---|---|
-| **Cat Hall** | Gates everything: worker cap, building cap, max levels | The spine |
-| **Nap House** | Beds where tired cats restore Stamina | Limited beds = the pressure |
-| **Kitchen** | Produces Kibble | |
+| **Cat Hall** | Gates everything: worker cap, building cap, max levels | The town centre. Already clear |
+| **Adoption Center** | **The gacha.** Where new cats come from | "Litter Box" said nothing about getting cats. This says it exactly, and it is the kindest possible framing of a gacha |
+| **Nap House** | Beds where tired cats restore Stamina | Says rest, says beds |
+| **Kitchen** | Produces Kibble (food) | |
 | **Treat Factory** | Produces Treats | |
-| **Scratch Mill** | Produces Planks | Cats sharpening claws on posts |
-| **Pebble Pit** | Produces Pebbles | |
-| **Catnip Patch** | Produces Catnip | |
-| **Pantry** | Raises storage caps | Forced upgrade, by design |
-| **Litter Box** | The gacha | |
-| **Bell Tower** | Event building — Palis raids, Icy visits | Later phase |
+| **Lumber Yard** | Produces Planks | Visually: cats shredding scratching posts |
+| **Stone Quarry** | Produces Pebbles | |
+| **Catnip Garden** | Produces Catnip | |
+| **Storehouse** | Raises storage caps for everything | "Pantry" implied food only. This stores all resources |
+| **Watchtower** | Event building — spots Palis coming, Icy visits | Says "something is watched for" |
+
+Limited beds in the Nap House are the pressure point; the Storehouse cap is the
+forced upgrade. Both are covered in §4 and `monetization.md`.
 
 Every construction and upgrade takes **real time** and occupies a Builder Cat.
 
@@ -295,6 +304,28 @@ this with limited art and it reads as charming rather than cheap. Upgrade to
 true sprite sheets when the art exists — Palis is the obvious source.
 
 ---
+
+## 11b. The grace period — calibrated
+
+The state of grace must be long enough to create attachment and short enough
+that it is never worth farming. Calibration, to be tuned against real data:
+
+| Day | What the player has | Intent |
+|---|---|---|
+| 1 | Cat Hall 1→2 instantly affordable. 2 Builder Cats. Resources overflow. 3 free pulls | Nothing can block them. They see the loop 5 times in one session |
+| 2–3 | Cat Hall 3, first four buildings up, Storehouse never full | Momentum. The town visibly grows every session |
+| 4–5 | First real timer bites (~2h). Second builder busy | The first *felt* wait, while still progressing |
+| 6–7 | Cat Hall 4. Both builders permanently busy. Storehouse caps hit | The bottleneck arrives — **after** attachment |
+| 8+ | Normal pacing. Builder Cat 3 offer appears | The conversion moment |
+
+Rules that keep this safe from farming (full reasoning in
+`monetization.md` §4):
+
+- Grace grants **only account-bound soft resources** — never Golden Fish
+  beyond a token teaching amount, never reward eligibility.
+- Grace unlocks **over real days**, not over actions, so a farmer must wait
+  per account and still ends with nothing extractable.
+- **Nothing is transferable between accounts.** No trading, no gifting.
 
 ## 12. Design risks to hold the line on
 

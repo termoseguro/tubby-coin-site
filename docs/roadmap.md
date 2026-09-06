@@ -9,6 +9,24 @@ Last updated: 2026-09-06
 Related: `tubby-town.md` (overview) · `game-design.md` (the design) ·
 `monetization.md` (revenue, VIP, rewards, ranking) · `security.md` (threat model)
 
+
+## The three rules
+
+Stated by the project owner, in priority order. Every decision in every
+document here answers to these, in this order.
+
+1. **Profit.** Money in the owner's pocket. This is the point of the project.
+2. **Nothing hackable.** Not the site, not the chain integration, not the game
+   state, not the payments. No exceptions, no "good enough for now" on anything
+   that touches value.
+3. **A healthy ecosystem.** The game and the token have to still be alive in a
+   year for rule 1 to keep paying.
+
+They do not conflict as often as they look like they might. Where a document
+here says "do not do X" despite X looking profitable, it is because X breaks
+rule 2 or rule 3 and therefore stops paying under rule 1. The reasoning is
+always written down next to it — argue with the reasoning, not the rule.
+
 ---
 
 ## Where things stand
@@ -98,7 +116,7 @@ Nothing of value can be attached before this lands.
 
 ### Phase 4 · City builder v1
 - Buildings, construction and upgrade timers, Builder Cats
-- Currencies (staged by Cat Hall level), Pantry caps
+- Currencies (staged by Cat Hall level), Storehouse caps
 - Cat assignment, Stamina, Nap House beds, Happiness
 - Catdex with sets and completion bonuses
 - Fusion and the burn
@@ -112,7 +130,7 @@ Nothing of value can be attached before this lands.
 - **Deliverable:** the thing people screenshot
 
 ### Phase 5.5 · Storefront
-- Starter pack, Golden Fish packs, VIP ladder, Golden Litter Box + tickets,
+- Starter pack, Golden Fish packs, VIP ladder, Golden Adoption Center + tickets,
   monthly pass, season pass, resource top-up, cosmetics
 - Full product spec in `monetization.md`
 - **Deliverable:** the things people actually buy

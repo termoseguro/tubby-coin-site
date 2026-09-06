@@ -1,5 +1,8 @@
 # Tubby Town — threat model & security rules
 
+> Governed by **the three rules** in `roadmap.md`: profit, nothing
+> hackable, healthy ecosystem — in that order.
+
 **Standing rule for this project:** every feature that touches state, currency
 or rewards gets two passes before it ships.
 
@@ -171,7 +174,7 @@ target. New surface, and the defence for each:
 | **Start → cancel → refund loop** to farm resources | Cancel refunds **at most** what was actually spent, is idempotent, and is recorded. Never refund more than the ledger says was deducted |
 | Start more builds than you have builders | Builder availability checked server-side inside the same transaction that starts the build |
 | Upgrade past what the Cat Hall allows | Every upgrade validates the full precondition set server-side: ownership, Cat Hall level, resources, free builder, not already upgrading |
-| Collect more than the Pantry cap | Cap applied server-side at collection time, from the server's record of Pantry level |
+| Collect more than the Storehouse cap | Cap applied server-side at collection time, from the server's record of Storehouse level |
 | Double-collect via concurrent requests | Conditional `UPDATE … WHERE last_collected_at = $expected`; check rows-affected |
 | Assign a cat you do not own (IDOR) | Every cat/building id scoped to the session user |
 | Fuse cats you do not own, or fuse the same cat twice | Consume-and-create in **one transaction**; the fusion result is rolled server-side |
@@ -213,7 +216,7 @@ Status of every attack considered. `open` items block the related feature.
 | 13 | Client declares a build finished | planned | Server-owned `finishes_at` |
 | 14 | Build start→cancel refund farm | planned | Refund ≤ ledger, idempotent |
 | 15 | More builds than builders | planned | Checked in the same transaction |
-| 16 | Collect past the Pantry cap | planned | Cap applied server-side |
+| 16 | Collect past the Storehouse cap | planned | Cap applied server-side |
 | 17 | Double-collect race | planned | Conditional UPDATE + rows-affected |
 | 18 | Fuse cats not owned / double-fuse | planned | Consume+create in one transaction |
 | 19 | Stamina never drains | planned | Derived server-side from worked time |
