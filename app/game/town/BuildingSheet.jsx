@@ -24,6 +24,8 @@ import {
   rushCost,
   staffing,
   workerCap,
+  BOOST,
+  MAX_PER_BUILDING,
   shortfall,
   upgradeCostFor,
 } from "../../../lib/townEconomy";
@@ -77,9 +79,19 @@ export default function BuildingSheet({
   starving = false,
   buildersFree,
   workingHere,
+  crew = [],
+  idle = [],
+  slotsUsed = 0,
+  slotsTotal = 0,
+  slotPrice = 0,
+  boostUntil = 0,
   onUpgrade,
   onRush,
   onCollect,
+  onAssign,
+  onUnassign,
+  onBuySlot,
+  onBoost,
   onClose,
 }) {
   const b = BUILDINGS.find((x) => x.id === id);
@@ -168,15 +180,66 @@ export default function BuildingSheet({
           </div>
         )}
 
-        <div className="tt-sheet-stats">
-          {prod && (
-            <div>
-              <small>Cats working</small>
-              <b>
-                <IconPaw size={14} /> {cats} · ×{staffing(cats)}
+        {/* THE CREW — cats are moved by the player, one tap each. Without this
+            the resources have no lever attached to them at all. */}
+        {prod && (
+          <div className="tt-crew">
+            <div className="tt-crew-head">
+              <small>
+                Crew · ×{staffing(crew.length)} output
+              </small>
+              <b className="mono">
+                {slotsUsed}/{slotsTotal} spots used
               </b>
             </div>
-          )}
+            <div className="tt-crew-row">
+              {Array.from({ length: MAX_PER_BUILDING }).map((_, i) => {
+                const c = crew[i];
+                if (c) {
+                  return (
+                    <button
+                      key={c.key}
+                      type="button"
+                      className={"tt-crew-cat r-" + c.rarity}
+                      onClick={() => onUnassign(c.key)}
+                      title="Take this cat off the job"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={c.art} alt="" />
+                      <span>×</span>
+                    </button>
+                  );
+                }
+                const canAdd = idle.length > 0 && slotsUsed < slotsTotal;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    className="tt-crew-empty"
+                    onClick={() => canAdd && onAssign(idle[0]?.key)}
+                    disabled={!canAdd}
+                    title={
+                      idle.length === 0
+                        ? "Every cat already has a job"
+                        : slotsUsed >= slotsTotal
+                          ? "No worker spots left"
+                          : "Put a cat to work here"
+                    }
+                  >
+                    +
+                  </button>
+                );
+              })}
+            </div>
+            {slotsUsed >= slotsTotal && (
+              <button className="tt-mini gold tt-crew-buy" type="button" onClick={onBuySlot}>
+                Buy a worker spot · {slotPrice} <IconGoldFish size={14} />
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="tt-sheet-stats">
           {prod && (
             <div>
               <small>Next level makes</small>
@@ -204,6 +267,18 @@ export default function BuildingSheet({
             The town is out of Fish — everything runs at a quarter speed until the Kitchen
             catches up.
           </p>
+        )}
+
+        {prod && (
+          boostUntil > Date.now() ? (
+            <p className="tt-sheet-note boosted">
+              Boosted — double output for {clock((boostUntil - Date.now()) / 1000)} more.
+            </p>
+          ) : (
+            <button className="tt-mini boost" type="button" onClick={onBoost}>
+              Boost with {BOOST.catnip} Catnip · double output for 15m
+            </button>
+          )
         )}
 
         {/* ready to collect */}

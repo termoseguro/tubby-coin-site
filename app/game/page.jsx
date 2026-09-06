@@ -52,7 +52,11 @@ import {
   rushCost,
   storeCap,
   upgradeCostFor,
+  BOOST,
+  MAX_PER_BUILDING,
+  RESOURCE_USES,
   REFINERS,
+  extraSlotCost,
   UNLOCKS,
   effectiveRate,
   refine,
@@ -93,6 +97,12 @@ function freshSave() {
     buildings: {},
     jobs: {},
     builders: 2,
+    // which building each cat works at — the player's decision, not a rota
+    assign: {},
+    // worker spots bought with Golden Fish, on top of what the Nap House gives
+    extraSlots: 0,
+    // active building boosts: { [buildingId]: endsAt }
+    boosts: {},
   };
 }
 
@@ -107,17 +117,21 @@ const levelsOf = (s) => {
   return out;
 };
 
-/** Which building each on-shift cat is standing in. One place, so the panel,
- *  the canvas and the production maths never disagree. */
-const WORK_BUILDINGS = ["kitchen", "lumber", "quarry", "garden", "treats"];
+/** Total worker spots: what the Nap House gives, plus any bought. */
+const totalSlots = (s) => workerCap(levelOf(s, "nap")) + (s.extraSlots || 0);
+const assignedCount = (s) => Object.keys(s.assign || {}).length;
+
+/** Which building each cat works at. Read from the player's own assignment, so
+ *  the panel, the canvas and the production maths can never disagree. */
 function catsPerBuilding(s) {
   const out = {};
-  const cap = workerCap(levelOf(s, "nap"));
-  s.slotted.slice(0, cap).forEach((_, i) => {
-    const id = WORK_BUILDINGS[i % WORK_BUILDINGS.length];
-    out[id] = (out[id] || 0) + 1;
-  });
+  for (const id of Object.values(s.assign || {})) out[id] = (out[id] || 0) + 1;
   return out;
+}
+
+/** Cats with no job yet — the pool the assign picker draws from. */
+function idleCats(s) {
+  return Object.keys(s.cats).filter((k) => !s.assign?.[k]);
 }
 
 /** What one building has waiting, taking staffing and hunger into account. */
@@ -127,8 +141,9 @@ function pendingAt(s, id, now = Date.now(), cats = null) {
   const since = s.collected?.[id] ?? s.lastSeen ?? now;
   const hours = Math.max(0, (now - since) / 3_600_000);
   const here = (cats || catsPerBuilding(s))[id] || 0;
-  const rate = effectiveRate(id, level, { catsHere: here, starving: isStarving(s) });
-  return Math.min(holdCap(id, level), Math.floor(rate * hours));
+  const boosted = (s.boosts?.[id] || 0) > now ? BOOST.multiplier : 1;
+  const rate = effectiveRate(id, level, { catsHere: here, starving: isStarving(s) }) * boosted;
+  return Math.min(holdCap(id, level) * boosted, Math.floor(rate * hours));
 }
 
 /** Cats eat. This is why Fish is not just another number, and why the Kitchen
@@ -137,9 +152,7 @@ function applyUpkeep(s, now = Date.now()) {
   const since = s.lastUpkeep || s.lastSeen || now;
   const hours = Math.max(0, (now - since) / 3_600_000);
   if (hours <= 0) return s;
-  const cap = workerCap(levelOf(s, "nap"));
-  const cats = Math.min(s.slotted.length, cap);
-  const eaten = upkeepPerHour(cats) * hours;
+  const eaten = upkeepPerHour(assignedCount(s)) * hours;
   if (eaten <= 0) return { ...s, lastUpkeep: now };
   return {
     ...s,
@@ -157,6 +170,9 @@ function migrate(s) {
     s.res = { ...s.res, treats: Math.max(s.res.treats || 0, Math.floor(s.treats)) };
   }
   if (!s.collected) s.collected = {};
+  if (!s.assign) s.assign = {};
+  if (s.extraSlots == null) s.extraSlots = 0;
+  if (!s.boosts) s.boosts = {};
   delete s.treats;
   return s;
 }
@@ -586,6 +602,77 @@ export default function TubbyTown() {
     });
   }, [flash]);
 
+  /** Put a cat to work at a building. The player picks; nothing is automatic. */
+  const assignCat = useCallback(
+    (buildingId, catKey = null) => {
+      setSave((s) => {
+        if (!s) return s;
+        const here = Object.values(s.assign || {}).filter((b) => b === buildingId).length;
+        if (here >= MAX_PER_BUILDING) {
+          flash(`${MAX_PER_BUILDING} cats is the most one building can hold.`);
+          return s;
+        }
+        if (assignedCount(s) >= totalSlots(s)) {
+          flash("No worker spots left — grow the Nap House or buy one.");
+          return s;
+        }
+        const key = catKey || idleCats(s)[0];
+        if (!key) {
+          flash("Every cat already has a job.");
+          return s;
+        }
+        return { ...s, assign: { ...s.assign, [key]: buildingId } };
+      });
+    },
+    [flash]
+  );
+
+  const unassignCat = useCallback((catKey) => {
+    setSave((s) => {
+      if (!s) return s;
+      const assign = { ...s.assign };
+      delete assign[catKey];
+      return { ...s, assign };
+    });
+  }, []);
+
+  /** Buy a worker spot outright. The Nap House stays the main route; this is
+   *  the impatient one, and it is priced accordingly. */
+  const buyWorkerSlot = useCallback(() => {
+    setSave((s) => {
+      if (!s) return s;
+      const price = extraSlotCost(s.extraSlots || 0);
+      if ((s.res.gold || 0) < price) {
+        flash(`Need ${price} Golden Fish.`);
+        return s;
+      }
+      flash("Worker spot added.");
+      return { ...s, res: { ...s.res, gold: s.res.gold - price }, extraSlots: (s.extraSlots || 0) + 1 };
+    });
+  }, [flash]);
+
+  /** Catnip's own job: double a building's output for a while. Gives the
+   *  rarest resource a purpose that is not "another upgrade line". */
+  const boostBuilding = useCallback(
+    (id) => {
+      setSave((s) => {
+        if (!s) return s;
+        if ((s.boosts?.[id] || 0) > Date.now()) return s;
+        if ((s.res.catnip || 0) < BOOST.catnip) {
+          flash(`Needs ${BOOST.catnip} Catnip.`);
+          return s;
+        }
+        flash("Boosted for 15 minutes.");
+        return {
+          ...s,
+          res: { ...s.res, catnip: s.res.catnip - BOOST.catnip },
+          boosts: { ...s.boosts, [id]: Date.now() + BOOST.seconds * 1000 },
+        };
+      });
+    },
+    [flash]
+  );
+
   const hardReset = useCallback(() => {
     try {
       localStorage.removeItem(SAVE_KEY);
@@ -667,14 +754,16 @@ export default function TubbyTown() {
             collection={collection}
             onToggle={toggleSlot}
             onLevel={levelUp}
-            onBuySlot={buySlot}
-            onBuyBowl={buyBowl}
             picked={picked}
             onPick={setPicked}
             onUpgrade={startUpgrade}
             onRush={rushUpgrade}
             onCollect={collect}
             onCollectAll={collectAll}
+            onAssign={assignCat}
+            onUnassign={unassignCat}
+            onBuySlot={buyWorkerSlot}
+            onBoost={boostBuilding}
             readyTotal={readyTotal}
             clock={clock}
           />
@@ -803,22 +892,19 @@ function TownTab({
   collection,
   onToggle,
   onLevel,
-  onBuySlot,
-  onBuyBowl,
   picked,
   onPick,
   onUpgrade,
   onRush,
   onCollect,
   onCollectAll,
+  onAssign,
+  onUnassign,
+  onBuySlot,
+  onBoost,
   readyTotal,
   clock,
 }) {
-  const slotCost = game.slotCost(save.slots);
-  const bowlCost = game.bowlCost(save.bowlHours);
-  const slotsMaxed = save.slots >= game.freeSlotLimit;
-  const bowlMaxed = save.bowlHours >= game.maxBowlHours;
-
   // What the canvas paints on top of each building: its level, and the
   // progress of any build occupying a builder.
   const buildingState = useMemo(() => {
@@ -860,14 +946,21 @@ function TownTab({
   // Rough head-count per building, so the panel can say who is there.
   const workingAt = useMemo(() => catsPerBuilding(save), [save]);
 
+  /** The cats actually working at a building, with their art. */
+  const crewAt = (id) =>
+    Object.entries(save.assign || {})
+      .filter(([, b]) => b === id)
+      .map(([k]) => ({ key: k, ...save.cats[k] }))
+      .filter((c) => c.art);
+
   // Only cats on shift walk the town — the scene shows who is actually working.
   const townCats = useMemo(
     () =>
-      save.slotted
+      Object.keys(save.assign || {})
         .map((k) => save.cats[k])
         .filter(Boolean)
         .map((c) => ({ key: `${c.rarity}|${c.art}`, art: c.art, rarity: c.rarity })),
-    [save.slotted, save.cats]
+    [save.assign, save.cats]
   );
 
   return (
@@ -905,9 +998,19 @@ function TownTab({
           cats={buildingState[picked]?.cats || 0}
           buildersFree={save.builders - Object.keys(save.jobs || {}).length}
           workingHere={workingAt[picked] || 0}
+          crew={crewAt(picked)}
+          idle={idleCats(save).map((k) => ({ key: k, ...save.cats[k] }))}
+          slotsUsed={assignedCount(save)}
+          slotsTotal={totalSlots(save)}
+          slotPrice={extraSlotCost(save.extraSlots || 0)}
+          boostUntil={save.boosts?.[picked] || 0}
           onUpgrade={() => onUpgrade(picked)}
           onRush={() => onRush(picked)}
           onCollect={() => onCollect(picked)}
+          onAssign={(k) => onAssign(picked, k)}
+          onUnassign={onUnassign}
+          onBuySlot={onBuySlot}
+          onBoost={() => onBoost(picked)}
           onClose={() => onPick(null)}
         />
       )}
@@ -974,16 +1077,6 @@ function TownTab({
         </button>
       )}
 
-      <div className="tt-upgrades">
-        <button className="tt-btn wide" type="button" onClick={onBuySlot} disabled={slotsMaxed}>
-          <IconHouse size={18} />
-          {slotsMaxed ? "Slots 9–12 in the shop" : `+1 slot · ${fmt(slotCost)}`}
-        </button>
-        <button className="tt-btn wide alt" type="button" onClick={onBuyBowl} disabled={bowlMaxed}>
-          <IconBowl size={18} />
-          {bowlMaxed ? `Bowl maxed · ${game.maxBowlHours}h` : `Bowl ${save.bowlHours + game.bowlStep}h · ${fmt(bowlCost)}`}
-        </button>
-      </div>
 
     </>
   );

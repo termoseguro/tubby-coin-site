@@ -6,7 +6,8 @@
 // big, the caps are small, and a resource at its cap turns red because that is
 // the moment the player is meant to act.
 
-import { RESOURCES, RESOURCE_ORDER, storeCap } from "../../../lib/townEconomy";
+import { useState } from "react";
+import { RESOURCES, RESOURCE_ORDER, RESOURCE_USES, storeCap } from "../../../lib/townEconomy";
 import { IconBiscuit, IconCatnip, IconGoldFish, IconStone, IconTreat, IconWood } from "../icons";
 
 const ICON = {
@@ -27,6 +28,10 @@ function fmt(n) {
 }
 
 export default function ResourceBar({ res, storehouseLevel, unlocked, onBuy }) {
+  // Tap a resource to find out what it is FOR. A number with no stated purpose
+  // is a number the player ignores.
+  const [open, setOpen] = useState(null);
+
   return (
     <div className="tt-resbar">
       {RESOURCE_ORDER.filter((id) => unlocked.includes(id)).map((id) => {
@@ -35,7 +40,12 @@ export default function ResourceBar({ res, storehouseLevel, unlocked, onBuy }) {
         const cap = storeCap(storehouseLevel, id);
         const full = have >= cap;
         return (
-          <div key={id} className={"tt-resbar-item" + (full ? " full" : "")} title={RESOURCES[id].name}>
+          <button
+            key={id}
+            type="button"
+            className={"tt-resbar-item" + (full ? " full" : "") + (open === id ? " open" : "")}
+            onClick={() => setOpen(open === id ? null : id)}
+          >
             <span className="tt-resbar-i" style={{ color: RESOURCES[id].color }}>
               <Icon size={19} />
             </span>
@@ -43,7 +53,18 @@ export default function ResourceBar({ res, storehouseLevel, unlocked, onBuy }) {
               <b className="mono">{fmt(have)}</b>
               <small className="mono">/{fmt(cap)}</small>
             </span>
-          </div>
+            {open === id && (
+              <span className="tt-resbar-pop" onClick={(e) => e.stopPropagation()}>
+                <b style={{ color: RESOURCES[id].color }}>{RESOURCES[id].name}</b>
+                <ul>
+                  {RESOURCE_USES[id].map((u) => (
+                    <li key={u}>{u}</li>
+                  ))}
+                </ul>
+                {full && <em>Storehouse full — production is being wasted.</em>}
+              </span>
+            )}
+          </button>
         );
       })}
 

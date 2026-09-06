@@ -68,6 +68,31 @@ tap instead of one number to accept.
 
 **Sources:** [Kingshot buildings & resources](https://www.kingshotguide.org/buildings) · [resource ratios and Storehouse](https://kingshotmastery.com/guides/resource-protection-guide) · [revenue and design analysis](https://www.blog.udonis.co/mobile-marketing/mobile-games/kingshot) · [the third-builder bottleneck](https://pocketgamer.biz/monetizer/55614/monetizer-why-the-third-builder-bottleneck-is-crucial-to-monetising-clash-of-cla)
 
+## 1c. What each resource is FOR
+
+A resource that only pays for building upgrades has no identity — the player
+never thinks about it, they just watch a number climb. In Kingshot, Bread feeds
+troops AND trains them AND heals them; Stone builds AND researches. Several
+destinations each, which is what makes running out of one feel like a *specific*
+problem instead of a generic delay.
+
+| Resource | What it is for |
+|---|---|
+| **Fish** | Feeds every cat on shift, every hour · wakes a tired cat instantly · part of most upgrades |
+| **Wood** | The backbone of every construction · extra worker spots |
+| **Stone** | Construction from level 2 up · training a cat to the next level |
+| **Catnip** | **Boost** a building to double output for 15 minutes · upgrades from level 4 up |
+| **Treats** | Adoption Center pulls · training cats · speeding small jobs |
+| **Golden Fish** | Finish any timer · extra builders · extra worker spots · premium pulls |
+
+This table is shown to the player verbatim: tapping any resource in the top bar
+opens it. A number with no stated purpose is a number that gets ignored.
+
+**Cats are assigned by the player, not by a rota.** Up to three per building,
+and the crew size sets that building's output (×0.45 empty → ×1.2 full). Total
+worker spots come from the Nap House, with extra spots buyable for Golden Fish.
+Without a lever attached to them, resources are just numbers going up.
+
 ## 2. Currencies
 
 Introduced in stages, not all at once — six currencies on day one is
