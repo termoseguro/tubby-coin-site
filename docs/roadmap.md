@@ -7,7 +7,7 @@ session (or a new machine) reads first.
 Last updated: 2026-09-06
 
 Related: `tubby-town.md` (overview) · `game-design.md` (the design) ·
-`security.md` (threat model)
+`monetization.md` (revenue, VIP, rewards, ranking) · `security.md` (threat model)
 
 ---
 
@@ -74,6 +74,8 @@ Related: `tubby-town.md` (overview) · `game-design.md` (the design) ·
 - [ ] Curate **60–150 cats** for the Catdex (25 today) — needs art sourcing
 - [ ] Snapshot NFT rarity → in-game tier mapping, then **freeze it**
 - [ ] Decide season length and plushie count per season
+- [ ] Calibrate the grace period against the ranking formula
+      (`monetization.md` §4) — how much abundance, over how many days
 - [ ] Name the buildings for real (working names in `game-design.md` §3)
 
 ---
@@ -108,6 +110,12 @@ Nothing of value can be attached before this lands.
 - Build sites, scaffolding, completion effects, ambient life
 - Interim: portrait + squash-bob + shadow. Later: real sprite sheets (Palis)
 - **Deliverable:** the thing people screenshot
+
+### Phase 5.5 · Storefront
+- Starter pack, Golden Fish packs, VIP ladder, Golden Litter Box + tickets,
+  monthly pass, season pass, resource top-up, cosmetics
+- Full product spec in `monetization.md`
+- **Deliverable:** the things people actually buy
 
 ### Phase 6 · Payments
 - Server-created orders, Solana Pay single-use references
@@ -149,5 +157,9 @@ Do not relitigate these without a reason:
 - The city always progresses on effort; the gacha only accelerates.
 - Server migration before payment code.
 - Game lives in the same repo and the same Vercel deploy as the site.
+- Rewards out never exceed fees in. Shop revenue is profit, never a reward pool.
+- No fixed payout promises; launch rewards are scarcity, not cash.
+- VIP and cosmetics never buy leaderboard position.
+- Nothing is transferable between accounts. No trading, no gifting.
 - Ship at `tubbycatscoin.com/tubbytown`; register a Tubby Town domain
   defensively and redirect for now.
