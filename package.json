@@ -2,13 +2,14 @@
   "name": "tubby-coin-site",
   "version": "1.0.0",
   "private": true,
-  "description": "$TUBBY — community coin of the tubby cats universe on Solana",
+  "description": "$TUBBY \u2014 community coin of the tubby cats universe on Solana",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "art": "node scripts/gen-town-art.mjs"
+    "art": "node scripts/gen-town-art.mjs",
+    "art:import": "bash scripts/import-art.sh"
   },
   "dependencies": {
     "next": "^14.2.35",

@@ -13,7 +13,7 @@
 //  plain list of cats. Production, stamina and timers belong to the server.
 // ============================================================================
 
-import { Application, Assets, Container, Graphics, Sprite, Text } from "pixi.js";
+import { Application, Assets, Container, Graphics, Rectangle, Sprite, Text } from "pixi.js";
 import { BUILDINGS, HORIZON, LANES, WORLD, workSpot } from "../../../lib/townConfig";
 import { RARITIES } from "../../../lib/gameConfig";
 
@@ -39,18 +39,24 @@ const LABEL = {
  *  on its base point. See docs/art-brief.md for the spec and the prompts.
  *  Returns null when the file is absent so the caller can fall back. */
 async function spriteBuilding(b) {
-  const url = `/town/${b.id}.png`;
-  // Probe first: a dev server answers a missing file with an HTML 404 page,
-  // which the texture loader then chokes on in a way try/catch cannot always
-  // contain. Cheap HEAD request, and it keeps the fallback reliable.
-  try {
-    const head = await fetch(url, { method: "HEAD" });
-    if (!head.ok) return null;
-    const type = head.headers.get("content-type") || "";
-    if (!type.startsWith("image/")) return null;
-  } catch {
-    return null;
+  // WebP first — the same art is ~15x smaller than PNG with the same
+  // transparency, and page weight is conversion on mobile.
+  let url = null;
+  for (const ext of ["webp", "png"]) {
+    const candidate = `/town/${b.id}.${ext}`;
+    try {
+      // Probe first: a dev server answers a missing file with an HTML 404 page,
+      // which the texture loader then chokes on in a way try/catch cannot
+      // always contain.
+      const head = await fetch(candidate, { method: "HEAD" });
+      if (!head.ok) continue;
+      const type = head.headers.get("content-type") || "";
+      if (!type.startsWith("image/")) continue;
+      url = candidate;
+      break;
+    } catch {}
   }
+  if (!url) return null;
 
   let tex;
   try {
@@ -69,10 +75,13 @@ async function spriteBuilding(b) {
   c.addChild(shadow);
 
   const s = new Sprite(tex);
-  const targetW = b.w * 1.5; // art includes margin, so draw a little wider
-  s.scale.set(targetW / tex.width);
+  // Scale by HEIGHT: art proportions vary, but every building must stand the
+  // same "storeys tall" or the street looks broken.
+  const targetH = b.h * 1.75;
+  s.scale.set(targetH / tex.height);
   s.anchor.set(0.5, 1);
   c.addChild(s);
+  c.__art = s;
 
   c.addChild(...namePlate(b, -s.height));
   c.scale.set(b.scale);
@@ -377,19 +386,105 @@ export async function createTown(host, cats, opts = {}) {
 
   // Real art first, drawn placeholder only where a file is still missing — so
   // the town upgrades one building at a time as art lands. See docs/art-brief.md.
+  //
+  // Buildings are static sprites and still fully interactive: a hit area, a
+  // hover lift, a selection ring, and overlays drawn on top for level, build
+  // progress and "ready" badges. This is exactly how the genre does it — no 3D
+  // is involved or needed.
   const buildingNodes = {};
   for (const b of BUILDINGS) {
     const node = (await spriteBuilding(b)) || drawBuilding(b);
+
+    const artH = node.__art ? node.__art.height : b.h + b.h * 0.42;
+    const artW = node.__art ? node.__art.width : b.w + 24;
+
+    // selection ring, under everything, hidden until picked
+    const ring = new Graphics();
+    ring.ellipse(0, 4, artW * 0.52, 18).stroke({ width: 5, color: 0xffd23f, alpha: 0.95 });
+    ring.visible = false;
+    node.addChildAt(ring, 0);
+
+    // overlay slot: level chip, build progress, ready badge
+    const overlay = new Container();
+    overlay.y = -artH - 6;
+    node.addChild(overlay);
+
+    node.__ring = ring;
+    node.__overlay = overlay;
+    node.__artH = artH;
+    node.__baseY = b.y;
+
+    node.eventMode = "static";
+    node.cursor = "pointer";
+    node.hitArea = new Rectangle(-artW / 2, -artH, artW, artH + 22);
+    node.on("pointertap", () => opts.onSelect?.(b.id));
+    node.on("pointerover", () => {
+      node.y = b.y - 6;
+    });
+    node.on("pointerout", () => {
+      node.y = b.y;
+    });
+
     buildingNodes[b.id] = node;
     world.addChild(node);
+  }
+
+  /** Paint per-building state: { hall: { level, job: {pct} , ready } } */
+  function setBuildingState(states = {}, selectedId = null) {
+    for (const b of BUILDINGS) {
+      const node = buildingNodes[b.id];
+      if (!node) continue;
+      node.__ring.visible = b.id === selectedId;
+
+      const st = states[b.id] || {};
+      const ov = node.__overlay;
+      ov.removeChildren().forEach((ch) => ch.destroy({ children: true }));
+
+      // level chip
+      if (st.level) {
+        const chip = new Graphics();
+        const t = new Text({ text: `Lv ${st.level}`, style: { ...LABEL, fontSize: 13, fill: 0x6a4300 } });
+        t.anchor.set(0.5);
+        const cw = t.width + 20;
+        chip.roundRect(-cw / 2, -14, cw, 26, 10).fill(0xffd23f);
+        chip.roundRect(-cw / 2, -14, cw, 26, 10).stroke({ width: 2.5, color: 0xffffff, alignment: 1 });
+        ov.addChild(chip, t);
+      }
+
+      // under construction: scaffolding tint + a progress bar
+      if (st.job) {
+        const bar = new Graphics();
+        const bw = 92;
+        bar.roundRect(-bw / 2, 18, bw, 14, 7).fill(0xffffff);
+        bar.roundRect(-bw / 2, 18, bw, 14, 7).stroke({ width: 2.5, color: 0xe08fbb, alignment: 1 });
+        bar.roundRect(-bw / 2 + 3, 21, Math.max(4, (bw - 6) * st.job.pct), 8, 4).fill(0x57c89a);
+        ov.addChild(bar);
+
+        // drawn, not an emoji — emoji icons are the loudest "a template made
+        // this" tell there is (see app/game/icons.jsx)
+        const hammer = new Graphics();
+        hammer.roundRect(-3, -12, 6, 22, 3).fill(0xb07a4a);
+        hammer.roundRect(-11, -18, 22, 10, 3).fill(0x9aa4b2);
+        hammer.roundRect(-11, -18, 22, 10, 3).stroke({ width: 2, color: 0xffffff, alignment: 1 });
+        hammer.y = -32;
+        hammer.rotation = -0.3;
+        ov.addChild(hammer);
+        if (node.__art) node.__art.tint = 0xcfc4cc;
+      } else if (node.__art) {
+        node.__art.tint = 0xffffff;
+      }
+    }
   }
 
   const fx = new Container();
   app.stage.addChild(fx);
 
   // ---- cats ----------------------------------------------------------------
-  const WORKABLE = BUILDINGS.filter((b) => !["hall", "storehouse", "watchtower"].includes(b.id));
+  const WORKABLE = BUILDINGS.filter(
+    (b) => !["hall", "storehouse", "watchtower", "nap", "adoption"].includes(b.id)
+  );
   const NAP = BUILDINGS.find((b) => b.id === "nap");
+  let napBeds = () => 3;
 
   let agents = [];
 
@@ -399,8 +494,14 @@ export async function createTown(host, cats, opts = {}) {
 
   function sendTo(a, building) {
     a.target = building;
-    const spot = workSpot(building, a.slot);
-    a.lane = laneFor(spot.y);
+    // The Nap House is the one building cats go INSIDE: they walk to the door
+    // and shrink into it. Sleeping is private, beds are limited, and this way
+    // we never need interior art — the bed count on the roof carries the state.
+    const spot =
+      building.id === "nap"
+        ? { x: building.x, y: building.y - 4 }
+        : workSpot(building, a.slot);
+    a.lane = laneFor(LANES[building.row]);
     a.route = [
       { x: a.node.x, y: a.lane },
       { x: spot.x, y: a.lane },
@@ -498,8 +599,13 @@ export async function createTown(host, cats, opts = {}) {
           if (dist < 2) {
             a.leg += 1;
             if (a.leg >= a.route.length) {
-              a.state = a.target.id === "nap" ? "nap" : "work";
-              a.timer = a.target.id === "nap" ? rand(6, 12) : rand(6, 14);
+              if (a.target.id === "nap") {
+                a.state = "entering";
+                a.t = 0;
+              } else {
+                a.state = "work";
+                a.timer = rand(6, 14);
+              }
             }
           } else {
             const step = Math.min(a.speed * dt, dist);
@@ -529,17 +635,69 @@ export async function createTown(host, cats, opts = {}) {
           // occasionally go for a nap, otherwise switch job
           sendTo(a, Math.random() < 0.28 ? NAP : pick(WORKABLE));
         }
+      } else if (a.state === "entering") {
+        // shrink into the door
+        a.t = Math.min(1, a.t + dt / 0.45);
+        a.node.scale.set(1 - a.t * 0.85);
+        a.node.alpha = 1 - a.t;
+        if (a.t >= 1) {
+          a.node.visible = false;
+          a.state = "nap";
+          a.timer = rand(7, 14);
+        }
       } else if (a.state === "nap") {
-        body.y = Math.sin(a.bob * 0.5) * 1.6;
-        body.rotation = 0;
-        a.node.__zzz.visible = true;
-        a.node.__zzz.alpha = 0.55 + 0.45 * Math.sin(a.bob * 1.4);
-        a.node.__zzz.y = -58 - Math.sin(a.bob * 1.4) * 5;
+        // asleep inside — invisible, counted on the Nap House roof instead
         a.timer -= dt;
-        if (a.timer <= 0) sendTo(a, pick(WORKABLE));
+        if (a.timer <= 0) {
+          a.node.visible = true;
+          a.state = "exiting";
+          a.t = 0;
+        }
+      } else if (a.state === "exiting") {
+        a.t = Math.min(1, a.t + dt / 0.4);
+        // slight overshoot on the way out — it reads as "refreshed"
+        const k = a.t < 0.75 ? a.t / 0.75 : 1 + (1 - (a.t - 0.75) / 0.25) * 0.12;
+        a.node.scale.set(0.15 + Math.min(k, 1.12) * 0.85);
+        a.node.alpha = a.t;
+        if (a.t >= 1) {
+          a.node.scale.set(1);
+          a.node.alpha = 1;
+          sendTo(a, pick(WORKABLE));
+        }
       }
 
       a.node.zIndex = a.node.y + 1;
+    }
+
+    // Nap House bed counter — the state of the beds, readable at a glance
+    const napNode = buildingNodes.nap;
+    if (napNode) {
+      const asleep = agents.filter((a) => a.state === "nap" || a.state === "entering").length;
+      if (napNode.__napShown !== asleep) {
+        napNode.__napShown = asleep;
+        if (napNode.__napBadge) napNode.__napBadge.destroy({ children: true });
+        const badge = new Container();
+        badge.y = -napNode.__artH - 40;
+        const beds = napBeds();
+        const t = new Text({
+          text: `${asleep}/${beds} beds`,
+          style: { ...LABEL, fontSize: 13, fill: 0x5d2444 },
+        });
+        t.anchor.set(0.5);
+        const g = new Graphics();
+        const bw = t.width + 22;
+        g.roundRect(-bw / 2, -13, bw, 26, 10).fill(0xe8dcff);
+        g.roundRect(-bw / 2, -13, bw, 26, 10).stroke({ width: 2.5, color: 0xffffff, alignment: 1 });
+        badge.addChild(g, t);
+        if (asleep > 0) {
+          const z = new Text({ text: "z z", style: { ...LABEL, fontSize: 14, fill: 0x9b7fe0 } });
+          z.anchor.set(0.5);
+          z.y = -30;
+          badge.addChild(z);
+        }
+        napNode.addChild(badge);
+        napNode.__napBadge = badge;
+      }
     }
 
     // coins drift up and fade
@@ -560,6 +718,11 @@ export async function createTown(host, cats, opts = {}) {
 
   return {
     setCats,
+    setBuildingState,
+    setNapBeds(n) {
+      napBeds = () => n;
+      if (buildingNodes.nap) buildingNodes.nap.__napShown = -1;
+    },
     destroy() {
       try {
         app.destroy(true, { children: true });

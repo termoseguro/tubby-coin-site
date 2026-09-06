@@ -36,6 +36,8 @@ import {
   IconTrophy,
 } from "./icons";
 import TownCanvas from "./town/TownCanvas";
+import BuildingSheet from "./town/BuildingSheet";
+import { BUILDINGS, buildSeconds, upgradeCost } from "../../lib/townConfig";
 import "./game.css";
 
 const SAVE_KEY = "tubbytown.v1";
@@ -57,8 +59,17 @@ function freshSave() {
     pity: 0,
     hold: 0, // simulated $TUBBY balance — replaced by a real RPC read later
     skin: false,
+    // ---- city builder ----
+    // Levels per building, and the jobs currently occupying a builder.
+    // Timers are wall-clock here; the SERVER owns finishesAt once this is real
+    // (docs/security.md §4b — a timer the client can influence is free money).
+    buildings: {},
+    jobs: {},
+    builders: 2,
   };
 }
+
+const levelOf = (s, id) => s.buildings?.[id] || 1;
 
 // ---- formatting ------------------------------------------------------------
 function fmt(n) {
@@ -89,6 +100,7 @@ export default function TubbyTown() {
   const [save, setSave] = useState(null);
   const [tab, setTab] = useState("town");
   const [pullResult, setPullResult] = useState(null);
+  const [picked, setPicked] = useState(null);
   const [welcomeBack, setWelcomeBack] = useState(null);
   const [toast, setToast] = useState(null);
   const saveRef = useRef(null);
@@ -146,7 +158,23 @@ export default function TubbyTown() {
   useEffect(() => {
     if (!save) return;
     const id = setInterval(() => {
-      setSave((s) => (s ? { ...s, treats: s.treats + townRate(s) * (TICK_MS / 1000) } : s));
+      setSave((s) => {
+        if (!s) return s;
+        let next = { ...s, treats: s.treats + townRate(s) * (TICK_MS / 1000) };
+        // complete any build whose time is up
+        const now = Date.now();
+        const done = Object.entries(s.jobs || {}).filter(([, j]) => j.finishesAt <= now);
+        if (done.length) {
+          const jobs = { ...s.jobs };
+          const buildings = { ...s.buildings };
+          for (const [id, j] of done) {
+            buildings[id] = j.toLevel;
+            delete jobs[id];
+          }
+          next = { ...next, jobs, buildings };
+        }
+        return next;
+      });
     }, TICK_MS);
     return () => clearInterval(id);
   }, [save !== null]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -333,6 +361,51 @@ export default function TubbyTown() {
     [doPull, flash]
   );
 
+  const startUpgrade = useCallback(
+    (id) => {
+      setSave((s) => {
+        if (!s) return s;
+        if (s.jobs?.[id]) return s;
+        const level = levelOf(s, id);
+        const cost = upgradeCost(level);
+        const busy = Object.keys(s.jobs || {}).length;
+        if (busy >= s.builders) {
+          flash("Every builder is busy.");
+          return s;
+        }
+        if (s.treats < cost) {
+          flash("Not enough treats.");
+          return s;
+        }
+        const secs = buildSeconds(level);
+        return {
+          ...s,
+          treats: s.treats - cost,
+          jobs: {
+            ...s.jobs,
+            [id]: { toLevel: level + 1, startedAt: Date.now(), finishesAt: Date.now() + secs * 1000 },
+          },
+        };
+      });
+    },
+    [flash]
+  );
+
+  // Mocked: in the real build this is a purchase, verified before the state
+  // changes — never the other way round (docs/security.md §4b).
+  const rushUpgrade = useCallback(
+    (id) => {
+      setSave((s) => {
+        if (!s || !s.jobs?.[id]) return s;
+        const jobs = { ...s.jobs };
+        jobs[id] = { ...jobs[id], finishesAt: Date.now() };
+        flash("Finished instantly.");
+        return { ...s, jobs };
+      });
+    },
+    [flash]
+  );
+
   const hardReset = useCallback(() => {
     try {
       localStorage.removeItem(SAVE_KEY);
@@ -416,6 +489,10 @@ export default function TubbyTown() {
             onLevel={levelUp}
             onBuySlot={buySlot}
             onBuyBowl={buyBowl}
+            picked={picked}
+            onPick={setPicked}
+            onUpgrade={startUpgrade}
+            onRush={rushUpgrade}
           />
         )}
         {tab === "litter" && (
@@ -508,11 +585,58 @@ function townRate(s) {
 //  TABS
 // ============================================================================
 
-function TownTab({ save, collection, onToggle, onLevel, onBuySlot, onBuyBowl }) {
+function TownTab({
+  save,
+  collection,
+  onToggle,
+  onLevel,
+  onBuySlot,
+  onBuyBowl,
+  picked,
+  onPick,
+  onUpgrade,
+  onRush,
+}) {
   const slotCost = game.slotCost(save.slots);
   const bowlCost = game.bowlCost(save.bowlHours);
   const slotsMaxed = save.slots >= game.freeSlotLimit;
   const bowlMaxed = save.bowlHours >= game.maxBowlHours;
+
+  // What the canvas paints on top of each building: its level, and the
+  // progress of any build occupying a builder.
+  const buildingState = useMemo(() => {
+    const now = Date.now();
+    const out = {};
+    for (const b of BUILDINGS) {
+      const job = save.jobs?.[b.id];
+      out[b.id] = {
+        level: levelOf(save, b.id),
+        job: job
+          ? {
+              ...job,
+              pct: Math.min(
+                1,
+                (now - job.startedAt) / Math.max(1, job.finishesAt - job.startedAt)
+              ),
+            }
+          : null,
+      };
+    }
+    return out;
+  }, [save]);
+
+  // Rough head-count per building, so the panel can say who is there.
+  const workingAt = useMemo(() => {
+    const out = {};
+    const workable = BUILDINGS.filter(
+      (b) => !["hall", "storehouse", "watchtower", "nap", "adoption"].includes(b.id)
+    );
+    save.slotted.forEach((k, i) => {
+      const b = workable[i % workable.length];
+      if (b) out[b.id] = (out[b.id] || 0) + 1;
+    });
+    return out;
+  }, [save.slotted]);
 
   // Only cats on shift walk the town — the scene shows who is actually working.
   const townCats = useMemo(
@@ -532,10 +656,32 @@ function TownTab({ save, collection, onToggle, onLevel, onBuySlot, onBuyBowl }) 
       />
 
       {/* ---- the living town ----
-          A real scene: drawn buildings the cats walk between, each labelled
-          with what it does. Rendered on canvas because DOM does not survive
-          this many moving things. */}
-      <TownCanvas cats={townCats} />
+          A real scene: buildings the cats walk between, each labelled with what
+          it does. Rendered on canvas because DOM does not survive this many
+          moving things. Tapping a building opens its panel — the buildings are
+          static sprites and interactive at the same time, which is exactly how
+          the genre works. */}
+      <TownCanvas
+        cats={townCats}
+        buildingState={buildingState}
+        selected={picked}
+        napBeds={1 + levelOf(save, "nap") * 2}
+        onSelect={onPick}
+      />
+
+      {picked && (
+        <BuildingSheet
+          id={picked}
+          level={levelOf(save, picked)}
+          job={buildingState[picked]?.job}
+          treats={save.treats}
+          buildersFree={save.builders - Object.keys(save.jobs || {}).length}
+          workingHere={workingAt[picked] || 0}
+          onUpgrade={() => onUpgrade(picked)}
+          onRush={() => onRush(picked)}
+          onClose={() => onPick(null)}
+        />
+      )}
 
       {/* ---- the slot strip ----
           Who is on shift, and the empty plots waiting to be filled. */}
