@@ -13,12 +13,17 @@
 import { BUILDINGS, BUILDING_INFO } from "../../../lib/townConfig";
 import {
   PRODUCERS,
+  REFINERS,
   RESOURCES,
+  UNLOCKS,
   buildSecondsFor,
   holdCap,
   maxLevelFor,
+  effectiveRate,
   ratePerHour,
   rushCost,
+  staffing,
+  workerCap,
   shortfall,
   upgradeCostFor,
 } from "../../../lib/townEconomy";
@@ -67,6 +72,9 @@ export default function BuildingSheet({
   res,
   hallLevel,
   storehouseLevel,
+  cats = 0,
+  blocked = [],
+  starving = false,
   buildersFree,
   workingHere,
   onUpgrade,
@@ -112,22 +120,75 @@ export default function BuildingSheet({
 
         <p className="tt-sheet-desc">{info.desc}</p>
 
-        {/* what it does now, and what the next level buys */}
+        {/* THE CHAIN — what goes in, what comes out, what it unblocks.
+            Without this the player is looking at five unrelated timers. */}
+        {(prod || UNLOCKS[id]) && (
+          <div className="tt-chain">
+            {REFINERS[id] && (
+              <div className="tt-chain-step">
+                <small>Uses</small>
+                <div className="tt-chain-res">
+                  {Object.entries(REFINERS[id]).map(([k, per]) => {
+                    const Icon = ICON[k];
+                    return (
+                      <span key={k} style={{ color: RESOURCES[k].color }}>
+                        <Icon size={16} /> {per} per
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {prod && (
+              <div className="tt-chain-step out">
+                <small>Makes</small>
+                <div className="tt-chain-res">
+                  <span style={{ color: RESOURCES[prod.res].color }}>
+                    {(() => {
+                      const Icon = ICON[prod.res];
+                      return <Icon size={16} />;
+                    })()}{" "}
+                    {fmt(effectiveRate(id, level, { catsHere: cats, starving }))}/h
+                  </span>
+                </div>
+              </div>
+            )}
+            {UNLOCKS[id] && (
+              <div className="tt-chain-step">
+                <small>Holds back</small>
+                <div className="tt-chain-res">
+                  <span className="tt-chain-name">
+                    {UNLOCKS[id]
+                      .map((u) => BUILDINGS.find((x) => x.id === u)?.name || u)
+                      .join(", ")}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="tt-sheet-stats">
           {prod && (
             <div>
-              <small>Produces</small>
+              <small>Cats working</small>
               <b>
-                {fmt(ratePerHour(id, level))} {RESOURCES[prod.res].short}/h
+                <IconPaw size={14} /> {cats} · ×{staffing(cats)}
               </b>
             </div>
           )}
           {prod && (
             <div>
-              <small>Next level</small>
+              <small>Next level makes</small>
               <b className="up">
-                {fmt(ratePerHour(id, level + 1))} {RESOURCES[prod.res].short}/h
+                {fmt(effectiveRate(id, level + 1, { catsHere: cats, starving }))}/h
               </b>
+            </div>
+          )}
+          {id === "nap" && (
+            <div>
+              <small>Cats it can hold</small>
+              <b>{workerCap(level)} on shift</b>
             </div>
           )}
           {info.unlocksAt && (
@@ -136,13 +197,14 @@ export default function BuildingSheet({
               <b>{info.unlocksAt(level)}</b>
             </div>
           )}
-          <div>
-            <small>Cats here</small>
-            <b>
-              <IconPaw size={14} /> {workingHere}
-            </b>
-          </div>
         </div>
+
+        {starving && prod && id !== "kitchen" && (
+          <p className="tt-sheet-note warn">
+            The town is out of Fish — everything runs at a quarter speed until the Kitchen
+            catches up.
+          </p>
+        )}
 
         {/* ready to collect */}
         {prod && ready > 0 && (
@@ -165,6 +227,24 @@ export default function BuildingSheet({
               Finish now · {rushCost(remaining)} <IconGoldFish size={16} />
             </button>
             <p className="tt-sheet-note">A builder is busy until this finishes.</p>
+          </div>
+        ) : blocked.length ? (
+          <div className="tt-sheet-job">
+            <div className="tt-sheet-jobrow">
+              <span>Upgrade to level {level + 1}</span>
+              <b className="mono">{clock(secs)}</b>
+            </div>
+            <div className="tt-blocked">
+              <small>Needs first</small>
+              {blocked.map((r) => (
+                <span key={r.id}>
+                  {BUILDINGS.find((b) => b.id === r.id)?.name} level {r.level}
+                </span>
+              ))}
+            </div>
+            <p className="tt-sheet-note locked">
+              Build those up and this unlocks. Nothing in the town moves alone.
+            </p>
           </div>
         ) : hallCapped ? (
           <p className="tt-sheet-note locked">

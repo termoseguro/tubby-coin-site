@@ -198,18 +198,18 @@ function drawBuilding(b) {
 function namePlate(b, topY = 0) {
   // Front row labels sit on the grass below. Back row labels sit ABOVE the
   // roof — otherwise the front row covers them and half the town goes unnamed.
-  const y = b.row === "back" ? topY - 22 : 8;
+  const y = b.row === "back" ? topY - 26 : 14;
 
   const label = new Text({
     text: b.name,
-    style: { ...LABEL, fontSize: 12.5, fill: 0x4a6b38 },
+    style: { ...LABEL, fontSize: 17, fill: 0x3f6030 },
   });
   label.anchor.set(0.5);
-  label.y = y + 8;
+  label.y = y + 12;
 
-  const pw = label.width + 18;
+  const pw = label.width + 24;
   const plate = new Graphics();
-  plate.roundRect(-pw / 2, y, pw, 19, 9).fill({ color: 0xffffff, alpha: 0.78 });
+  plate.roundRect(-pw / 2, y, pw, 26, 12).fill({ color: 0xffffff, alpha: 0.82 });
 
   return [plate, label];
 }
@@ -292,8 +292,10 @@ export async function createTown(host, cats, opts = {}) {
     return { destroy() {}, setCats() {} };
   }
   host.appendChild(app.canvas);
+  // The town IS the screen: fill the stage and crop rather than letterbox.
   app.canvas.style.width = "100%";
-  app.canvas.style.height = "auto";
+  app.canvas.style.height = "100%";
+  app.canvas.style.objectFit = "cover";
   app.canvas.style.display = "block";
 
   // ---- sky -----------------------------------------------------------------
@@ -303,18 +305,19 @@ export async function createTown(host, cats, opts = {}) {
     start: { x: 0, y: 0 },
     end: { x: 0, y: 1 },
     colorStops: [
-      { offset: 0, color: 0xbfe9ff },
-      { offset: 0.55, color: 0xe8f2ff },
-      { offset: 1, color: 0xffe4f2 },
+      { offset: 0, color: 0x8fd8f7 },
+      { offset: 0.45, color: 0xbfe9ff },
+      { offset: 0.78, color: 0xffd9ec },
+      { offset: 1, color: 0xffc2e0 },
     ],
   });
   app.stage.addChild(sky);
 
   // sun glow
   const sun = new Graphics();
-  sun.circle(210, 64, 108).fill({ color: 0xfff3bd, alpha: 0.2 });
-  sun.circle(210, 64, 74).fill({ color: 0xfff6cf, alpha: 0.28 });
-  sun.circle(210, 64, 34).fill({ color: 0xfffbe4, alpha: 0.75 });
+  sun.circle(250, 120, 130).fill({ color: 0xfff3bd, alpha: 0.2 });
+  sun.circle(250, 120, 92).fill({ color: 0xfff6cf, alpha: 0.28 });
+  sun.circle(250, 120, 42).fill({ color: 0xfffbe4, alpha: 0.75 });
   app.stage.addChild(sun);
 
   // ---- clouds --------------------------------------------------------------
@@ -328,7 +331,7 @@ export async function createTown(host, cats, opts = {}) {
     g.ellipse(-30 * s, 6 * s, 26 * s, 15 * s).fill({ color: 0xffffff, alpha: 0.95 });
     g.ellipse(30 * s, 5 * s, 30 * s, 16 * s).fill({ color: 0xffffff, alpha: 0.95 });
     g.x = rand(-100, WORLD.w);
-    g.y = rand(30, 180);
+    g.y = rand(40, 210);
     clouds.addChild(g);
     cloudData.push({ g, speed: rand(4, 11) });
   }
@@ -438,29 +441,29 @@ export async function createTown(host, cats, opts = {}) {
   }
 
   // behind the buildings: hedges along the back edge, a pond, scattered green
-  pond(decoBack, 1290, LY + 66);
-  for (let x = 70; x < LW; x += 96) {
+  pond(decoBack, 1460, LY + 74);
+  for (let x = 70; x < LW; x += 110) {
     if (rnd() > 0.45) tree(decoBack, LX + x + rnd() * 30, LY + 40 + rnd() * 22, 0.72 + rnd() * 0.2, true);
     else bush(decoBack, LX + x + rnd() * 40, LY + 52 + rnd() * 20, 0.7 + rnd() * 0.3);
   }
   for (let i = 0; i < 26; i++) {
     flowers(decoBack, LX + 40 + rnd() * (LW - 80), LY + 30 + rnd() * (LH - 70));
   }
-  fence(decoBack, 150, LANES.back - 46, 5);
-  fence(decoBack, 940, LANES.back - 44, 4);
+  fence(decoBack, 120, LANES.back - 60, 5);
+  fence(decoBack, 1020, LANES.back - 58, 4);
   app.stage.addChild(decoBack);
 
   // in front of the buildings: a few big trees and lampposts that OVERLAP the
   // buildings — occlusion is what turns a flat row into a scene
   const frontProps = [
-    { fn: tree, x: 60, y: 452, s: 1.05 },
-    { fn: tree, x: 372, y: 468, s: 0.95 },
-    { fn: tree, x: 905, y: 466, s: 1.0 },
-    { fn: tree, x: 1385, y: 452, s: 1.05 },
-    { fn: lamppost, x: 640, y: 458 },
-    { fn: lamppost, x: 1180, y: 456 },
-    { fn: bush, x: 250, y: 470, s: 1.1 },
-    { fn: bush, x: 1055, y: 470, s: 1.05 },
+    { fn: tree, x: 40, y: 726, s: 1.45 },
+    { fn: tree, x: 322, y: 740, s: 1.3 },
+    { fn: tree, x: 952, y: 738, s: 1.35 },
+    { fn: tree, x: 1578, y: 724, s: 1.45 },
+    { fn: lamppost, x: 632, y: 730 },
+    { fn: lamppost, x: 1282, y: 728 },
+    { fn: bush, x: 210, y: 744, s: 1.4 },
+    { fn: bush, x: 1005, y: 744, s: 1.35 },
   ];
 
   // ---- world layer (buildings + cats, depth-sorted) ------------------------
@@ -490,7 +493,7 @@ export async function createTown(host, cats, opts = {}) {
 
     // overlay slot: level chip, build progress, ready badge
     const overlay = new Container();
-    overlay.y = b.row === "back" ? -artH - 34 : -artH - 8;
+    overlay.y = b.row === "back" ? -artH - 58 : -artH - 12;
     node.addChild(overlay);
 
     node.__ring = ring;
