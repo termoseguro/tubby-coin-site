@@ -73,6 +73,19 @@ always written down next to it — argue with the reasoning, not the rule.
   standing with shadows and staggered idle breathing, per-cat work bars whose
   speed derives from real production rate
 
+### Phase 1.7 · The living town ✅ (art pending)
+- **PixiJS canvas** under the React UI (`app/game/town/`), dynamically imported
+  so it never touches SSR and stays out of the main bundle
+- Pastel sky with drifting clouds, grass, two streets, ten labelled buildings
+- The real cat portraits walk between buildings on a **WALK → WORK → NAP**
+  state machine, with coins popping off whoever is working
+- Buildings load from `/town/<id>.png` when present and fall back to a drawn
+  placeholder, so the town upgrades **one building at a time** as art lands
+- ⚠ **Blocked on art.** Buildings drawn from primitives read as programmer art
+  and always will. `docs/art-brief.md` has the spec and the ten prompts;
+  `npm run art` generates them all once an OpenAI **API** key is in `.env.local`
+  (a ChatGPT Plus subscription is a different product and does not work)
+
 ### Phase 1.6 · Security posture ✅
 - `security.md` written: threat model, standing two-pass rule (attacker pass,
   then defender pass), attack log
@@ -91,10 +104,9 @@ always written down next to it — argue with the reasoning, not the rule.
 **Open items blocking the build:**
 - [ ] Curate **60–150 cats** for the Catdex (25 today) — needs art sourcing
 - [ ] Snapshot NFT rarity → in-game tier mapping, then **freeze it**
-- [ ] Decide season length and plushie count per season
+- [ ] Decide season length (plushie tiers are settled: top 3, two colours)
 - [ ] Calibrate the grace period against the ranking formula
       (`monetization.md` §4) — how much abundance, over how many days
-- [ ] Name the buildings for real (working names in `game-design.md` §3)
 
 ---
 
@@ -122,12 +134,9 @@ Nothing of value can be attached before this lands.
 - Fusion and the burn
 - **Deliverable:** a real management game, still free, still no payments
 
-### Phase 5 · The living town
-- PixiJS canvas layer under the React UI
-- Cats walking between buildings, per-state animation, resources flying to HUD
-- Build sites, scaffolding, completion effects, ambient life
-- Interim: portrait + squash-bob + shadow. Later: real sprite sheets (Palis)
-- **Deliverable:** the thing people screenshot
+### Phase 5 · The living town — *mostly done, see PAST*
+Remaining: build sites and scaffolding, resources flying to the HUD counters,
+and the real building art (see the blocker below).
 
 ### Phase 5.5 · Storefront
 - Starter pack, Golden Fish packs, VIP ladder, Golden Adoption Center + tickets,
@@ -148,7 +157,8 @@ Nothing of value can be attached before this lands.
 - Time-weighted hold snapshots at random times
 - Proportional payouts from the `treats` fee bucket
 - Funding-graph clustering (Helius) for sybil clusters
-- Top 10 → the ultra-rare collectible plushie, deduped by shipping address
+- Top 3 → plushies: 1st takes the pool share **and both** (pink + black),
+  2nd the black, 3rd the pink. Deduped by shipping address
 - **Deliverable:** the loop that feeds volume back to the coin
 
 ### Phase 8 · Telegram Mini App
