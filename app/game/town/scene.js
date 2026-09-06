@@ -435,10 +435,10 @@ export async function createTown(host, cats, opts = {}) {
     start: { x: 0, y: 0 },
     end: { x: 0, y: 1 },
     colorStops: [
-      { offset: 0, color: 0x7ed0f5 },
-      { offset: 0.1, color: 0xa5e0fb },
-      { offset: 0.2, color: 0xd6f0ff },
-      { offset: 1, color: 0xffd9ec },
+      { offset: 0, color: 0x5cbdf0 },
+      { offset: 0.35, color: 0x8fd6f7 },
+      { offset: 0.7, color: 0xc9ecff },
+      { offset: 1, color: 0xffe0ef },
     ],
   });
   root.addChild(sky);
@@ -461,7 +461,7 @@ export async function createTown(host, cats, opts = {}) {
     g.ellipse(-30 * s, 6 * s, 26 * s, 15 * s).fill({ color: 0xffffff, alpha: 0.95 });
     g.ellipse(30 * s, 5 * s, 30 * s, 16 * s).fill({ color: 0xffffff, alpha: 0.95 });
     g.x = rand(-100, WORLD.w);
-    g.y = rand(40, 210);
+    g.y = rand(16, 96);
     clouds.addChild(g);
     cloudData.push({ g, speed: rand(4, 11) });
   }
