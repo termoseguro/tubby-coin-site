@@ -1,0 +1,597 @@
+/* ============================================================================
+   TUBBY TOWN — prototype styling
+   Reuses the site brand tokens from globals.css (--brand, --gold, --dark…).
+   ========================================================================= */
+
+/* NOTE: the root class is `ttown`, NOT `tt` — globals.css already uses `.tt`
+   for the scrolling hero ticker (inline-block + uppercase). Do not rename. */
+.ttown {
+  --r-common: #cbb6c4;
+  --r-rare: #4ea8ff;
+  --r-epic: #b06bff;
+  --r-legendary: #ffd700;
+  --r-mythic: #ff4d6d;
+  --panel: rgba(56, 13, 36, 0.55);
+  --panel-2: rgba(56, 13, 36, 0.8);
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--brand) 0%, #d9629f 55%, var(--dark) 100%);
+  color: var(--cream);
+  padding-bottom: 80px;
+}
+.ttown.tt-gold {
+  background: linear-gradient(180deg, #f0b64a 0%, #d98f2f 55%, #4a2a12 100%);
+}
+.tt-boot {
+  display: grid;
+  place-items: center;
+  min-height: 60vh;
+  font-weight: 800;
+  font-size: 1.2rem;
+  opacity: 0.8;
+}
+
+/* ---------- header ---------- */
+.tt-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 22px;
+  max-width: 1120px;
+  margin: 0 auto;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+}
+.tt-back {
+  text-decoration: none;
+  font-weight: 700;
+  opacity: 0.9;
+}
+.tt-back:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+.tt-title {
+  font-weight: 900;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tt-proto {
+  font: 700 0.62rem/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  background: var(--gold);
+  color: var(--ink);
+  padding: 5px 8px;
+  border-radius: var(--pill);
+}
+.tt-tier {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.16);
+  padding: 7px 14px;
+  border-radius: var(--pill);
+  white-space: nowrap;
+}
+
+/* ---------- resource strip ---------- */
+.tt-strip {
+  max-width: 1120px;
+  margin: 18px auto 0;
+  padding: 0 22px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.tt-res {
+  background: var(--panel);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tt-res-n {
+  font-weight: 800;
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+.tt-res-l {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.7;
+  font-weight: 700;
+}
+
+/* ---------- tabs ---------- */
+.tt-tabs {
+  max-width: 1120px;
+  margin: 22px auto 0;
+  padding: 0 22px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tt-tab {
+  font: 700 0.95rem var(--font-body);
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--cream);
+  border: 2px solid transparent;
+  padding: 10px 20px;
+  border-radius: var(--pill);
+  cursor: pointer;
+  transition: background 0.14s ease, transform 0.14s ease;
+}
+.tt-tab:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.tt-tab.on {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+/* ---------- body ---------- */
+.tt-body {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 26px 22px 0;
+}
+.tt-h {
+  font-size: 1.6rem;
+  margin: 26px 0 6px;
+}
+.tt-h:first-child {
+  margin-top: 0;
+}
+.tt-h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 30px 0 6px;
+}
+.tt-sub {
+  opacity: 0.78;
+  max-width: 62ch;
+  margin-bottom: 18px;
+  font-size: 0.95rem;
+}
+.tt-p {
+  margin-bottom: 14px;
+}
+.tt-warn {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+/* ---------- rarity edges ---------- */
+.r-common {
+  --rc: var(--r-common);
+}
+.r-rare {
+  --rc: var(--r-rare);
+}
+.r-epic {
+  --rc: var(--r-epic);
+}
+.r-legendary {
+  --rc: var(--r-legendary);
+}
+.r-mythic {
+  --rc: var(--r-mythic);
+}
+
+/* ---------- town slots ---------- */
+.tt-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.tt-slot {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 3px solid var(--rc, rgba(255, 255, 255, 0.18));
+  background: var(--panel-2);
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.14s ease;
+}
+.tt-slot:hover {
+  transform: translateY(-3px);
+}
+.tt-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.tt-slot.empty {
+  display: grid;
+  place-items: center;
+  border-style: dashed;
+  cursor: default;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.tt-slot.empty:hover {
+  transform: none;
+}
+.tt-lvl {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font: 800 0.72rem var(--font-mono);
+  background: var(--ink);
+  color: var(--cream);
+  padding: 3px 8px;
+  border-radius: var(--pill);
+}
+.tt-slot-rate {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  font-weight: 800;
+  font-size: 0.8rem;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  padding: 16px 8px 7px;
+  color: #fff;
+}
+
+.tt-upgrades {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.tt-upgrades .btn {
+  font-size: 0.9rem;
+  padding: 12px 22px;
+}
+
+/* ---------- collection grid ---------- */
+.tt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+.tt-card {
+  background: var(--panel-2);
+  border: 2px solid var(--rc, rgba(255, 255, 255, 0.14));
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.tt-card > img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+.tt-card-b {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tt-card-r {
+  font-weight: 800;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.tt-card-l,
+.tt-shards {
+  font-size: 0.85rem;
+  opacity: 0.82;
+}
+.tt-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.tt-mini {
+  flex: 1;
+  font: 700 0.8rem var(--font-body);
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--cream);
+  border: none;
+  padding: 8px 10px;
+  border-radius: var(--pill);
+  cursor: pointer;
+  transition: background 0.14s ease;
+}
+.tt-mini:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.26);
+}
+.tt-mini.on {
+  background: var(--gold);
+  color: var(--ink);
+}
+.tt-mini:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---------- litter box ---------- */
+.tt-pullbox {
+  background: var(--panel);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius);
+  padding: 22px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.tt-pity {
+  font-size: 0.82rem;
+  opacity: 0.75;
+  flex-basis: 100%;
+}
+.tt-odds,
+.tt-board {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.tt-odds th,
+.tt-board th {
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.7;
+  padding: 12px 14px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.14);
+}
+.tt-odds td,
+.tt-board td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.tt-odds-total td {
+  font-weight: 800;
+  border-bottom: none;
+  background: rgba(255, 255, 255, 0.06);
+}
+.tt-board tr.me td {
+  background: rgba(255, 215, 0, 0.16);
+  font-weight: 800;
+}
+.tt-rules {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.92rem;
+  opacity: 0.85;
+}
+.tt-rules li::before {
+  content: "→ ";
+  color: var(--gold);
+  font-weight: 800;
+}
+
+/* ---------- sybil simulator ---------- */
+.tt-sim {
+  background: var(--panel);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.tt-simlabel {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 14px;
+}
+.tt-simlabel input {
+  width: 100%;
+  margin-top: 10px;
+  accent-color: var(--gold);
+}
+.tt-simout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.tt-simout > div {
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: 2px solid;
+}
+.tt-simout .ok {
+  border-color: rgba(120, 230, 160, 0.5);
+  background: rgba(120, 230, 160, 0.1);
+}
+.tt-simout .bad {
+  border-color: rgba(255, 90, 110, 0.55);
+  background: rgba(255, 90, 110, 0.12);
+}
+.tt-simout small {
+  opacity: 0.7;
+  font-size: 0.78rem;
+}
+.tt-holds {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tt-holds .tt-mini {
+  flex: 0 0 auto;
+  padding: 9px 16px;
+}
+
+/* ---------- shop ---------- */
+.tt-shop {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+}
+.tt-item {
+  position: relative;
+  background: var(--panel-2);
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tt-item.best {
+  border-color: var(--gold);
+}
+.tt-badge {
+  position: absolute;
+  top: -11px;
+  left: 16px;
+  font: 800 0.65rem var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: var(--gold);
+  color: var(--ink);
+  padding: 4px 10px;
+  border-radius: var(--pill);
+}
+.tt-item h4 {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.tt-item p {
+  font-size: 0.88rem;
+  opacity: 0.78;
+  flex: 1;
+}
+.tt-item .btn {
+  width: 100%;
+  padding: 12px;
+}
+.tt-danger {
+  margin-top: 30px;
+  padding-top: 22px;
+  border-top: 2px solid rgba(255, 255, 255, 0.12);
+}
+
+/* ---------- modal ---------- */
+.tt-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(20, 5, 14, 0.72);
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  backdrop-filter: blur(3px);
+}
+.tt-modal-in {
+  position: relative;
+  background: var(--dark);
+  border: 3px solid var(--gold);
+  border-radius: 26px;
+  padding: 30px;
+  max-width: 640px;
+  width: 100%;
+  max-height: 86vh;
+  overflow: auto;
+  text-align: center;
+}
+.tt-modal-in h3 {
+  font-size: 1.5rem;
+  margin-bottom: 14px;
+}
+.tt-x {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.3rem;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.tt-x:hover {
+  opacity: 1;
+}
+.tt-pulls {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.tt-pull {
+  border: 3px solid var(--rc);
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+}
+.tt-pull.r-legendary,
+.tt-pull.r-mythic {
+  box-shadow: 0 0 18px var(--rc);
+}
+.tt-pull img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+.tt-pull figcaption {
+  font: 800 0.68rem var(--font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rc);
+  padding: 6px 4px;
+}
+.tt-dupe {
+  display: block;
+  font-size: 0.62rem;
+  color: var(--cream);
+  opacity: 0.65;
+  letter-spacing: 0;
+}
+
+/* ---------- toast ---------- */
+.tt-toast {
+  position: fixed;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120;
+  background: var(--ink);
+  color: var(--cream);
+  font-weight: 700;
+  padding: 13px 24px;
+  border-radius: var(--pill);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 760px) {
+  .tt-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+  .tt-res-n {
+    font-size: 1.15rem;
+  }
+  .tt-bar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .tt-simout {
+    grid-template-columns: 1fr;
+  }
+  .tt-body {
+    padding-top: 20px;
+  }
+}
