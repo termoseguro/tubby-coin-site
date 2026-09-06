@@ -72,6 +72,16 @@ export default function TownCanvas({ cats, buildingState, selected, napBeds, onS
   return (
     <div className="tt-town">
       <div ref={hostRef} className="tt-town-host" />
+      {ready && (
+        <div className="tt-zoom">
+          <button type="button" aria-label="Zoom in" onClick={() => townRef.current?.zoomIn()}>
+            +
+          </button>
+          <button type="button" aria-label="Zoom out" onClick={() => townRef.current?.zoomOut()}>
+            −
+          </button>
+        </div>
+      )}
       {!ready && !failed && <div className="tt-town-msg">Building the town…</div>}
       {failed && <div className="tt-town-msg">The town could not load here.</div>}
     </div>

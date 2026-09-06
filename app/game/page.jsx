@@ -684,6 +684,9 @@ export default function TubbyTown() {
             {tab === "litter" && (
               <LitterTab save={save} canPull={canPull} pityLeft={pityLeft} onPull={doPull} />
             )}
+            {tab === "album" && (
+              <AlbumTab collection={collection} save={save} onToggle={toggleSlot} onLevel={levelUp} />
+            )}
             {tab === "board" && (
               <BoardTab save={save} onHold={(h) => setSave((s) => ({ ...s, hold: h }))} />
             )}
@@ -696,7 +699,8 @@ export default function TubbyTown() {
       <nav className="tt-tabs">
         {[
           ["town", "Town", <IconHouse key="i" size={19} />],
-          ["litter", "Litter Box", <IconBox key="i" size={19} />],
+          ["litter", "Adoption", <IconBox key="i" size={19} />],
+          ["album", "Album", <IconPaw key="i" size={19} />],
           ["board", "Board", <IconTrophy key="i" size={19} />],
           ["shop", "Shop", <IconCart key="i" size={19} />],
         ].map(([id, label, icon]) => (
@@ -981,59 +985,93 @@ function TownTab({
         </button>
       </div>
 
-      <div className="tt-offstage">
+    </>
+  );
+}
+
+/** The Album — every cat in the game, the ones you have and the ones you do
+ *  not. The gap is the product: a player who can see exactly which three Epics
+ *  are missing has a reason to pull that no stat boost provides. Pairs with the
+ *  Adoption Center — you adopt a cat, it joins the family album. */
+function AlbumTab({ collection, save, onToggle, onLevel }) {
+  const owned = new Set(collection.map((c) => `${c.rarity}|${c.art}`));
+  const total = RARITY_ORDER.reduce((a, r) => a + POOLS[r].length, 0);
+  const pct = Math.round((owned.size / total) * 100);
+
+  return (
+    <>
       <SectionHead
-        title={`Collection · ${collection.length}`}
-        hint="Duplicates become shards. Shards raise a cat's level, and a level beats a new Common."
+        title={`Family Album · ${owned.size}/${total}`}
+        hint={`${pct}% of the tubby cats have moved in. Empty frames are the ones still waiting at the Adoption Center.`}
       />
-      <div className="tt-grid">
-        {collection.map((cat) => {
-          const key = `${cat.rarity}|${cat.art}`;
-          const inTown = save.slotted.includes(key);
-          const needShards = shardsToLevel(cat.rarity, cat.level);
-          const needTreats = game.levelUpTreats(cat.level, RARITIES[cat.rarity].mult);
-          const ready = cat.shards >= needShards && T(save) >= needTreats;
-          const pct = Math.min(100, (cat.shards / needShards) * 100);
-          return (
-            <article key={key} className={"tt-card r-" + cat.rarity + (inTown ? " in" : "")}>
-              <span className="tt-ribbon">{RARITIES[cat.rarity].name}</span>
-              <span className="tt-frame">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={cat.art} alt="" loading="lazy" />
-                <span className="tt-lvl">{cat.level}</span>
+
+      {[...RARITY_ORDER].reverse().map((rarity) => {
+        const pool = POOLS[rarity];
+        const have = pool.filter((art) => owned.has(`${rarity}|${art}`)).length;
+        return (
+          <section key={rarity} className="tt-album-sec">
+            <h3 className="tt-album-h" style={{ color: RARITIES[rarity].color }}>
+              {RARITIES[rarity].name}
+              <span>
+                {have}/{pool.length}
               </span>
-              <div className="tt-card-b">
-                <div className="tt-card-l mono">{fmtRate(catRate(cat.rarity, cat.level))}/s</div>
-                <div className="tt-shardbar" title={`${cat.shards} / ${needShards} shards`}>
-                  <i style={{ width: `${pct}%` }} />
-                  <span className="mono">
-                    {cat.shards}/{needShards}
-                  </span>
-                </div>
-                <div className="tt-card-actions">
-                  <button
-                    type="button"
-                    className={"tt-mini" + (inTown ? " on" : "")}
-                    onClick={() => onToggle(key)}
-                  >
-                    {inTown ? "In town" : "Slot"}
-                  </button>
-                  <button
-                    type="button"
-                    className="tt-mini gold"
-                    onClick={() => onLevel(key)}
-                    disabled={!ready}
-                    title={`${needShards} shards + ${fmt(needTreats)} treats`}
-                  >
-                    Level
-                  </button>
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-      </div>
+            </h3>
+            <div className="tt-album">
+              {pool.map((art) => {
+                const key = `${rarity}|${art}`;
+                const cat = save.cats[key];
+                if (!cat) {
+                  return (
+                    <div key={art} className={"tt-frame-empty r-" + rarity} title="Not adopted yet">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={art} alt="" loading="lazy" />
+                      <span>?</span>
+                    </div>
+                  );
+                }
+                const inTown = save.slotted.includes(key);
+                const needShards = shardsToLevel(cat.rarity, cat.level);
+                const needTreats = game.levelUpTreats(cat.level, RARITIES[cat.rarity].mult);
+                const ready = cat.shards >= needShards && T(save) >= needTreats;
+                return (
+                  <article key={art} className={"tt-card r-" + rarity + (inTown ? " in" : "")}>
+                    <span className="tt-frame">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={art} alt="" loading="lazy" />
+                      <span className="tt-lvl">{cat.level}</span>
+                    </span>
+                    <div className="tt-card-b">
+                      <div className="tt-shardbar" title={`${cat.shards} / ${needShards} shards`}>
+                        <i style={{ width: `${Math.min(100, (cat.shards / needShards) * 100)}%` }} />
+                        <span className="mono">
+                          {cat.shards}/{needShards}
+                        </span>
+                      </div>
+                      <div className="tt-card-actions">
+                        <button
+                          type="button"
+                          className={"tt-mini" + (inTown ? " on" : "")}
+                          onClick={() => onToggle(key)}
+                        >
+                          {inTown ? "Working" : "Send to work"}
+                        </button>
+                        <button
+                          type="button"
+                          className="tt-mini gold"
+                          onClick={() => onLevel(key)}
+                          disabled={!ready}
+                        >
+                          Level
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
     </>
   );
 }

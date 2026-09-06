@@ -14,7 +14,7 @@
 // ============================================================================
 
 import { Application, Assets, Container, Graphics, Rectangle, Sprite, Text } from "pixi.js";
-import { BUILDINGS, HORIZON, LANES, WORLD, workSpot } from "../../../lib/townConfig";
+import { BUILDINGS, HORIZON, PLAZA, WORLD, workSpot } from "../../../lib/townConfig";
 import { RARITIES } from "../../../lib/gameConfig";
 
 const RARITY_HEX = {
@@ -198,7 +198,7 @@ function drawBuilding(b) {
 function namePlate(b, topY = 0) {
   // Front row labels sit on the grass below. Back row labels sit ABOVE the
   // roof — otherwise the front row covers them and half the town goes unnamed.
-  const y = b.row === "back" ? topY - 26 : 4;
+  const y = 6;
 
   const label = new Text({
     text: b.name,
@@ -294,6 +294,8 @@ export async function createTown(host, cats, opts = {}) {
   }
   host.appendChild(app.canvas);
   app.canvas.style.display = "block";
+  app.canvas.style.touchAction = "none";
+  app.canvas.style.cursor = "grab";
 
   // Everything lives in `root`, and `root` is scaled to the real container
   // size. Doing it this way means the renderer draws at NATIVE resolution —
@@ -302,17 +304,124 @@ export async function createTown(host, cats, opts = {}) {
   const root = new Container();
   app.stage.addChild(root);
 
+  // ---- camera --------------------------------------------------------------
+  // A city builder you cannot move around is a picture. Drag to pan, wheel or
+  // pinch to zoom, and the view is always clamped so the town can never be
+  // dragged off into empty space.
+  const cam = { zoom: 1, min: 1, max: 2.6, x: 0, y: 0, touched: false };
+
+  function clamp() {
+    const w = app.renderer.width / app.renderer.resolution;
+    const h = app.renderer.height / app.renderer.resolution;
+    const sw = WORLD.w * cam.zoom;
+    const sh = WORLD.h * cam.zoom;
+    cam.x = sw <= w ? (w - sw) / 2 : Math.min(0, Math.max(w - sw, cam.x));
+    cam.y = sh <= h ? (h - sh) / 2 : Math.min(0, Math.max(h - sh, cam.y));
+    root.scale.set(cam.zoom);
+    root.x = cam.x;
+    root.y = cam.y;
+  }
+
   function layout() {
     const w = Math.max(320, host.clientWidth || WORLD.w);
     const h = Math.max(240, host.clientHeight || WORLD.h);
     app.renderer.resize(w, h);
-    // Fill the box, then anchor to the BOTTOM: if anything has to be cropped
-    // it is empty sky, never the town.
-    const k = Math.max(w / WORLD.w, h / WORLD.h);
-    root.scale.set(k);
-    root.x = (w - WORLD.w * k) / 2;
-    root.y = h - WORLD.h * k;
+    // The smallest zoom that still fills the box — below this you would be
+    // looking at empty margins instead of your town.
+    cam.min = Math.min(w / WORLD.w, h / WORLD.h);
+    cam.max = Math.max(w / WORLD.w, h / WORLD.h) * 2.4;
+    // Until the player actually moves the camera, keep snapping to "whole town
+    // visible, centred on the plaza". The container settles its size over a few
+    // frames, so doing this once on the first layout picks up the wrong number.
+    if (!cam.touched) {
+      cam.zoom = cam.min;
+      cam.x = w / 2 - PLAZA.x * cam.zoom;
+      cam.y = h / 2 - PLAZA.y * cam.zoom;
+    }
+    cam.zoom = Math.min(cam.max, Math.max(cam.min, cam.zoom));
+    clamp();
   }
+
+  /** Zoom keeping the point under the cursor fixed — anything else feels wrong. */
+  function zoomAt(px, py, factor) {
+    cam.touched = true;
+    const before = cam.zoom;
+    cam.zoom = Math.min(cam.max, Math.max(cam.min, cam.zoom * factor));
+    if (cam.zoom === before) return;
+    const k = cam.zoom / before;
+    cam.x = px - (px - cam.x) * k;
+    cam.y = py - (py - cam.y) * k;
+    clamp();
+  }
+
+  const canvas = app.canvas;
+  const onWheel = (e) => {
+    e.preventDefault();
+    const r = canvas.getBoundingClientRect();
+    zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.12 : 1 / 1.12);
+  };
+  canvas.addEventListener("wheel", onWheel, { passive: false });
+
+  // Drag to pan. A drag must not also count as a tap on a building, so we only
+  // treat it as a drag once the pointer has actually moved.
+  const pointers = new Map();
+  let dragging = false;
+  let moved = 0;
+  let last = null;
+  let pinchDist = 0;
+
+  const onDown = (e) => {
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 1) {
+      dragging = true;
+      moved = 0;
+      last = { x: e.clientX, y: e.clientY };
+    } else if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      pinchDist = Math.hypot(a.x - b.x, a.y - b.y);
+    }
+  };
+  const onMove = (e) => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinchDist > 0) {
+        const r = canvas.getBoundingClientRect();
+        zoomAt((a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top, d / pinchDist);
+      }
+      pinchDist = d;
+      moved = 99;
+      return;
+    }
+    if (!dragging || !last) return;
+    const dx = e.clientX - last.x;
+    const dy = e.clientY - last.y;
+    moved += Math.abs(dx) + Math.abs(dy);
+    if (moved > 8) cam.touched = true;
+    cam.x += dx;
+    cam.y += dy;
+    last = { x: e.clientX, y: e.clientY };
+    clamp();
+  };
+  const onUp = (e) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinchDist = 0;
+    if (pointers.size === 0) {
+      dragging = false;
+      last = null;
+    }
+  };
+  canvas.addEventListener("pointerdown", onDown);
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
+  window.addEventListener("pointercancel", onUp);
+
+  /** True when the gesture that just ended was a drag, not a tap. */
+  const wasDrag = () => moved > 8;
+
   layout();
 
   const ro = new ResizeObserver(() => layout());
@@ -372,27 +481,25 @@ export async function createTown(host, cats, opts = {}) {
   land.roundRect(LX + 6, LY + 5, LW - 12, LH * 0.42, LR).fill({ color: 0xcaf0ac, alpha: 0.75 });
   root.addChild(land);
 
-  // ---- the road ------------------------------------------------------------
-  // One winding road, not two straight bars. Straight bars read as UI.
+  // ---- the roads -----------------------------------------------------------
+  // Every road runs out of the central plaza. A town reads as a town when it
+  // has a centre things point at — two parallel streets read as a shelf.
   const road = new Graphics();
-  const wander = (y, amp) => {
-    road.moveTo(LX + 40, y);
-    for (let x = LX + 40; x <= LX + LW - 40; x += 70) {
-      road.lineTo(x, y + Math.sin(x / 150) * amp);
-    }
-  };
-  road.setStrokeStyle({ width: 34, color: 0xe9d3ae, cap: "round", join: "round" });
-  wander(LANES.back, 7);
-  road.stroke();
-  road.setStrokeStyle({ width: 38, color: 0xe9d3ae, cap: "round", join: "round" });
-  wander(LANES.front, 6);
-  road.stroke();
-  // connectors between the two streets
-  road.setStrokeStyle({ width: 30, color: 0xe9d3ae, cap: "round" });
-  for (const x of [300, 700, 1120]) {
-    road.moveTo(x, LANES.back).lineTo(x + 24, LANES.front);
+  road.setStrokeStyle({ width: 46, color: 0xe9d3ae, cap: "round", join: "round" });
+  for (const b of BUILDINGS) {
+    if (b.id === "hall") continue;
+    road.moveTo(PLAZA.x, PLAZA.y);
+    const dx = b.x - PLAZA.x;
+    const dy = b.y + 26 - PLAZA.y;
+    // a gentle bow so the spokes are not laser-straight
+    road.quadraticCurveTo(PLAZA.x + dx * 0.55 - dy * 0.10, PLAZA.y + dy * 0.55 + dx * 0.10, b.x, b.y + 26);
   }
   road.stroke();
+
+  // the plaza itself
+  road.ellipse(PLAZA.x, PLAZA.y, 190, 120).fill(0xefdcbb);
+  road.ellipse(PLAZA.x, PLAZA.y, 190, 120).stroke({ width: 6, color: 0xe0c79f, alignment: 0 });
+  road.ellipse(PLAZA.x, PLAZA.y, 118, 74).fill({ color: 0xf7e9d0, alpha: 0.9 });
   root.addChild(road);
 
   // ---- decoration ----------------------------------------------------------
@@ -461,7 +568,7 @@ export async function createTown(host, cats, opts = {}) {
   }
 
   // behind the buildings: hedges along the back edge, a pond, scattered green
-  pond(decoBack, 1460, LY + 74);
+  pond(decoBack, 270, LY + 96);
   for (let x = 70; x < LW; x += 110) {
     if (rnd() > 0.45) tree(decoBack, LX + x + rnd() * 30, LY + 40 + rnd() * 22, 0.72 + rnd() * 0.2, true);
     else bush(decoBack, LX + x + rnd() * 40, LY + 52 + rnd() * 20, 0.7 + rnd() * 0.3);
@@ -469,21 +576,23 @@ export async function createTown(host, cats, opts = {}) {
   for (let i = 0; i < 26; i++) {
     flowers(decoBack, LX + 40 + rnd() * (LW - 80), LY + 30 + rnd() * (LH - 70));
   }
-  fence(decoBack, 120, LANES.back - 60, 5);
-  fence(decoBack, 1020, LANES.back - 58, 4);
+  fence(decoBack, 110, 250, 5);
+  fence(decoBack, 1560, 250, 4);
   root.addChild(decoBack);
 
   // in front of the buildings: a few big trees and lampposts that OVERLAP the
   // buildings — occlusion is what turns a flat row into a scene
   const frontProps = [
-    { fn: tree, x: 40, y: 752, s: 1.45 },
-    { fn: tree, x: 322, y: 758, s: 1.3 },
-    { fn: tree, x: 952, y: 757, s: 1.35 },
-    { fn: tree, x: 1578, y: 750, s: 1.45 },
-    { fn: lamppost, x: 636, y: 754 },
-    { fn: lamppost, x: 1286, y: 752 },
-    { fn: bush, x: 212, y: 758, s: 1.4 },
-    { fn: bush, x: 1008, y: 758, s: 1.35 },
+    { fn: tree, x: 130, y: 900, s: 1.55 },
+    { fn: tree, x: 600, y: 946, s: 1.45 },
+    { fn: tree, x: 1240, y: 946, s: 1.45 },
+    { fn: tree, x: 1690, y: 896, s: 1.55 },
+    { fn: lamppost, x: 706, y: 668 },
+    { fn: lamppost, x: 1094, y: 664 },
+    { fn: lamppost, x: 730, y: 470 },
+    { fn: lamppost, x: 1070, y: 470 },
+    { fn: bush, x: 360, y: 830, s: 1.45 },
+    { fn: bush, x: 1470, y: 826, s: 1.4 },
   ];
 
   // ---- world layer (buildings + cats, depth-sorted) ------------------------
@@ -513,7 +622,7 @@ export async function createTown(host, cats, opts = {}) {
 
     // overlay slot: level chip, build progress, ready badge
     const overlay = new Container();
-    overlay.y = b.row === "back" ? -artH - 58 : -artH - 12;
+    overlay.y = -artH - 14;
     node.addChild(overlay);
 
     node.__ring = ring;
@@ -524,7 +633,10 @@ export async function createTown(host, cats, opts = {}) {
     node.eventMode = "static";
     node.cursor = "pointer";
     node.hitArea = new Rectangle(-artW / 2, -artH, artW, artH + 22);
-    node.on("pointertap", () => opts.onSelect?.(b.id));
+    node.on("pointertap", () => {
+      if (wasDrag()) return;
+      opts.onSelect?.(b.id);
+    });
     node.on("pointerover", () => {
       node.y = b.y - 6;
     });
@@ -619,10 +731,6 @@ export async function createTown(host, cats, opts = {}) {
 
   let agents = [];
 
-  function laneFor(y) {
-    return Math.abs(y - LANES.back) <= Math.abs(y - LANES.front) ? LANES.back : LANES.front;
-  }
-
   function sendTo(a, building) {
     a.target = building;
     // The Nap House is the one building cats go INSIDE: they walk to the door
@@ -632,11 +740,11 @@ export async function createTown(host, cats, opts = {}) {
       building.id === "nap"
         ? { x: building.x, y: building.y - 4 }
         : workSpot(building, a.slot);
-    a.lane = laneFor(LANES[building.row]);
+    // Out to the plaza, then out again to the destination — so cats visibly
+    // travel along the roads instead of cutting across the grass.
     a.route = [
-      { x: a.node.x, y: a.lane },
-      { x: spot.x, y: a.lane },
-      { x: spot.x, y: spot.y },
+      { x: PLAZA.x + (Math.random() - 0.5) * 150, y: PLAZA.y + (Math.random() - 0.5) * 80 },
+      spot,
     ];
     a.leg = 0;
     a.state = "walk";
@@ -676,7 +784,6 @@ export async function createTown(host, cats, opts = {}) {
         speed: rand(34, 52),
         route: [],
         leg: 0,
-        lane: LANES.back,
       };
       agents.push(a);
     });
@@ -864,6 +971,25 @@ export async function createTown(host, cats, opts = {}) {
   return {
     setCats,
     setBuildingState,
+    zoomIn: () => {
+      const w = app.renderer.width / app.renderer.resolution;
+      const h = app.renderer.height / app.renderer.resolution;
+      zoomAt(w / 2, h / 2, 1.35);
+    },
+    zoomOut: () => {
+      const w = app.renderer.width / app.renderer.resolution;
+      const h = app.renderer.height / app.renderer.resolution;
+      zoomAt(w / 2, h / 2, 1 / 1.35);
+    },
+    centerOn: (id) => {
+      const b = BUILDINGS.find((x) => x.id === id);
+      if (!b) return;
+      const w = app.renderer.width / app.renderer.resolution;
+      const h = app.renderer.height / app.renderer.resolution;
+      cam.x = w / 2 - b.x * cam.zoom;
+      cam.y = h / 2 - b.y * cam.zoom;
+      clamp();
+    },
     setNapBeds(n) {
       napBeds = () => n;
       if (buildingNodes.nap) buildingNodes.nap.__napShown = -1;
@@ -871,6 +997,11 @@ export async function createTown(host, cats, opts = {}) {
     destroy() {
       try {
         ro.disconnect();
+        canvas.removeEventListener("wheel", onWheel);
+        canvas.removeEventListener("pointerdown", onDown);
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
       } catch {}
       try {
         app.destroy(true, { children: true });

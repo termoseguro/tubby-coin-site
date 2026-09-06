@@ -1333,3 +1333,84 @@
   font-size: 0.9rem;
 }
 .tt-collectall:active { transform: translateY(4px); }
+
+/* The stage is painted the colour of the sky, so when the whole town is in
+   view the margins read as more sky rather than as empty bars. */
+.tt-stage { background: linear-gradient(180deg, #8fd8f7 0%, #bfe9ff 45%, #ffd9ec 80%, #ffc2e0 100%); }
+
+/* ---------- zoom controls ---------- */
+.tt-zoom {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tt-zoom button {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  font: 800 1.35rem/1 var(--font-body);
+  color: var(--ink);
+  background: #fff;
+  border: 2.5px solid var(--line);
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--line-2);
+}
+.tt-zoom button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--line-2); }
+
+/* ---------- the family album ---------- */
+.tt-album-sec { margin-bottom: 26px; }
+.tt-album-h {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+  text-shadow: 0 1px 0 #fff;
+}
+.tt-album-h span {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.tt-album {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(126px, 1fr));
+  gap: 12px;
+}
+/* an empty frame, not a blank space — the gap is what makes people pull */
+.tt-frame-empty {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 20px;
+  border: 3px dashed var(--rc);
+  background: rgba(255, 255, 255, 0.55);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.tt-frame-empty img {
+  position: absolute;
+  inset: 8px;
+  width: calc(100% - 16px);
+  height: calc(100% - 16px);
+  object-fit: cover;
+  border-radius: 14px;
+  filter: grayscale(1) brightness(1.7) opacity(0.28);
+}
+.tt-frame-empty span {
+  position: relative;
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--rc);
+  opacity: 0.55;
+}
