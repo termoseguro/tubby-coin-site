@@ -34,6 +34,7 @@ import {
 import {
   IconBiscuit,
   IconCatnip,
+  IconFish,
   IconGoldFish,
   IconHouse,
   IconPaw,
@@ -43,7 +44,7 @@ import {
 } from "../icons";
 
 const ICON = {
-  fish: IconTreat,
+  fish: IconFish,
   wood: IconWood,
   stone: IconStone,
   catnip: IconCatnip,

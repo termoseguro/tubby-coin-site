@@ -11,6 +11,7 @@ import { RESOURCES } from "../../../lib/townEconomy";
 import {
   IconBiscuit,
   IconCatnip,
+  IconFish,
   IconGoldFish,
   IconStone,
   IconTreat,
@@ -18,7 +19,7 @@ import {
 } from "../icons";
 
 const ICON = {
-  fish: IconTreat,
+  fish: IconFish,
   wood: IconWood,
   stone: IconStone,
   catnip: IconCatnip,

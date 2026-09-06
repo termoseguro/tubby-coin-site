@@ -8,10 +8,11 @@
 
 import { useState } from "react";
 import { RESOURCES, RESOURCE_ORDER, RESOURCE_USES, storeCap } from "../../../lib/townEconomy";
-import { IconBiscuit, IconCatnip, IconGoldFish, IconStone, IconTreat, IconWood } from "../icons";
+import { IconBiscuit, IconCatnip,
+  IconFish, IconGoldFish, IconStone, IconTreat, IconWood } from "../icons";
 
 const ICON = {
-  fish: IconTreat,
+  fish: IconFish,
   wood: IconWood,
   stone: IconStone,
   catnip: IconCatnip,
@@ -46,12 +47,19 @@ export default function ResourceBar({ res, storehouseLevel, unlocked, onBuy }) {
             className={"tt-resbar-item" + (full ? " full" : "") + (open === id ? " open" : "")}
             onClick={() => setOpen(open === id ? null : id)}
           >
-            <span className="tt-resbar-i" style={{ color: RESOURCES[id].color }}>
-              <Icon size={19} />
+            <span className="tt-resbar-i">
+              <Icon size={26} />
             </span>
             <span className="tt-resbar-n">
               <b className="mono">{fmt(have)}</b>
-              <small className="mono">/{fmt(cap)}</small>
+              <span className="tt-resbar-cap" title={`${Math.floor(have)} of ${cap}`}>
+                <i
+                  style={{
+                    width: `${Math.min(100, (have / cap) * 100)}%`,
+                    background: RESOURCES[id].color,
+                  }}
+                />
+              </span>
             </span>
             {open === id && (
               <span className="tt-resbar-pop" onClick={(e) => e.stopPropagation()}>
@@ -70,7 +78,7 @@ export default function ResourceBar({ res, storehouseLevel, unlocked, onBuy }) {
 
       <button className="tt-resbar-item gold" type="button" onClick={onBuy}>
         <span className="tt-resbar-i">
-          <IconGoldFish size={20} />
+          <IconGoldFish size={26} />
         </span>
         <span className="tt-resbar-n">
           <b className="mono">{fmt(res.gold)}</b>
