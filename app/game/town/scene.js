@@ -38,12 +38,17 @@ const LABEL = {
 /** A building backed by real art: `/town/<id>.png`, transparent, drawn to sit
  *  on its base point. See docs/art-brief.md for the spec and the prompts.
  *  Returns null when the file is absent so the caller can fall back. */
-async function spriteBuilding(b) {
+/** Which art file each building resolved to, remembered for the page's life so
+ *  a remount does not re-probe all ten. `null` means "no art, use the drawing". */
+const artUrlCache = new Map();
+
+async function resolveArt(id) {
+  if (artUrlCache.has(id)) return artUrlCache.get(id);
+  let url = null;
   // WebP first — the same art is ~15x smaller than PNG with the same
   // transparency, and page weight is conversion on mobile.
-  let url = null;
   for (const ext of ["webp", "png"]) {
-    const candidate = `/town/${b.id}.${ext}`;
+    const candidate = `/town/${id}.${ext}`;
     try {
       // Probe first: a dev server answers a missing file with an HTML 404 page,
       // which the texture loader then chokes on in a way try/catch cannot
@@ -56,6 +61,12 @@ async function spriteBuilding(b) {
       break;
     } catch {}
   }
+  artUrlCache.set(id, url);
+  return url;
+}
+
+async function spriteBuilding(b) {
+  const url = await resolveArt(b.id);
   if (!url) return null;
 
   let tex;
@@ -172,51 +183,35 @@ function drawBuilding(b) {
 
   c.addChild(g);
 
-  c.addChild(...namePlate(b, roofTop(b)));
+  c.addChild(...namePlate(b, -b.h - b.h * 0.42));
   c.scale.set(b.scale);
   c.zIndex = b.y;
   return c;
 }
 
-/** Roughly where a drawn building's roof ends, so the name plate clears it. */
-function roofTop(b) {
-  const rh = Math.round(b.h * 0.42);
-  if (b.shape === "tower") return -b.h - rh - 34;
-  if (b.shape === "hall") return -b.h - rh - 60;
-  if (b.shape === "factory") return -b.h - rh - 34;
-  if (b.shape === "gift") return -b.h - 46;
-  if (b.shape === "garden") return -b.h - 36;
-  return -b.h - rh;
-}
+/** A small ground label under the building, not a big pill floating over it.
+ *
+ *  Ten heavy white plates hovering above the roofs made the town read as a
+ *  labelled diagram rather than a place. The art now identifies each building
+ *  on its own (a gift box, a barn, a tower); the label is a quiet confirmation
+ *  sitting on the grass, and the full detail lives in the tap panel. */
+function namePlate(b, topY = 0) {
+  // Front row labels sit on the grass below. Back row labels sit ABOVE the
+  // roof — otherwise the front row covers them and half the town goes unnamed.
+  const y = b.row === "back" ? topY - 22 : 8;
 
-/** The name plate sits ABOVE the roof so the ground stays clear for the cats,
- *  and so a player never has to tap a building to find out what it does. */
-function namePlate(b, topY) {
-  const y = topY - 50;
-
-  const label = new Text({ text: b.name, style: { ...LABEL, fontSize: 15 } });
-  label.anchor.set(0.5);
-  label.y = y + 14;
-
-  const sub = new Text({
-    text: b.short,
-    style: {
-      fontFamily: "Inconsolata, ui-monospace, monospace",
-      fontWeight: "700",
-      fontSize: 10.5,
-      fill: 0x9a6f86,
-      letterSpacing: 1.2,
-    },
+  const label = new Text({
+    text: b.name,
+    style: { ...LABEL, fontSize: 12.5, fill: 0x4a6b38 },
   });
-  sub.anchor.set(0.5);
-  sub.y = y + 30;
+  label.anchor.set(0.5);
+  label.y = y + 8;
 
-  const pw = Math.max(label.width, sub.width) + 26;
+  const pw = label.width + 18;
   const plate = new Graphics();
-  plate.roundRect(-pw / 2, y, pw, 40, 13).fill(0xfffdfe);
-  plate.roundRect(-pw / 2, y, pw, 40, 13).stroke({ width: 2.5, color: 0xffd0e7, alignment: 1 });
+  plate.roundRect(-pw / 2, y, pw, 19, 9).fill({ color: 0xffffff, alpha: 0.78 });
 
-  return [plate, label, sub];
+  return [plate, label];
 }
 
 // ---------------------------------------------------------------------------
@@ -317,8 +312,9 @@ export async function createTown(host, cats, opts = {}) {
 
   // sun glow
   const sun = new Graphics();
-  sun.circle(200, 74, 54).fill({ color: 0xfff6c4, alpha: 0.85 });
-  sun.circle(200, 74, 86).fill({ color: 0xfff6c4, alpha: 0.28 });
+  sun.circle(210, 64, 108).fill({ color: 0xfff3bd, alpha: 0.2 });
+  sun.circle(210, 64, 74).fill({ color: 0xfff6cf, alpha: 0.28 });
+  sun.circle(210, 64, 34).fill({ color: 0xfffbe4, alpha: 0.75 });
   app.stage.addChild(sun);
 
   // ---- clouds --------------------------------------------------------------
@@ -337,47 +333,135 @@ export async function createTown(host, cats, opts = {}) {
     cloudData.push({ g, speed: rand(4, 11) });
   }
 
-  // ---- ground --------------------------------------------------------------
-  const ground = new Graphics();
-  ground.rect(0, HORIZON, WORLD.w, WORLD.h - HORIZON).fill({
-    type: "linear",
-    start: { x: 0, y: 0 },
-    end: { x: 0, y: 1 },
-    colorStops: [
-      { offset: 0, color: 0xcdeeb8 },
-      { offset: 0.5, color: 0xb8e6a4 },
-      { offset: 1, color: 0xa2dd93 },
-    ],
-  });
-  // soft rolling hills at the horizon
-  ground.ellipse(180, HORIZON + 4, 260, 44).fill({ color: 0xd8f2c6, alpha: 0.9 });
-  ground.ellipse(700, HORIZON + 2, 320, 38).fill({ color: 0xd8f2c6, alpha: 0.8 });
-  ground.ellipse(1120, HORIZON + 6, 240, 46).fill({ color: 0xd8f2c6, alpha: 0.85 });
-  app.stage.addChild(ground);
+  // ---- the land ------------------------------------------------------------
+  // A town needs a SHAPE. A green rectangle bleeding off the edges reads as a
+  // background; a plateau with a visible soil edge reads as a place you own.
+  const land = new Graphics();
+  const LX = 24, LW = WORLD.w - 48, LY = HORIZON + 4, LH = WORLD.h - LY - 14, LR = 120;
 
-  // ---- paths ---------------------------------------------------------------
-  const paths = new Graphics();
-  const laneYs = [LANES.back, LANES.front];
-  for (const y of laneYs) {
-    paths.roundRect(40, y - 14, WORLD.w - 80, 28, 14).fill({ color: 0xf6e3c8, alpha: 0.94 });
-  }
-  // vertical connectors so the two streets read as one network
-  for (const x of [270, 706, 1140]) {
-    paths.roundRect(x - 12, LANES.back, 24, LANES.front - LANES.back, 12).fill({ color: 0xf6e3c8, alpha: 0.94 });
-  }
-  app.stage.addChild(paths);
+  // soil cliff under the grass — the thing that makes it an island
+  land.roundRect(LX, LY + 26, LW, LH, LR).fill(0xb98a5e);
+  land.roundRect(LX, LY + 40, LW, LH - 14, LR).fill(0xa2764c);
 
-  // scattered flowers, so the ground is not a flat colour
-  const flowers = new Graphics();
-  for (let i = 0; i < 46; i++) {
-    const fx = rand(20, WORLD.w - 20);
-    const fy = rand(HORIZON + 20, WORLD.h - 10);
-    const near = laneYs.some((l) => Math.abs(fy - l) < 24);
-    if (near) continue;
-    const col = pick([0xffffff, 0xffd6ec, 0xfff2a8, 0xd9c6ff]);
-    flowers.circle(fx, fy, rand(2.5, 4)).fill({ color: col, alpha: 0.9 });
+  // grass top
+  land.roundRect(LX, LY, LW, LH, LR).fill(0xb3e394);
+  // lighter band along the top edge, so the plateau catches the light
+  land.roundRect(LX + 6, LY + 5, LW - 12, LH * 0.42, LR).fill({ color: 0xcaf0ac, alpha: 0.75 });
+  app.stage.addChild(land);
+
+  // ---- the road ------------------------------------------------------------
+  // One winding road, not two straight bars. Straight bars read as UI.
+  const road = new Graphics();
+  const wander = (y, amp) => {
+    road.moveTo(LX + 40, y);
+    for (let x = LX + 40; x <= LX + LW - 40; x += 70) {
+      road.lineTo(x, y + Math.sin(x / 150) * amp);
+    }
+  };
+  road.setStrokeStyle({ width: 34, color: 0xe9d3ae, cap: "round", join: "round" });
+  wander(LANES.back, 7);
+  road.stroke();
+  road.setStrokeStyle({ width: 38, color: 0xe9d3ae, cap: "round", join: "round" });
+  wander(LANES.front, 6);
+  road.stroke();
+  // connectors between the two streets
+  road.setStrokeStyle({ width: 30, color: 0xe9d3ae, cap: "round" });
+  for (const x of [300, 700, 1120]) {
+    road.moveTo(x, LANES.back).lineTo(x + 24, LANES.front);
   }
-  app.stage.addChild(flowers);
+  road.stroke();
+  app.stage.addChild(road);
+
+  // ---- decoration ----------------------------------------------------------
+  // Empty grass between buildings is what makes a town look unfinished. Trees,
+  // bushes, fences and a pond fill it — and trees drawn IN FRONT of buildings
+  // are the cheapest depth cue there is.
+  let seed = 20260906;
+  const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+  const decoBack = new Graphics();
+  const decoFront = new Container();
+
+  function tree(g, x, y, s = 1, dark = false) {
+    g.ellipse(x, y + 2, 15 * s, 5 * s).fill({ color: 0x6b4a2f, alpha: 0.2 });
+    g.roundRect(x - 4 * s, y - 26 * s, 8 * s, 28 * s, 4 * s).fill(0xa9743f);
+    const c1 = dark ? 0x5aa845 : 0x74c257;
+    const c2 = dark ? 0x74c257 : 0x93d873;
+    g.circle(x - 13 * s, y - 34 * s, 15 * s).fill(c1);
+    g.circle(x + 13 * s, y - 33 * s, 14 * s).fill(c1);
+    g.circle(x, y - 48 * s, 19 * s).fill(c2);
+    g.circle(x - 5 * s, y - 52 * s, 10 * s).fill({ color: 0xb6ea97, alpha: 0.85 });
+  }
+
+  function bush(g, x, y, s = 1) {
+    g.ellipse(x, y + 1, 16 * s, 4 * s).fill({ color: 0x6b4a2f, alpha: 0.16 });
+    g.circle(x - 9 * s, y - 7 * s, 10 * s).fill(0x74c257);
+    g.circle(x + 9 * s, y - 6 * s, 9 * s).fill(0x74c257);
+    g.circle(x, y - 13 * s, 12 * s).fill(0x93d873);
+    for (let i = 0; i < 3; i++) {
+      g.circle(x - 8 + i * 8, y - 14 - (i % 2) * 5, 2.4).fill(0xffffff);
+    }
+  }
+
+  function flowers(g, x, y) {
+    const cols = [0xffffff, 0xffd6ec, 0xfff2a8, 0xd9c6ff];
+    for (let i = 0; i < 5; i++) {
+      const fx = x + (rnd() - 0.5) * 34;
+      const fy = y + (rnd() - 0.5) * 14;
+      g.circle(fx, fy, 3.2).fill(cols[Math.floor(rnd() * cols.length)]);
+      g.circle(fx, fy, 1.2).fill(0xffc327);
+    }
+  }
+
+  function fence(g, x, y, n = 4) {
+    for (let i = 0; i < n; i++) {
+      const px = x + i * 22;
+      g.roundRect(px, y - 22, 6, 24, 3).fill(0xe6c79a);
+    }
+    g.roundRect(x, y - 18, (n - 1) * 22 + 6, 5, 2.5).fill(0xd9b483);
+    g.roundRect(x, y - 9, (n - 1) * 22 + 6, 5, 2.5).fill(0xd9b483);
+  }
+
+  function pond(g, x, y) {
+    g.ellipse(x, y, 62, 26).fill(0x8fd0e8);
+    g.ellipse(x, y - 3, 56, 21).fill(0x6bbde0);
+    g.ellipse(x - 16, y - 8, 16, 6).fill({ color: 0xd9f2fb, alpha: 0.7 });
+    for (let i = 0; i < 3; i++) {
+      g.ellipse(x + 8 + i * 14, y + 4 + (i % 2) * 6, 8, 4).fill(0x5aa845);
+    }
+  }
+
+  function lamppost(g, x, y) {
+    g.ellipse(x, y + 1, 8, 3).fill({ color: 0x6b4a2f, alpha: 0.18 });
+    g.roundRect(x - 3, y - 52, 6, 54, 3).fill(0xc9a06a);
+    g.circle(x, y - 58, 9).fill(0xfff0b8);
+    g.circle(x, y - 58, 9).stroke({ width: 2.5, color: 0xc9a06a, alignment: 0 });
+  }
+
+  // behind the buildings: hedges along the back edge, a pond, scattered green
+  pond(decoBack, 1290, LY + 66);
+  for (let x = 70; x < LW; x += 96) {
+    if (rnd() > 0.45) tree(decoBack, LX + x + rnd() * 30, LY + 40 + rnd() * 22, 0.72 + rnd() * 0.2, true);
+    else bush(decoBack, LX + x + rnd() * 40, LY + 52 + rnd() * 20, 0.7 + rnd() * 0.3);
+  }
+  for (let i = 0; i < 26; i++) {
+    flowers(decoBack, LX + 40 + rnd() * (LW - 80), LY + 30 + rnd() * (LH - 70));
+  }
+  fence(decoBack, 150, LANES.back - 46, 5);
+  fence(decoBack, 940, LANES.back - 44, 4);
+  app.stage.addChild(decoBack);
+
+  // in front of the buildings: a few big trees and lampposts that OVERLAP the
+  // buildings — occlusion is what turns a flat row into a scene
+  const frontProps = [
+    { fn: tree, x: 60, y: 452, s: 1.05 },
+    { fn: tree, x: 372, y: 468, s: 0.95 },
+    { fn: tree, x: 905, y: 466, s: 1.0 },
+    { fn: tree, x: 1385, y: 452, s: 1.05 },
+    { fn: lamppost, x: 640, y: 458 },
+    { fn: lamppost, x: 1180, y: 456 },
+    { fn: bush, x: 250, y: 470, s: 1.1 },
+    { fn: bush, x: 1055, y: 470, s: 1.05 },
+  ];
 
   // ---- world layer (buildings + cats, depth-sorted) ------------------------
   const world = new Container();
@@ -406,7 +490,7 @@ export async function createTown(host, cats, opts = {}) {
 
     // overlay slot: level chip, build progress, ready badge
     const overlay = new Container();
-    overlay.y = -artH - 6;
+    overlay.y = b.row === "back" ? -artH - 34 : -artH - 8;
     node.addChild(overlay);
 
     node.__ring = ring;
@@ -474,6 +558,13 @@ export async function createTown(host, cats, opts = {}) {
         node.__art.tint = 0xffffff;
       }
     }
+  }
+
+  for (const pr of frontProps) {
+    const g = new Graphics();
+    pr.fn(g, pr.x, pr.y, pr.s);
+    g.zIndex = pr.y + 2;
+    world.addChild(g);
   }
 
   const fx = new Container();
