@@ -198,18 +198,19 @@ function drawBuilding(b) {
 function namePlate(b, topY = 0) {
   // Front row labels sit on the grass below. Back row labels sit ABOVE the
   // roof — otherwise the front row covers them and half the town goes unnamed.
-  const y = b.row === "back" ? topY - 26 : 14;
+  const y = b.row === "back" ? topY - 26 : 4;
 
   const label = new Text({
     text: b.name,
-    style: { ...LABEL, fontSize: 17, fill: 0x3f6030 },
+    style: { ...LABEL, fontSize: 18, fill: 0x35502a },
   });
   label.anchor.set(0.5);
-  label.y = y + 12;
+  label.y = y + 13;
 
-  const pw = label.width + 24;
+  const pw = label.width + 26;
   const plate = new Graphics();
-  plate.roundRect(-pw / 2, y, pw, 26, 12).fill({ color: 0xffffff, alpha: 0.82 });
+  plate.roundRect(-pw / 2, y, pw, 28, 13).fill(0xffffff);
+  plate.roundRect(-pw / 2, y, pw, 28, 13).stroke({ width: 2.5, color: 0xd8ecc4, alignment: 1 });
 
   return [plate, label];
 }
@@ -279,8 +280,8 @@ const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 export async function createTown(host, cats, opts = {}) {
   const app = new Application();
   await app.init({
-    width: WORLD.w,
-    height: WORLD.h,
+    width: Math.max(320, host.clientWidth || WORLD.w),
+    height: Math.max(240, host.clientHeight || WORLD.h),
     backgroundAlpha: 0,
     antialias: true,
     resolution: Math.min(window.devicePixelRatio || 1, 2),
@@ -292,11 +293,30 @@ export async function createTown(host, cats, opts = {}) {
     return { destroy() {}, setCats() {} };
   }
   host.appendChild(app.canvas);
-  // The town IS the screen: fill the stage and crop rather than letterbox.
-  app.canvas.style.width = "100%";
-  app.canvas.style.height = "100%";
-  app.canvas.style.objectFit = "cover";
   app.canvas.style.display = "block";
+
+  // Everything lives in `root`, and `root` is scaled to the real container
+  // size. Doing it this way means the renderer draws at NATIVE resolution —
+  // stretching the canvas with CSS (object-fit) resamples the bitmap, which is
+  // exactly what "blurry and cut off" looks like.
+  const root = new Container();
+  app.stage.addChild(root);
+
+  function layout() {
+    const w = Math.max(320, host.clientWidth || WORLD.w);
+    const h = Math.max(240, host.clientHeight || WORLD.h);
+    app.renderer.resize(w, h);
+    // Fill the box, then anchor to the BOTTOM: if anything has to be cropped
+    // it is empty sky, never the town.
+    const k = Math.max(w / WORLD.w, h / WORLD.h);
+    root.scale.set(k);
+    root.x = (w - WORLD.w * k) / 2;
+    root.y = h - WORLD.h * k;
+  }
+  layout();
+
+  const ro = new ResizeObserver(() => layout());
+  ro.observe(host);
 
   // ---- sky -----------------------------------------------------------------
   const sky = new Graphics();
@@ -311,18 +331,18 @@ export async function createTown(host, cats, opts = {}) {
       { offset: 1, color: 0xffc2e0 },
     ],
   });
-  app.stage.addChild(sky);
+  root.addChild(sky);
 
   // sun glow
   const sun = new Graphics();
   sun.circle(250, 120, 130).fill({ color: 0xfff3bd, alpha: 0.2 });
   sun.circle(250, 120, 92).fill({ color: 0xfff6cf, alpha: 0.28 });
   sun.circle(250, 120, 42).fill({ color: 0xfffbe4, alpha: 0.75 });
-  app.stage.addChild(sun);
+  root.addChild(sun);
 
   // ---- clouds --------------------------------------------------------------
   const clouds = new Container();
-  app.stage.addChild(clouds);
+  root.addChild(clouds);
   const cloudData = [];
   for (let i = 0; i < 5; i++) {
     const g = new Graphics();
@@ -340,7 +360,7 @@ export async function createTown(host, cats, opts = {}) {
   // A town needs a SHAPE. A green rectangle bleeding off the edges reads as a
   // background; a plateau with a visible soil edge reads as a place you own.
   const land = new Graphics();
-  const LX = 24, LW = WORLD.w - 48, LY = HORIZON + 4, LH = WORLD.h - LY - 14, LR = 120;
+  const LX = 24, LW = WORLD.w - 48, LY = HORIZON + 4, LH = WORLD.h - LY - 4, LR = 130;
 
   // soil cliff under the grass — the thing that makes it an island
   land.roundRect(LX, LY + 26, LW, LH, LR).fill(0xb98a5e);
@@ -350,7 +370,7 @@ export async function createTown(host, cats, opts = {}) {
   land.roundRect(LX, LY, LW, LH, LR).fill(0xb3e394);
   // lighter band along the top edge, so the plateau catches the light
   land.roundRect(LX + 6, LY + 5, LW - 12, LH * 0.42, LR).fill({ color: 0xcaf0ac, alpha: 0.75 });
-  app.stage.addChild(land);
+  root.addChild(land);
 
   // ---- the road ------------------------------------------------------------
   // One winding road, not two straight bars. Straight bars read as UI.
@@ -373,7 +393,7 @@ export async function createTown(host, cats, opts = {}) {
     road.moveTo(x, LANES.back).lineTo(x + 24, LANES.front);
   }
   road.stroke();
-  app.stage.addChild(road);
+  root.addChild(road);
 
   // ---- decoration ----------------------------------------------------------
   // Empty grass between buildings is what makes a town look unfinished. Trees,
@@ -451,25 +471,25 @@ export async function createTown(host, cats, opts = {}) {
   }
   fence(decoBack, 120, LANES.back - 60, 5);
   fence(decoBack, 1020, LANES.back - 58, 4);
-  app.stage.addChild(decoBack);
+  root.addChild(decoBack);
 
   // in front of the buildings: a few big trees and lampposts that OVERLAP the
   // buildings — occlusion is what turns a flat row into a scene
   const frontProps = [
-    { fn: tree, x: 40, y: 726, s: 1.45 },
-    { fn: tree, x: 322, y: 740, s: 1.3 },
-    { fn: tree, x: 952, y: 738, s: 1.35 },
-    { fn: tree, x: 1578, y: 724, s: 1.45 },
-    { fn: lamppost, x: 632, y: 730 },
-    { fn: lamppost, x: 1282, y: 728 },
-    { fn: bush, x: 210, y: 744, s: 1.4 },
-    { fn: bush, x: 1005, y: 744, s: 1.35 },
+    { fn: tree, x: 40, y: 752, s: 1.45 },
+    { fn: tree, x: 322, y: 758, s: 1.3 },
+    { fn: tree, x: 952, y: 757, s: 1.35 },
+    { fn: tree, x: 1578, y: 750, s: 1.45 },
+    { fn: lamppost, x: 636, y: 754 },
+    { fn: lamppost, x: 1286, y: 752 },
+    { fn: bush, x: 212, y: 758, s: 1.4 },
+    { fn: bush, x: 1008, y: 758, s: 1.35 },
   ];
 
   // ---- world layer (buildings + cats, depth-sorted) ------------------------
   const world = new Container();
   world.sortableChildren = true;
-  app.stage.addChild(world);
+  root.addChild(world);
 
   // Real art first, drawn placeholder only where a file is still missing — so
   // the town upgrades one building at a time as art lands. See docs/art-brief.md.
@@ -588,7 +608,7 @@ export async function createTown(host, cats, opts = {}) {
   }
 
   const fx = new Container();
-  app.stage.addChild(fx);
+  root.addChild(fx);
 
   // ---- cats ----------------------------------------------------------------
   const WORKABLE = BUILDINGS.filter(
@@ -849,6 +869,9 @@ export async function createTown(host, cats, opts = {}) {
       if (buildingNodes.nap) buildingNodes.nap.__napShown = -1;
     },
     destroy() {
+      try {
+        ro.disconnect();
+      } catch {}
       try {
         app.destroy(true, { children: true });
       } catch {}

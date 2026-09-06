@@ -266,9 +266,12 @@ export default function BuildingSheet({
                   <div key={k} className={"tt-cost" + (short ? " short" : "")}>
                     <span style={{ color: RESOURCES[k].color }}>
                       <Icon size={17} />
+                      {RESOURCES[k].name}
                     </span>
                     <b className="mono">{fmt(v)}</b>
-                    <small className="mono">have {fmt(have)}</small>
+                    <small className="mono">
+                      {short ? `${fmt(v - have)} short` : `have ${fmt(have)}`}
+                    </small>
                   </div>
                 );
               })}
