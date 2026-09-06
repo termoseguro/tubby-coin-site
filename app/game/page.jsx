@@ -718,35 +718,38 @@ const POOL_SIZES = Object.fromEntries(RARITY_ORDER.map((k) => [k, POOLS[k].lengt
 
 function BoardTab({ save, onHold }) {
   const [wallets, setWallets] = useState(1);
-  const capital = 10_000_000;
+  const capital = 25_000; // USD of $TUBBY a farmer might hold
   const dailyPool = 12; // SOL, illustrative
 
   // Proportional payout: your share of the pool tracks your share of the
   // network's time-weighted hold. Splitting capital across wallets splits the
   // share too — the total is identical, minus N× the gas. This is the whole
   // anti-sybil design in one line of math.
-  const networkHold = 800_000_000;
+  const networkHold = 2_000_000; // USD held across all eligible players
   const proportional = (capital / networkHold) * dailyPool;
   const flatBonus = wallets * 0.01; // what a naive "daily login reward" would pay
 
   const rows = [
-    { name: "gigachad.sol", score: 184_200, hold: "48.0M" },
-    { name: "meowmeow", score: 151_900, hold: "31.2M" },
-    { name: "tubbymaxi", score: 133_400, hold: "22.7M" },
+    { name: "gigachad.sol", score: 184_200, hold: "$4,800" },
+    { name: "meowmeow", score: 151_900, hold: "$3,120" },
+    { name: "tubbymaxi", score: 133_400, hold: "$2,270" },
     {
       name: "you",
       score: Math.floor(save.treats / 10) + save.pulls * 25,
-      hold: fmt(save.hold),
+      hold: "$" + fmt(save.hold),
       me: true,
     },
-    { name: "catlady99", score: 71_500, hold: "6.1M" },
+    { name: "catlady99", score: 71_500, hold: "$610" },
   ].sort((a, b) => b.score - a.score);
+
+  // 1st takes both plushies, 2nd the black, 3rd the pink.
+  const PLUSHIE = ["pink + black", "black", "pink"];
 
   return (
     <>
       <SectionHead
         title="Season board"
-        hint={`Rank is time-weighted hold × play score. Top ${game.board.plushieTopN} receive the ultra-rare plushie — shipped, one per address.`}
+        hint={`Rank is town depth × time-weighted hold × collection. Holding $${game.board.minHoldToRank} of $TUBBY makes you eligible — stated up front, never applied after you have earned. 1st takes the pool share and both plushies, 2nd the black, 3rd the pink.`}
       />
 
       <div className="tt-board">
@@ -754,7 +757,7 @@ function BoardTab({ save, onHold }) {
           <div key={r.name} className={"tt-brow" + (r.me ? " me" : "") + (i < 3 ? " top" : "")}>
             <span className={"tt-rank rank-" + (i + 1)}>{i + 1}</span>
             <span className="tt-bname">{r.name}</span>
-            {i < game.board.plushieTopN && i < 3 && <span className="tt-plush">plushie</span>}
+            {i < game.board.plushieTopN && <span className="tt-plush">{PLUSHIE[i]}</span>}
             <span className="tt-bscore mono">{fmt(r.score)}</span>
             <span className="tt-bhold mono">{r.hold}</span>
           </div>
@@ -795,7 +798,9 @@ function BoardTab({ save, onHold }) {
 
       <h3 className="tt-h3">Simulate your hold</h3>
       <p className="tt-sub">
-        Dev control. Later this reads the real balance from the connected wallet over RPC.
+        Tiers are the <b>USD value</b> of $TUBBY held, not a token count — so the door stays
+        open at any price. No demotion within a season. Dev control; later this reads the real
+        balance over RPC and time-weights it.
       </p>
       <div className="tt-holds">
         {game.holdTiers.map((t) => (
@@ -805,7 +810,7 @@ function BoardTab({ save, onHold }) {
             className={"tt-mini" + (holdTier(save.hold).min === t.min ? " on" : "")}
             onClick={() => onHold(t.min)}
           >
-            {t.name} · ×{t.mult}
+            {t.name} · ${t.min} · ×{t.mult}
           </button>
         ))}
       </div>

@@ -295,6 +295,80 @@ revenue, never from treasury. If the pool is small this season, the payout is
 small — and the game still works, because the game is the retention and the
 payout is the acquisition.
 
+### Holding $TUBBY — eligibility, not a withdrawal gate
+
+The mechanic (seen in Ronin-ecosystem games): you must hold the token to take
+rewards out. It is sound, and it is already half-built into this design — the
+season board has always required a minimum time-weighted hold, because that is
+our primary anti-sybil gate.
+
+But **how it is framed decides whether it creates loyalty or a scandal**, and
+the two versions look almost identical on a spec sheet:
+
+| | |
+|---|---|
+| ✅ **Eligibility** — "holding $TUBBY is required to compete for the season pool", stated before anyone plays | Normal, understood, and it is what every competitive pool does |
+| ❌ **Withdrawal gate** — player earns a reward, *then* discovers they must buy the token to claim it | Reads as extortion. Generates exactly the scam accusations we cannot afford |
+
+**We do the first, never the second.** Same economic effect — forced demand,
+reduced sell pressure, locked-in players — with none of the blowback. The rule
+is simply that nobody ever earns something they then cannot take.
+
+It also compounds cleanly: rewards are paid **in $TUBBY**, which raises the
+winner's hold, which keeps them eligible for the next season. The payout feeds
+the very thing that qualifies them.
+
+Hold is **time-weighted and sampled at random times**, so buying in just before
+a snapshot does nothing.
+
+### The boost ladder — calibrated
+
+The proposed thresholds (1 / 10 / 100 / 10,000 tokens) do not work on a
+pump.fun token. Supply is **1,000,000,000**, so 10 tokens is worth a fraction
+of a cent. Meaningful holdings are in the millions of tokens, and — more
+importantly — *any* fixed token count means a completely different amount of
+money as the price moves.
+
+That is the real problem to solve. If tiers are fixed token counts and the coin
+does 100×, a newcomer needs $10,000 to reach the tier an early holder got for
+$100. New players are priced out, the population stops growing, and **rule 3
+breaks — which eventually breaks rule 1.**
+
+**So tiers are denominated in USD value of $TUBBY held, not token count.**
+
+| Tier | Hold value | Production | Also unlocks |
+|---|---|---|---|
+| **Stray** | $0 | ×1.00 | — |
+| **Housecat** | **$25** | ×1.15 | **Season board eligibility** |
+| **Fat Cat** | $100 | ×1.35 | +1 free daily pull |
+| **Tubby** | $500 | ×1.75 | Bigger Storehouse cap |
+| **Absolute Unit** | $2,500 | ×2.25 | Cosmetic aura · name colour |
+
+**No demotion within a season.** Once reached while holding continuously, a
+tier is kept until the season ends, even if price dips. Getting demoted by a
+market move you did not cause feels like being punished for someone else's
+sell, and it makes people quit. Being *promoted* automatically when the price
+rises, on the other hand, is a gift to early holders that costs us nothing.
+
+### Why these numbers
+
+- **$25 entry is deliberately cheap.** It is the token's Builder-Cat-3 — the
+  door, not the product. A curious player converts to holder for the price of
+  a pizza, and now has a reason to care about the chart.
+- **The ladder caps at ×2.25.** Money buys *pace*, never position. The
+  leaderboard formula caps the hold multiplier for exactly this reason
+  (§4) — a whale who could simply buy rank 1 would empty the board of the
+  free players he is paying to be seen by.
+- **Sybil dies on the arithmetic.** Payouts are proportional to hold, so
+  1,000 wallets at $25 earn the same total as one wallet at $25,000 — for
+  1,000× the gas. And each of those wallets would still need weeks of town
+  depth to score at all.
+
+**Known compounding, accepted with eyes open:** the boost multiplies
+production, production accelerates town depth, and depth drives ranking. So
+hold does reach the board indirectly. That is intended — it is bounded by the
+×2.25 cap, and a daily free player still out-depths an absent whale.
+
 ### Plushies — top 3, two colours
 
 Physical, ultra-rare, and the most cost-efficient reward we have: the cost is
