@@ -133,6 +133,85 @@ natural extension and map onto the Happiness meter already designed.
 
 ---
 
+---
+
+## 4b. Second research pass — the building mechanic, and Gold
+
+The first pass got the buildings and the events. It missed the mechanic the
+whole mid game runs on, and it got one economy question backwards. Both were
+found by going back to the sources rather than reasoning from the design.
+
+### Furniture — every building has things INSIDE it
+
+Open a Kingshot Kitchen and you find **Stove A, Stove B, Stove C, a Sideboard,
+Dining Table A and B, a Larder, a Heater, a Bin, a Water Bucket, a Washbasin and
+a Cask** — eleven items, each unlocking at its own building level (Stove B at 4,
+Stove C at 7, Heater at 4, Bin at 5, Water Bucket at 6, Washbasin at 7, Cask at
+9), each upgraded independently with wood, stone, iron or gold, each paying its
+own bonus.
+
+Three rules come out of it, and all three are why it works:
+
+1. **The building level is a KEY, not a reward.** Level 4 does not give much on
+   its own; it unlocks the Heater and the second Dining Table, and *those* give
+   something. Every level has a named payoff you can point at before paying.
+2. **Furniture gates the building.** "You will need to max out the upgrades of
+   certain furniture inside the building before being able to upgrade the
+   building to the next level." One long wait becomes a dozen small decisions.
+3. **Worker slots come from the building's own level** — the Kitchen reads
+   "+1 Working Survivor" at levels 1, 4 and 7 and stops at three.
+
+The Houses are the same idea aimed at population: "as you upgrade the Houses
+**and the furniture inside them**, the amount of Residents that can join your
+town increases up to a maximum of 32."
+
+**Ours:** `lib/townFurniture.js`, every building, cat-themed. Beds and bowls in
+the cottages; stoves, saws, chisels and seed trays in the producers.
+
+### Gold — idle after all
+
+The question worth checking: is Gold raid-only? **No.** Four sources, two of
+them passive:
+
+| Source | Type |
+|---|---|
+| **Conquest level** | idle — the largest multiplier |
+| **Houses** | idle — "the second-biggest factor in boosting idle Gold income" |
+| **Rebel Assault** | raid — "appear every few hours, reward several hundred Gold each" |
+| **Conquest Battles** | battle |
+
+Its only sinks are **furniture and research**, which is what keeps it separate
+from the premium currency: Gold buys depth, gems buy time. Idle Gold also
+**caps**, so "idle income lost to cap or overflow is wasted potential".
+
+**Ours:** Cat Cottages pay the baseline, comfort furniture raises it town-wide,
+and the Palis ladder multiplies it.
+
+### Rebel Suppression is not an event
+
+The line that reshaped the raid design: it is "a repeatable idle system that
+**scales with your suppression level**", and "higher levels in Rebel Suppression
+provide higher idle income". The stage you have reached is a permanent raise on
+Gold earned while offline. Runs appear every few hours and are batched.
+
+**Ours:** `lib/townRaids.js`. Every Palis stage cleared is +7% Gold forever, and
+the panel says so above the loot — because that is the reason to raid.
+
+### Alliance Help — still to build
+
+Every construction and research can request help; each member's tap shaves about
+1% off the remaining timer with a one-minute floor, and an active 50-member
+alliance can take 8–12 hours off a two-day research. Helpers earn Alliance
+Tokens, which is what makes people tap. Needs the Guild Hall and a server.
+
+Sources for this pass:
+- [Kitchen items and worker slots](https://www.kingshotguide.org/buildings/kitchen)
+- [Gold's sources and sinks](https://kingshotwiki.com/items/gold/)
+- [Gold without spending](https://kingshotguides.com/guide/simple-ways-to-get-more-gold-in-kingshot-without-spending/)
+- [Alliance Help on timers](https://kingshotmastery.com/guides/building-priority-guide)
+
+---
+
 ## 5. Sources
 
 - [Kingshot buildings & requirements](https://www.kingshotguide.org/buildings)
