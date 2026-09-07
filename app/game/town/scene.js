@@ -94,7 +94,9 @@ async function spriteBuilding(b) {
   c.addChild(s);
   c.__art = s;
 
-  c.addChild(...namePlate(b, -s.height));
+  const plateA = namePlate(b, -s.height);
+  c.__plate = plateA[0];
+  c.addChild(...plateA);
   c.scale.set(b.scale);
   c.zIndex = b.y;
   return c;
@@ -183,7 +185,9 @@ function drawBuilding(b) {
 
   c.addChild(g);
 
-  c.addChild(...namePlate(b, -b.h - b.h * 0.42));
+  const plateB = namePlate(b, -b.h - b.h * 0.42);
+  c.__plate = plateB[0];
+  c.addChild(...plateB);
   c.scale.set(b.scale);
   c.zIndex = b.y;
   return c;
@@ -211,6 +215,8 @@ function namePlate(b, topY = 0) {
   const plate = new Graphics();
   plate.roundRect(-pw / 2, y, pw, 28, 13).fill(0xffffff);
   plate.roundRect(-pw / 2, y, pw, 28, 13).stroke({ width: 2.5, color: 0xd8ecc4, alignment: 1 });
+  plate.__w = pw;
+  plate.__y = y;
 
   return [plate, label];
 }
@@ -639,9 +645,19 @@ export async function createTown(host, cats, opts = {}) {
     node.addChildAt(ring, 0);
 
     // overlay slot: level chip, build progress, ready badge
+    // Transient markers (collect bubble, build progress) stay above the roof.
     const overlay = new Container();
     overlay.y = -artH - 14;
     node.addChild(overlay);
+
+    // The LEVEL belongs with the NAME, not floating above the roof: in a town
+    // laid out in a ring, a level chip above one building lands right beside
+    // the name plate of another and looks like it belongs to that one.
+    const levelTag = new Container();
+    levelTag.y = (node.__plate?.__y ?? 6) + 14;
+    levelTag.x = -((node.__plate?.__w ?? 80) / 2) - 15;
+    node.addChild(levelTag);
+    node.__levelTag = levelTag;
 
     node.__ring = ring;
     node.__overlay = overlay;
@@ -742,15 +758,22 @@ export async function createTown(host, cats, opts = {}) {
       const ov = node.__overlay;
       ov.removeChildren().forEach((ch) => ch.destroy({ children: true }));
 
-      // level chip
-      if (st.level) {
-        const chip = new Graphics();
-        const t = new Text({ text: `Lv ${st.level}`, style: { ...LABEL, fontSize: 13, fill: 0x6a4300 } });
-        t.anchor.set(0.5);
-        const cw = t.width + 20;
-        chip.roundRect(-cw / 2, -14, cw, 26, 10).fill(0xffd23f);
-        chip.roundRect(-cw / 2, -14, cw, 26, 10).stroke({ width: 2.5, color: 0xffffff, alignment: 1 });
-        ov.addChild(chip, t);
+      // level, docked to the name plate
+      const tag = node.__levelTag;
+      if (tag) {
+        tag.removeChildren().forEach((ch) => ch.destroy({ children: true }));
+        if (st.level) {
+          const t = new Text({
+            text: String(st.level),
+            style: { ...LABEL, fontSize: 14, fill: 0x6a4300 },
+          });
+          t.anchor.set(0.5);
+          const cw = Math.max(26, t.width + 16);
+          const chip = new Graphics();
+          chip.roundRect(-cw / 2, -13, cw, 26, 11).fill(0xffd23f);
+          chip.roundRect(-cw / 2, -13, cw, 26, 11).stroke({ width: 2.5, color: 0xffffff, alignment: 1 });
+          tag.addChild(chip, t);
+        }
       }
 
       // ready to collect — the bouncing bubble that is the whole reason a
