@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "art": "node scripts/gen-town-art.mjs",
-    "art:import": "bash scripts/import-art.sh"
+    "art:import": "bash scripts/import-art.sh",
+    "check": "node scripts/check.mjs"
   },
   "dependencies": {
     "next": "^14.2.35",

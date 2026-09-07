@@ -6,3 +6,6 @@
 .DS_Store
 *.log
 .vercel
+
+# npm run check builds here so it never disturbs the dev server
+.next-check
