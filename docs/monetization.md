@@ -72,12 +72,21 @@ Prices for permanent capacity:
 | Builder #3 | $4.99 | $3.74 |
 | Builder #4 | $14.99 | $11.24 |
 | Builder #5 | $29.99 | $22.49 |
-| Worker spot | $0.99, then 1.99 / 2.99 / 4.99 / 6.99 | −25% |
+| Worker spot #2 | $4.99 | $3.74 |
+| Worker spot #3 | $9.99 | $7.49 |
+| Worker spot #4+ | $19.99 / $34.99 / $49.99 | −25% |
 
-The worker spot at $0.99 is the small convenience charge every game makes; the
-builder at $4.99 is the gateway purchase (§2). Both stay off the Golden Fish
-menu entirely, and the free route is always named beside them — the Nap House
-earns two worker spots per level.
+**The town starts with ONE worker.** That is the sharpest squeeze in the game
+and it is deliberate: with a single cat on shift the player can staff exactly
+one building and watches the other four crawl. The wall is unmissable inside
+the first session, which is the only time a wall converts anything.
+
+So the *second* worker is a gateway purchase in its own right — it **doubles**
+the workforce — and is priced like one, at $4.99, level with builder #3. The
+ladder climbs steeply after that.
+
+Both stay off the Golden Fish menu entirely, and the free route is always named
+beside them: each Nap House level adds one worker spot.
 
 ## 2.5 The in-game currency — $TUBBY or SOL?
 

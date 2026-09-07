@@ -1290,7 +1290,7 @@ function TownTab({
         cats={townCats}
         buildingState={buildingState}
         selected={picked}
-        napBeds={1 + levelOf(save, "nap") * 2}
+        napBeds={levelOf(save, "nap")}
         positions={save.positions}
         moving={moving}
         onSelect={onPick}

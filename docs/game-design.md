@@ -179,11 +179,17 @@ asymmetric: Stamina *stops* work (hard, immediate, fixable), Happiness only
 *scales* it (soft, forgiving). A player returning after a week finds a slow
 town, never a broken one.
 
-### Worker cap
+### Worker cap — one cat to start
 
-The number of cats that can be assigned at once is set by the **Cat Hall**
-level. Extra cats sit in the collection. This keeps the town readable on screen
-and makes each Cat Hall upgrade feel enormous.
+The number of cats that can be on shift at once is set by the **Nap House**:
+every cat needs a bed. It starts at **one**, and each level adds one more.
+
+One is deliberate. With a single worker the player staffs exactly one building
+and watches the other four crawl, so the bottleneck is unmissable inside the
+first session — the only time a bottleneck is worth anything. Going from one to
+two doubles the town's workforce, which is why the second spot is a gateway
+purchase priced at $4.99 (`monetization.md` §2.4) and why the Nap House upgrade
+that grants it for free is always named right beside the offer.
 
 ---
 
