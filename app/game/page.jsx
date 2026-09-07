@@ -42,7 +42,7 @@ import BuildingSheet from "./town/BuildingSheet";
 import QuestBook from "./town/QuestBook";
 import BuyModal from "./town/BuyModal";
 import { claimableCount } from "../../lib/townQuests";
-import { BUILDINGS, BUILDING_INFO } from "../../lib/townConfig";
+import { BUILDINGS, BUILDING_INFO, COTTAGE_IDS, nextUnlock, unlockedAt } from "../../lib/townConfig";
 import ResourceBar from "./town/ResourceBar";
 import {
   PRODUCERS,
@@ -59,12 +59,17 @@ import {
   storeCap,
   upgradeCostFor,
   BOOST,
+  boostCost,
   BUILDER_RENTAL,
   MAX_BUILDERS,
   builderPriceUsd,
   buildingSlotPriceUsd,
   slotsIn,
   villagerCap,
+  cottageBeds,
+  isUnlocked,
+  startLevel,
+  MAX_VILLAGERS,
   catPower,
   earlyCollectCost,
   topUpCost,
@@ -79,7 +84,6 @@ import {
   staffing,
   unmetRequirements,
   upkeepPerHour,
-  workerCap,
 } from "../../lib/townEconomy";
 import "./game.css";
 
@@ -91,7 +95,7 @@ const catKey = (c) => `${c.rarity}|${c.art}`;
 function freshSave() {
   const starter = { rarity: "common", art: rollCat("common").art, level: 1, shards: 0 };
   return {
-    v: 2,
+    v: 3,
     // Kingshot-shaped economy: five gathered resources plus the premium one,
     // each produced by its own building and capped by the Storehouse.
     res: { fish: 400, wood: 400, stone: 60, catnip: 0, treats: 200, gold: 30 },
@@ -108,6 +112,9 @@ function freshSave() {
     skin: false,
     // ---- city builder ----
     // Levels per building, and the jobs currently occupying a builder.
+    // Empty on purpose: a building with no entry here sits at its start level,
+    // which is 1 for the six the town opens with and 0 (an empty plot) for
+    // everything else. Nothing is written until the player builds it.
     // Timers are wall-clock here; the SERVER owns finishesAt once this is real
     // (docs/security.md §4b — a timer the client can influence is free money).
     buildings: {},
@@ -127,7 +134,9 @@ function freshSave() {
   };
 }
 
-const levelOf = (s, id) => s.buildings?.[id] || 1;
+/** A building's level. 0 means "an unbuilt plot" — only the handful of
+ *  buildings the town opens with start at 1 (see townConfig `built`). */
+const levelOf = (s, id) => s.buildings?.[id] ?? startLevel(id);
 const T = (s) => s?.res?.treats || 0;
 const isStarving = (s) => (s?.res?.fish || 0) <= 0;
 
@@ -138,8 +147,9 @@ const levelsOf = (s) => {
   return out;
 };
 
-/** How many cat villagers can be on shift at once — set by the Cat Hall. */
-const totalSlots = (s) => villagerCap(levelOf(s, "hall"));
+/** How many cat villagers the town has — the sum of its Cat Cottages. The Cat
+ *  Hall no longer holds anyone; it unlocks the cottages that do. */
+const totalSlots = (s) => villagerCap(levelsOf(s));
 
 /** Villager places inside one building: the one it comes with, plus bought. */
 const slotsAt = (s, id) => slotsIn(s.buildingSlots?.[id] || 0);
@@ -217,7 +227,34 @@ function applyUpkeep(s, now = Date.now()) {
 }
 
 /** Old saves kept a single loose `treats` number. Fold it into the new resource
- *  bag so nobody loses a balance to a schema change. */
+ *  bag so nobody loses a balance to a schema change.
+ *
+ *  v3 is the big one: buildings gained a level 0 ("an unbuilt plot"), and
+ *  population moved from the Cat Hall to the Cat Cottages. A v2 save has ten
+ *  buildings that all existed at level 1 or better and a villager cap of
+ *  hall + 1 — both have to survive, or a returning player logs in to a town
+ *  that has demolished itself. */
+const V2_BUILDINGS = [
+  "hall", "adoption", "kitchen", "treats",
+  "lumber", "quarry", "garden", "storehouse", "watchtower",
+];
+
+function migrateToCottages(s) {
+  const b = { ...(s.buildings || {}) };
+  // Everything that existed in v2 keeps existing, at least at level 1.
+  for (const id of V2_BUILDINGS) if (!b[id]) b[id] = 1;
+
+  // The old cap was hall + 1. Rebuild it out of the two starting cottages so
+  // nobody's crew shrinks — clampCrew would otherwise fire cats they earned.
+  const hall = b.hall || 1;
+  // The old Nap House WAS the villager cap in disguise, so its level is folded
+  // into the cottages rather than discarded.
+  const want = Math.min(8, Math.max(hall + 1, (s.buildings || {}).nap || 0));
+  b.cottage1 = Math.max(b.cottage1 || 0, Math.ceil(want / 2));
+  b.cottage2 = Math.max(b.cottage2 || 0, Math.floor(want / 2));
+  return { ...s, buildings: b };
+}
+
 function migrate(s) {
   if (!s.res) {
     s.res = { fish: 400, wood: 400, stone: 60, catnip: 0, treats: Math.floor(s.treats || 0), gold: 30 };
@@ -233,6 +270,10 @@ function migrate(s) {
   if (!s.positions) s.positions = {};
   if (!s.claimed) s.claimed = {};
   delete s.treats;
+  if ((s.v || 0) < 3) {
+    s = migrateToCottages(s);
+    s.v = 3;
+  }
   return clampCrew(s);
 }
 
@@ -547,7 +588,16 @@ export default function TubbyTown() {
         if (!s) return s;
         if (s.jobs?.[id]) return s;
         const level = levelOf(s, id);
-        if (level >= maxLevelFor(id, levelOf(s, "hall"))) {
+        const hall = levelOf(s, "hall");
+        // Locked is a different failure from capped, and saying so is the whole
+        // point of the unlock ladder: the player learns that the Cat Hall is
+        // the thing that opens the town.
+        if (!isUnlocked(id, hall)) {
+          const b = BUILDINGS.find((x) => x.id === id);
+          flash(`Unlocks at Cat Hall ${b?.unlockAt}.`);
+          return s;
+        }
+        if (level >= maxLevelFor(id, hall)) {
           flash("The Cat Hall has to grow first.");
           return s;
         }
@@ -747,14 +797,15 @@ export default function TubbyTown() {
       setSave((s) => {
         if (!s) return s;
         if ((s.boosts?.[id] || 0) > Date.now()) return s;
-        if ((s.res.catnip || 0) < BOOST.catnip) {
-          flash(`Needs ${BOOST.catnip} Catnip.`);
+        const price = boostCost(levelOf(s, id));
+        if ((s.res.catnip || 0) < price) {
+          flash(`Needs ${price} Catnip.`);
           return s;
         }
         flash("Boosted for 15 minutes.");
         return {
           ...s,
-          res: { ...s.res, catnip: s.res.catnip - BOOST.catnip },
+          res: { ...s.res, catnip: s.res.catnip - price },
           boosts: { ...s.boosts, [id]: Date.now() + BOOST.seconds * 1000 },
         };
       });
@@ -960,6 +1011,15 @@ export default function TubbyTown() {
     if (idle > 0 && assignedCount(save) < totalSlots(save)) {
       return { label: `Put ${idle} idle cat${idle === 1 ? "" : "s"} to work`, run: autoAssign };
     }
+    // An empty plot the player can afford beats any upgrade: a NEW building is
+    // the most exciting thing this game can offer, and it is the payoff the
+    // unlock ladder just promised them.
+    const buildable = BUILDINGS.find(
+      (b) => buildingStateTop[b.id]?.plot && buildingStateTop[b.id]?.canUpgrade
+    );
+    if (buildable) {
+      return { label: `Build the ${buildable.name}`, run: () => { setTab("town"); setPicked(buildable.id); } };
+    }
     const upgradable = BUILDINGS.find((b) => buildingStateTop[b.id]?.canUpgrade);
     if (upgradable) {
       return { label: `Upgrade the ${upgradable.name}`, run: () => { setTab("town"); setPicked(upgradable.id); } };
@@ -993,6 +1053,13 @@ export default function TubbyTown() {
   const buildersFree = buildersTotal - Object.keys(save.jobs || {}).length;
   const workersFree = totalSlots(save) - assignedCount(save);
   const levelsTop = levelsOf(save);
+  const coming = nextUnlock(levelsTop.hall);
+  // The cottage worth growing next: the cheapest route to one more villager is
+  // always the lowest-level cottage that is actually unlocked.
+  const growCottage =
+    COTTAGE_IDS.filter((id) => isUnlocked(id, levelsTop.hall)).sort(
+      (a, b) => (levelsTop[a] ?? 0) - (levelsTop[b] ?? 0)
+    )[0] || "cottage1";
   const buildingStateTop = Object.fromEntries(
     BUILDINGS.map((b) => {
       const level = levelOf(save, b.id);
@@ -1001,9 +1068,11 @@ export default function TubbyTown() {
         {
           canUpgrade:
             !save.jobs?.[b.id] &&
+            isUnlocked(b.id, levelsTop.hall) &&
             level < maxLevelFor(b.id, levelsTop.hall) &&
             unmetRequirements(b.id, level, levelsTop).length === 0 &&
             canAfford(upgradeCostFor(b.id, level), save.res),
+          plot: level === 0,
         },
       ];
     })
@@ -1072,8 +1141,8 @@ export default function TubbyTown() {
           <button
             className={"tt-cap" + (workersFree === 0 ? " busy" : "")}
             type="button"
-            onClick={() => setPicked("hall")}
-            title="The Cat Hall sets how many villagers you can have"
+            onClick={() => setPicked(growCottage)}
+            title="Cat Cottages are where villagers live — raise one for another cat"
           >
             <span className="tt-cap-i">
               <IconPaw size={18} />
@@ -1085,6 +1154,23 @@ export default function TubbyTown() {
               </b>
             </span>
           </button>
+
+          {/* The next thing the Cat Hall opens. Kingshot never lets a player
+              wonder what the next level is FOR, and this one line is the whole
+              reason they tap the town centre again. */}
+          {coming && (
+            <button className="tt-cap next" type="button" onClick={() => setPicked("hall")}>
+              <span className="tt-cap-i">
+                <IconBox size={18} />
+              </span>
+              <span className="tt-cap-n">
+                <small>Next unlock</small>
+                <b className="mono">
+                  {coming.name} <em>at Hall {coming.unlockAt}</em>
+                </b>
+              </span>
+            </button>
+          )}
         </div>
 
         <button
@@ -1312,17 +1398,24 @@ function TownTab({
       const level = levelOf(save, b.id);
       const cats = catsPer[b.id] || 0;
       const ready = pendingAt(save, b.id, now, catsPer);
+      const unlocked = isUnlocked(b.id, levels.hall);
       out[b.id] = {
         level,
         ready,
         cats: heads[b.id] || 0,
         power: cats,
+        // The three states the scene paints differently: a locked silhouette,
+        // an empty plot waiting for a builder, and a real building.
+        locked: !unlocked,
+        plot: unlocked && level === 0,
+        needsHall: b.unlockAt,
         readyFull: PRODUCERS[b.id] ? ready >= holdCap(b.id, level) : false,
         res: PRODUCERS[b.id]?.res || null,
         blocked: unmetRequirements(b.id, level, levels),
         canUpgrade:
           !job &&
-          level < maxLevelFor(b.id, levelOf(save, "hall")) &&
+          unlocked &&
+          level < maxLevelFor(b.id, levels.hall) &&
           unmetRequirements(b.id, level, levels).length === 0 &&
           canAfford(upgradeCostFor(b.id, level), save.res),
         job: job
@@ -1386,7 +1479,7 @@ function TownTab({
         cats={townCats}
         buildingState={buildingState}
         selected={picked}
-        napBeds={levelOf(save, "nap")}
+        napBeds={cottageBeds(levelOf(save, "cottage1"))}
         positions={save.positions}
         moving={moving}
         onSelect={onPick}
@@ -1403,6 +1496,8 @@ function TownTab({
           hallLevel={levelOf(save, "hall")}
           storehouseLevel={levelOf(save, "storehouse")}
           blocked={buildingState[picked]?.blocked || []}
+          locked={!!buildingState[picked]?.locked}
+          plot={!!buildingState[picked]?.plot}
           starving={isStarving(save)}
           cats={buildingState[picked]?.cats || 0}
           power={buildingState[picked]?.power || 0}

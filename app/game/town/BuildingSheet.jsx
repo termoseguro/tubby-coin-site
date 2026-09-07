@@ -25,8 +25,9 @@ import {
   ratePerHour,
   rushCost,
   staffing,
-  workerCap,
+  cottageBeds,
   BOOST,
+  boostCost,
   MAX_BUILDERS,
   earlyCollectCost,
   topUpCost,
@@ -106,6 +107,8 @@ export default function BuildingSheet({
   onCollectEarly,
   buildersTotal = 2,
   builderPrice = 500,
+  locked = false,
+  plot = false,
   onMove,
   onGoTo,
   onClose,
@@ -117,6 +120,10 @@ export default function BuildingSheet({
 
   const capLevel = maxLevelFor(id, hallLevel);
   const hallCapped = level >= capLevel && id !== "hall";
+  // Level 0 is an empty plot, so its first job is a BUILD, not an upgrade.
+  // Same cost, same timer, same builder — only the words change, because to
+  // the player raising a building and raising a field are different feelings.
+  const verb = plot ? "Build" : "Upgrade to level " + (level + 1);
   const cost = upgradeCostFor(id, level);
   const missing = shortfall(cost, res);
   const canAfford = Object.keys(missing).length === 0;
@@ -145,15 +152,32 @@ export default function BuildingSheet({
           />
           <div>
             <h3>{b.name}</h3>
-            <p className="tt-sheet-lvl">Level {level}</p>
+            <p className="tt-sheet-lvl">
+              {locked ? `Locked · Cat Hall ${b.unlockAt}` : plot ? "Empty plot" : `Level ${level}`}
+            </p>
           </div>
         </header>
 
         <p className="tt-sheet-desc">{info.desc}</p>
 
+        {/* LOCKED — the only screen in the game with nothing to do on it, so it
+            has to at least name the one thing that opens it. This is the line
+            that makes a new player understand the Cat Hall. */}
+        {locked && (
+          <div className="tt-sheet-job">
+            <p className="tt-sheet-note locked">
+              Not yet. The Cat Hall opens this at level {b.unlockAt} — it is level{" "}
+              {hallLevel} now.
+            </p>
+            <button className="tt-btn alt" type="button" onClick={() => onGoTo("hall")}>
+              Go to the Cat Hall →
+            </button>
+          </div>
+        )}
+
         {/* THE CHAIN — what goes in, what comes out, what it unblocks.
             Without this the player is looking at five unrelated timers. */}
-        {(prod || UNLOCKS[id]) && (
+        {!locked && (prod || UNLOCKS[id]) && (
           <div className="tt-chain">
             {REFINERS[id] && (
               <div className="tt-chain-step">
@@ -201,7 +225,7 @@ export default function BuildingSheet({
 
         {/* THE CREW — cats are moved by the player, one tap each. Without this
             the resources have no lever attached to them at all. */}
-        {prod && (
+        {!locked && prod && (
           <div className="tt-crew">
             <div className="tt-crew-head">
               <small>Cat villagers · ×{staffing(power).toFixed(2)} output</small>
@@ -256,13 +280,13 @@ export default function BuildingSheet({
             )}
             <p className="tt-sheet-note tt-crew-note">
               {villagersFree <= 0
-                ? "Every villager is already working. Raise the Cat Hall for more."
-                : "Places belong to this building. The Cat Hall decides how many villagers exist at all."}
+                ? "Every villager is already working. Raise a Cat Cottage to house another."
+                : "Places belong to this building. Cat Cottages decide how many villagers exist at all."}
             </p>
           </div>
         )}
 
-        <div className="tt-sheet-stats">
+        {!locked && <div className="tt-sheet-stats">
           {prod && (
             <div>
               <small>Next level makes</small>
@@ -271,10 +295,12 @@ export default function BuildingSheet({
               </b>
             </div>
           )}
-          {id === "nap" && (
+          {info.cottage && (
             <div>
-              <small>Cats it can hold</small>
-              <b>{workerCap(level)} on shift</b>
+              <small>Villagers housed</small>
+              <b>
+                {cottageBeds(level)} of 4
+              </b>
             </div>
           )}
           {info.unlocksAt && (
@@ -283,44 +309,44 @@ export default function BuildingSheet({
               <b>{info.unlocksAt(level)}</b>
             </div>
           )}
-        </div>
+        </div>}
 
-        {starving && prod && id !== "kitchen" && (
+        {!locked && starving && prod && id !== "kitchen" && (
           <p className="tt-sheet-note warn">
             The town is out of Fish — everything runs at a quarter speed until the Kitchen
             catches up.
           </p>
         )}
 
-        {prod && (
+        {!locked && prod && (
           boostUntil > Date.now() ? (
             <p className="tt-sheet-note boosted">
               Boosted — double output for {clock((boostUntil - Date.now()) / 1000)} more.
             </p>
           ) : (
             <button className="tt-mini boost" type="button" onClick={onBoost}>
-              Boost with {BOOST.catnip} Catnip · double output for 15m
+              Boost with {boostCost(level)} Catnip · double output for 15m
             </button>
           )
         )}
 
         {/* ready to collect */}
-        {prod && ready > 0 && (
+        {!locked && prod && ready > 0 && (
           <button className="tt-btn collect" type="button" onClick={onCollect}>
             Collect {fmt(ready)} {RESOURCES[prod.res].short}
             {ready >= holdCap(id, level) && <em>· store full</em>}
           </button>
         )}
-        {prod && ready < holdCap(id, level) && (
+        {!locked && prod && ready < holdCap(id, level) && (
           <button className="tt-mini gold tt-door" type="button" onClick={onCollectEarly}>
             Fill the store now · {earlyCollectCost(ready, holdCap(id, level))} <IconGoldFish size={14} />
           </button>
         )}
 
-        {job ? (
+        {locked ? null : job ? (
           <div className="tt-sheet-job">
             <div className="tt-sheet-jobrow">
-              <span>Upgrading to level {level + 1}</span>
+              <span>{plot ? "Building" : `Upgrading to level ${level + 1}`}</span>
               <b className="mono">{clock(remaining)}</b>
             </div>
             <div className="tt-sheet-bar">
@@ -336,7 +362,7 @@ export default function BuildingSheet({
         ) : blocked.length ? (
           <div className="tt-sheet-job">
             <div className="tt-sheet-jobrow">
-              <span>Upgrade to level {level + 1}</span>
+              <span>{verb}</span>
               <b className="mono">{clock(secs)}</b>
             </div>
             <div className="tt-blocked">
@@ -361,7 +387,7 @@ export default function BuildingSheet({
         ) : (
           <div className="tt-sheet-job">
             <div className="tt-sheet-jobrow">
-              <span>Upgrade to level {level + 1}</span>
+              <span>{verb}</span>
               <b className="mono">{clock(secs)}</b>
             </div>
 
@@ -396,7 +422,9 @@ export default function BuildingSheet({
                 ? `Short on ${Object.keys(missing).map((k) => RESOURCES[k].short).join(", ")}`
                 : buildersFree <= 0
                   ? "All builders are busy"
-                  : "Start upgrade"}
+                  : plot
+                    ? "Start building"
+                    : "Start upgrade"}
             </button>
 
             {/* Every wall gets a door. A wall without one is pay-to-win by

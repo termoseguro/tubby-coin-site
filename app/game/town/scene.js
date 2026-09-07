@@ -14,7 +14,7 @@
 // ============================================================================
 
 import { Application, Assets, Container, Graphics, Rectangle, Sprite, Text } from "pixi.js";
-import { BUILDINGS, HORIZON, PLAZA, WORLD, workSpot } from "../../../lib/townConfig";
+import { BUILDINGS, FOCUS, HORIZON, PLAZA, WORLD, workSpot } from "../../../lib/townConfig";
 import { RARITIES } from "../../../lib/gameConfig";
 
 const RARITY_HEX = {
@@ -66,7 +66,9 @@ async function resolveArt(id) {
 }
 
 async function spriteBuilding(b) {
-  const url = await resolveArt(b.id);
+  // `b.art` lets several buildings share one file — the eight cottages are one
+  // building drawn eight times, not eight pieces of art.
+  const url = await resolveArt(b.art || b.id);
   if (!url) return null;
 
   let tex;
@@ -93,6 +95,8 @@ async function spriteBuilding(b) {
   s.anchor.set(0.5, 1);
   c.addChild(s);
   c.__art = s;
+  c.__body = s;
+  c.__shadow = shadow;
 
   const plateA = namePlate(b, -s.height);
   c.__plate = plateA[0];
@@ -184,6 +188,8 @@ function drawBuilding(b) {
   g.roundRect(half - 36, wy + 4, 16, 14, 5).fill(b.trim);
 
   c.addChild(g);
+  c.__body = g;
+  c.__shadow = shadow;
 
   const plateB = namePlate(b, -b.h - b.h * 0.42);
   c.__plate = plateB[0];
@@ -336,13 +342,15 @@ export async function createTown(host, cats, opts = {}) {
     // looking at empty margins instead of your town.
     cam.min = Math.min(w / WORLD.w, h / WORLD.h);
     cam.max = Math.max(w / WORLD.w, h / WORLD.h) * 2.4;
-    // Until the player actually moves the camera, keep snapping to "whole town
-    // visible, centred on the plaza". The container settles its size over a few
-    // frames, so doing this once on the first layout picks up the wrong number.
+    // Until the player actually moves the camera, keep snapping to the OPENING
+    // SHOT — the built heart of the town filling the screen, not the whole
+    // world shrunk to fit. cam.min still lets them pull all the way out.
+    // The container settles its size over a few frames, so doing this once on
+    // the first layout picks up the wrong number.
     if (!cam.touched) {
-      cam.zoom = cam.min;
-      cam.x = w / 2 - PLAZA.x * cam.zoom;
-      cam.y = h / 2 - PLAZA.y * cam.zoom;
+      cam.zoom = Math.min(cam.max, Math.max(cam.min, Math.min(w / FOCUS.w, h / FOCUS.h)));
+      cam.x = w / 2 - FOCUS.x * cam.zoom;
+      cam.y = h / 2 - FOCUS.y * cam.zoom;
     }
     cam.zoom = Math.min(cam.max, Math.max(cam.min, cam.zoom));
     clamp();
@@ -511,7 +519,7 @@ export async function createTown(host, cats, opts = {}) {
   const road = new Graphics();
   road.setStrokeStyle({ width: 46, color: 0xe9d3ae, cap: "round", join: "round" });
   for (const b of BUILDINGS) {
-    if (b.id === "hall") continue;
+    if (b.id === "hall" || b.cottage) continue;
     road.moveTo(PLAZA.x, PLAZA.y);
     const dx = b.x - PLAZA.x;
     const dy = b.y + 26 - PLAZA.y;
@@ -520,10 +528,21 @@ export async function createTown(host, cats, opts = {}) {
   }
   road.stroke();
 
+  // the residential ring road, threaded through the cottages
+  const lane = new Graphics();
+  lane.setStrokeStyle({ width: 34, color: 0xe9d3ae, cap: "round", join: "round" });
+  lane.ellipse(PLAZA.x, PLAZA.y + 96, 1080, 520);
+  lane.stroke();
+  // and one link back to the plaza, so the belt is not a moat
+  lane.setStrokeStyle({ width: 34, color: 0xe9d3ae, cap: "round" });
+  lane.moveTo(PLAZA.x, PLAZA.y).lineTo(PLAZA.x, PLAZA.y + 616);
+  lane.stroke();
+  root.addChild(lane);
+
   // the plaza itself
-  road.ellipse(PLAZA.x, PLAZA.y, 190, 120).fill(0xefdcbb);
-  road.ellipse(PLAZA.x, PLAZA.y, 190, 120).stroke({ width: 6, color: 0xe0c79f, alignment: 0 });
-  road.ellipse(PLAZA.x, PLAZA.y, 118, 74).fill({ color: 0xf7e9d0, alpha: 0.9 });
+  road.ellipse(PLAZA.x, PLAZA.y, 230, 145).fill(0xefdcbb);
+  road.ellipse(PLAZA.x, PLAZA.y, 230, 145).stroke({ width: 6, color: 0xe0c79f, alignment: 0 });
+  road.ellipse(PLAZA.x, PLAZA.y, 145, 92).fill({ color: 0xf7e9d0, alpha: 0.9 });
   root.addChild(road);
 
   // ---- decoration ----------------------------------------------------------
@@ -592,7 +611,7 @@ export async function createTown(host, cats, opts = {}) {
   }
 
   // behind the buildings: hedges along the back edge, a pond, scattered green
-  pond(decoBack, 270, LY + 96);
+  pond(decoBack, LX + 250, LY + 110);
   for (let x = 70; x < LW; x += 110) {
     if (rnd() > 0.45) tree(decoBack, LX + x + rnd() * 30, LY + 40 + rnd() * 22, 0.72 + rnd() * 0.2, true);
     else bush(decoBack, LX + x + rnd() * 40, LY + 52 + rnd() * 20, 0.7 + rnd() * 0.3);
@@ -600,23 +619,28 @@ export async function createTown(host, cats, opts = {}) {
   for (let i = 0; i < 26; i++) {
     flowers(decoBack, LX + 40 + rnd() * (LW - 80), LY + 30 + rnd() * (LH - 70));
   }
-  fence(decoBack, 110, 250, 5);
-  fence(decoBack, 1560, 250, 4);
+  fence(decoBack, LX + 90, LY + 150, 5);
+  fence(decoBack, LX + LW - 200, LY + 150, 4);
   root.addChild(decoBack);
 
   // in front of the buildings: a few big trees and lampposts that OVERLAP the
   // buildings — occlusion is what turns a flat row into a scene
+  // Trees and lampposts that OVERLAP the buildings — occlusion is the cheapest
+  // depth cue there is. Placed around the plaza and along the ring gaps rather
+  // than at fixed pixels, so they still land correctly now the world is larger.
   const frontProps = [
-    { fn: tree, x: 130, y: 900, s: 1.55 },
-    { fn: tree, x: 600, y: 946, s: 1.45 },
-    { fn: tree, x: 1240, y: 946, s: 1.45 },
-    { fn: tree, x: 1690, y: 896, s: 1.55 },
-    { fn: lamppost, x: 706, y: 668 },
-    { fn: lamppost, x: 1094, y: 664 },
-    { fn: lamppost, x: 730, y: 470 },
-    { fn: lamppost, x: 1070, y: 470 },
-    { fn: bush, x: 360, y: 830, s: 1.45 },
-    { fn: bush, x: 1470, y: 826, s: 1.4 },
+    { fn: lamppost, x: PLAZA.x - 250, y: PLAZA.y + 110 },
+    { fn: lamppost, x: PLAZA.x + 250, y: PLAZA.y + 110 },
+    { fn: lamppost, x: PLAZA.x - 250, y: PLAZA.y - 120 },
+    { fn: lamppost, x: PLAZA.x + 250, y: PLAZA.y - 120 },
+    { fn: tree, x: PLAZA.x - 830, y: PLAZA.y + 480, s: 1.5 },
+    { fn: tree, x: PLAZA.x + 830, y: PLAZA.y + 480, s: 1.5 },
+    { fn: tree, x: PLAZA.x - 1120, y: PLAZA.y + 60, s: 1.45 },
+    { fn: tree, x: PLAZA.x + 1120, y: PLAZA.y + 60, s: 1.45 },
+    { fn: bush, x: PLAZA.x - 330, y: PLAZA.y + 330, s: 1.4 },
+    { fn: bush, x: PLAZA.x + 330, y: PLAZA.y + 330, s: 1.4 },
+    { fn: bush, x: PLAZA.x - 620, y: PLAZA.y - 300, s: 1.3 },
+    { fn: bush, x: PLAZA.x + 620, y: PLAZA.y - 300, s: 1.3 },
   ];
 
   // ---- world layer (buildings + cats, depth-sorted) ------------------------
@@ -659,10 +683,33 @@ export async function createTown(host, cats, opts = {}) {
     node.addChild(levelTag);
     node.__levelTag = levelTag;
 
+    // An empty PLOT, drawn under the building and swapped in when the building
+    // does not exist yet. A locked town that simply hides its buildings has no
+    // shape and nothing to want; a town of marked-out plots shows the player
+    // the whole place they are going to build, which is the entire reason the
+    // unlock ladder works.
+    const plot = new Graphics();
+    const pw = Math.max(70, b.w * 0.82);
+    const ph = Math.max(26, b.w * 0.3);
+    plot.ellipse(0, 0, pw / 2 + 10, ph / 2 + 6).fill({ color: 0xd9c49a, alpha: 0.85 });
+    plot.ellipse(0, 0, pw / 2, ph / 2).fill({ color: 0xc7ab7d, alpha: 0.9 });
+    // corner stakes, so it reads as marked-out ground rather than a puddle
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      const px = (sx * pw) / 2;
+      const py = (sy * ph) / 2;
+      plot.roundRect(px - 3, py - 18, 6, 20, 3).fill(0xe6c79a);
+      plot.circle(px, py - 20, 4).fill(0xfff0b8);
+    }
+    plot.visible = false;
+    node.addChildAt(plot, 0);
+    node.__plot = plot;
+
     node.__ring = ring;
     node.__overlay = overlay;
     node.__artH = artH;
     node.__baseY = b.y;
+    // Name plate parts, so a locked building can dim its label with the rest.
+    node.__plateLabel = node.children.find((ch) => ch instanceof Text);
 
     node.eventMode = "static";
     node.cursor = "pointer";
@@ -758,11 +805,37 @@ export async function createTown(host, cats, opts = {}) {
       const ov = node.__overlay;
       ov.removeChildren().forEach((ch) => ch.destroy({ children: true }));
 
+      // ---- the three states a building can be in --------------------------
+      // LOCKED: a pale ghost of the building, so the player can see the town
+      //   they are working towards. Hiding it would hide the goal.
+      // PLOT:   marked-out ground with a hammer over it — unlocked, unbuilt.
+      // BUILT:  the building itself.
+      const isPlot = !!st.plot;
+      const isLocked = !!st.locked;
+      if (node.__plot) node.__plot.visible = isPlot || isLocked;
+      if (node.__body) node.__body.visible = !isPlot;
+      if (node.__shadow) node.__shadow.visible = !isPlot;
+      node.alpha = isLocked ? 0.4 : 1;
+      ov.y = isPlot ? -34 : -node.__artH - 14;
+
       // level, docked to the name plate
       const tag = node.__levelTag;
       if (tag) {
         tag.removeChildren().forEach((ch) => ch.destroy({ children: true }));
-        if (st.level) {
+        if (isLocked) {
+          // The level it needs, in place of the level it has — the one number
+          // that turns a grey building into a goal.
+          const t = new Text({
+            text: `Hall ${st.needsHall}`,
+            style: { ...LABEL, fontSize: 13, fill: 0xffffff },
+          });
+          t.anchor.set(0.5);
+          const cw = t.width + 18;
+          const chip = new Graphics();
+          chip.roundRect(-cw / 2, -13, cw, 26, 11).fill(0x8a97ad);
+          chip.roundRect(-cw / 2, -13, cw, 26, 11).stroke({ width: 2.5, color: 0xffffff, alignment: 1 });
+          tag.addChild(chip, t);
+        } else if (st.level) {
           const t = new Text({
             text: String(st.level),
             style: { ...LABEL, fontSize: 14, fill: 0x6a4300 },
@@ -774,6 +847,23 @@ export async function createTown(host, cats, opts = {}) {
           chip.roundRect(-cw / 2, -13, cw, 26, 11).stroke({ width: 2.5, color: 0xffffff, alignment: 1 });
           tag.addChild(chip, t);
         }
+      }
+
+      // an unlocked, unbuilt plot: a bouncing "build here" marker, the same
+      // affordance as the collect bubble because it wants the same tap
+      if (isPlot && !st.job) {
+        const mark = new Container();
+        mark.y = -18;
+        const g = new Graphics();
+        g.circle(0, 0, 18).fill(0xffffff);
+        g.circle(0, 0, 18).stroke({ width: 3, color: 0x57c89a, alignment: 0 });
+        g.moveTo(-6, 15).lineTo(6, 15).lineTo(0, 23).closePath().fill(0xffffff);
+        const plus = new Graphics();
+        plus.roundRect(-8, -2.5, 16, 5, 2.5).fill(0x3f9d7d);
+        plus.roundRect(-2.5, -8, 5, 16, 2.5).fill(0x3f9d7d);
+        mark.addChild(g, plus);
+        mark.__bounce = true;
+        ov.addChild(mark);
       }
 
       // ready to collect — the bouncing bubble that is the whole reason a
@@ -813,7 +903,7 @@ export async function createTown(host, cats, opts = {}) {
         ov.addChild(hammer);
         if (node.__art) node.__art.tint = 0xcfc4cc;
       } else if (node.__art) {
-        node.__art.tint = 0xffffff;
+        node.__art.tint = isLocked ? 0xa9b4c7 : 0xffffff;
       }
     }
   }
@@ -829,11 +919,12 @@ export async function createTown(host, cats, opts = {}) {
   root.addChild(fx);
 
   // ---- cats ----------------------------------------------------------------
-  const WORKABLE = BUILDINGS.filter(
-    (b) => !["hall", "storehouse", "watchtower", "nap", "adoption"].includes(b.id)
-  );
-  const NAP = BUILDINGS.find((b) => b.id === "nap");
-  const PRODUCERS_OK = ["kitchen", "lumber", "quarry", "garden", "treats"];
+  const PRODUCERS_ONLY = ["kitchen", "lumber", "quarry", "garden", "treats"];
+  const WORKABLE = BUILDINGS.filter((b) => PRODUCERS_ONLY.includes(b.id));
+  // Cats rest where they live. There is no separate rest building any more —
+  // see the note at the top of townConfig.js.
+  const COTTAGES = BUILDINGS.filter((b) => b.cottage);
+  const HOME = COTTAGES[0];
   let napBeds = () => 3;
 
   let agents = [];
@@ -844,7 +935,7 @@ export async function createTown(host, cats, opts = {}) {
     // and shrink into it. Sleeping is private, beds are limited, and this way
     // we never need interior art — the bed count on the roof carries the state.
     const spot =
-      building.id === "nap"
+      building.cottage
         ? { x: building.x, y: building.y - 4 }
         : workSpot(building, a.slot);
     // Out to the plaza, then out again to the destination — so cats visibly
@@ -878,7 +969,7 @@ export async function createTown(host, cats, opts = {}) {
     list.forEach((cat, i) => {
       const node = makeCat(cat.texture, cat.rarity);
       const home =
-        BUILDINGS.find((b) => b.id === cat.building && PRODUCERS_OK.includes(b.id)) || pick(WORKABLE);
+        BUILDINGS.find((b) => b.id === cat.building && PRODUCERS_ONLY.includes(b.id)) || pick(WORKABLE);
       const slot = (seat[home.id] = (seat[home.id] || 0) + 1) - 1;
       const start = home;
       const spot = workSpot(start, slot);
@@ -952,7 +1043,7 @@ export async function createTown(host, cats, opts = {}) {
           if (dist < 2) {
             a.leg += 1;
             if (a.leg >= a.route.length) {
-              if (a.target.id === "nap") {
+              if (a.target.cottage) {
                 a.state = "entering";
                 a.t = 0;
               } else {
@@ -988,7 +1079,7 @@ export async function createTown(host, cats, opts = {}) {
           // a tired cat goes to bed and then returns to its OWN job — cats do
           // not wander between buildings, because the player chose where each
           // of them works and the town has to show that choice
-          sendTo(a, Math.random() < 0.3 ? NAP : a.home);
+          sendTo(a, Math.random() < 0.3 ? HOME : a.home);
         }
       } else if (a.state === "entering") {
         // shrink into the door
@@ -1038,7 +1129,7 @@ export async function createTown(host, cats, opts = {}) {
     }
 
     // Nap House bed counter — the state of the beds, readable at a glance
-    const napNode = buildingNodes.nap;
+    const napNode = HOME ? buildingNodes[HOME.id] : null;
     if (napNode) {
       const asleep = agents.filter((a) => a.state === "nap" || a.state === "entering").length;
       if (napNode.__napShown !== asleep) {
@@ -1111,7 +1202,7 @@ export async function createTown(host, cats, opts = {}) {
     },
     setNapBeds(n) {
       napBeds = () => n;
-      if (buildingNodes.nap) buildingNodes.nap.__napShown = -1;
+      if (HOME && buildingNodes[HOME.id]) buildingNodes[HOME.id].__napShown = -1;
     },
     destroy() {
       try {
