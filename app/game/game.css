@@ -1881,3 +1881,68 @@
 }
 .tt-blocked button:hover { background: #fff6f8; }
 .tt-blocked button:active { transform: translateY(2px); box-shadow: none; }
+
+/* ---------- builders, on the map ----------
+   The bottleneck the player hits most often, so it lives where they are
+   looking. It changes colour the moment every builder is busy, because that
+   is the moment the offer means something. */
+.tt-builders {
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px 7px 7px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fff, var(--card-2));
+  border: 2.5px solid var(--line);
+  box-shadow: inset 0 2px 0 #fff, 0 4px 0 var(--line-2);
+}
+.tt-builders.busy {
+  border-color: var(--g2);
+  box-shadow: inset 0 2px 0 #fff, 0 4px 0 var(--g3), 0 0 18px rgba(255, 195, 39, 0.55);
+}
+.tt-builders-i {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border-radius: 11px;
+  background: var(--card-2);
+  border: 2px solid var(--line);
+}
+.tt-builders.busy .tt-builders-i { border-color: var(--g2); background: #fff8e2; }
+.tt-builders-n { display: flex; flex-direction: column; line-height: 1.1; }
+.tt-builders-n b { font-size: 0.95rem; font-weight: 800; color: var(--ink); }
+.tt-builders-n small {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+}
+.tt-builders.busy .tt-builders-n small { color: var(--g3); }
+.tt-builders button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 800 0.78rem/1 var(--font-body);
+  color: #6a4300;
+  background: linear-gradient(180deg, var(--g1), var(--g2));
+  border: 2px solid #fff;
+  border-radius: 11px;
+  padding: 8px 10px;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--g3);
+}
+.tt-builders button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--g3); }
+
+@media (max-width: 760px) {
+  .tt-builders { padding: 5px 7px 5px 5px; gap: 6px; }
+  .tt-builders-i { width: 26px; height: 26px; flex: 0 0 26px; }
+  .tt-builders-n small { display: none; }
+  .tt-builders button { font-size: 0.7rem; padding: 6px 8px; }
+}

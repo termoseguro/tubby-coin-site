@@ -28,10 +28,12 @@ import {
   IconBox,
   IconCart,
   IconCoin,
+  IconHammer,
   IconHouse,
   IconLock,
   IconPaw,
   IconPlus,
+  IconGoldFish,
   IconTreat,
   IconTrophy,
 } from "./icons";
@@ -906,6 +908,7 @@ export default function TubbyTown() {
   const catsHere = catsPerBuilding(save);
   const starving = isStarving(save);
   const claims = claimableCount(save);
+  const buildersFree = save.builders - Object.keys(save.jobs || {}).length;
   const levelsTop = levelsOf(save);
   const buildingStateTop = Object.fromEntries(
     BUILDINGS.map((b) => {
@@ -961,6 +964,27 @@ export default function TubbyTown() {
 
 
       <div className="tt-stage">
+        {/* The builder bottleneck, kept ON THE MAP. A wall the player cannot
+            see is a wall that never converts — and this is the one they hit
+            most, so it is the one that has to be visible. */}
+        <div className={"tt-builders" + (buildersFree === 0 ? " busy" : "")}>
+          <span className="tt-builders-i">
+            <IconHammer size={20} />
+          </span>
+          <span className="tt-builders-n">
+            <b className="mono">
+              {buildersFree}/{save.builders}
+            </b>
+            <small>{buildersFree === 0 ? "all busy" : "free"}</small>
+          </span>
+          {save.builders < MAX_BUILDERS && (
+            <button type="button" onClick={buyBuilder} title={`Hire builder #${save.builders + 1}`}>
+              + {builderCost(save.builders)}
+              <IconGoldFish size={14} />
+            </button>
+          )}
+        </div>
+
         <button
           className={"tt-book-btn" + (claims > 0 ? " ready" : "")}
           type="button"
@@ -1265,7 +1289,7 @@ function TownTab({
           starving={isStarving(save)}
           cats={buildingState[picked]?.cats || 0}
           power={buildingState[picked]?.power || 0}
-          buildersFree={save.builders - Object.keys(save.jobs || {}).length}
+          buildersFree={buildersFree}
           workingHere={workingAt[picked] || 0}
           crew={crewAt(picked)}
           idle={idleCats(save).map((k) => ({ key: k, ...save.cats[k] }))}

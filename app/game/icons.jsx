@@ -237,3 +237,14 @@ export function IconGoldFish(p) {
     </Ico>
   );
 }
+
+/** A builder's hammer — the icon for the builder bottleneck. */
+export function IconHammer(p) {
+  return (
+    <Ico {...p}>
+      <rect x="13.6" y="12" width="5.6" height="17" rx="2.6" fill="#c9954f" stroke="#7a5220" strokeWidth="2.2" />
+      <path d="M6 8.6h20v6.2H6z" fill="#a9b4c7" stroke="#4e5b73" strokeWidth="2.4" strokeLinejoin="round" />
+      <path d="M8.6 5.4h6.4v3.2H8.6z" fill="#dde3ee" stroke="#4e5b73" strokeWidth="2.2" strokeLinejoin="round" />
+    </Ico>
+  );
+}
