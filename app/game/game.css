@@ -2028,3 +2028,13 @@
   background: #fffaeb;
   box-shadow: 0 3px 0 var(--g3);
 }
+
+/* both capacity chips answer the same question — "how many can I still use?" —
+   so they must read identically. X/Y meaning free/total on one and used/total
+   on the other, side by side, is unreadable. */
+.tt-cap-n b em {
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.86em;
+  color: var(--ink-soft);
+}

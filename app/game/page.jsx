@@ -158,6 +158,25 @@ function headsPerBuilding(s) {
   return out;
 }
 
+/** The worker cap can go DOWN — a balance change, or one day losing a Nap
+ *  House level. Assignments made under an older, larger cap have to be
+ *  released, or the town shows an impossible "5/2" and the extra cats keep
+ *  producing for free. Weakest cats are let go first, so the player keeps the
+ *  crew they would have chosen. */
+function clampCrew(s) {
+  const cap = totalSlots(s);
+  const assigned = Object.keys(s.assign || {});
+  if (assigned.length <= cap) return s;
+  const keep = assigned
+    .map((k) => ({ k, p: s.cats[k] ? catPower(s.cats[k].rarity, s.cats[k].level) : -1 }))
+    .sort((a, b) => b.p - a.p)
+    .slice(0, cap)
+    .map((x) => x.k);
+  const assign = {};
+  for (const k of keep) assign[k] = s.assign[k];
+  return { ...s, assign };
+}
+
 /** Cats with no job yet — the pool the assign picker draws from. */
 function idleCats(s) {
   return Object.keys(s.cats).filter((k) => !s.assign?.[k]);
@@ -205,7 +224,7 @@ function migrate(s) {
   if (!s.positions) s.positions = {};
   if (!s.claimed) s.claimed = {};
   delete s.treats;
-  return s;
+  return clampCrew(s);
 }
 
 // ---- formatting ------------------------------------------------------------
@@ -326,7 +345,7 @@ export default function TubbyTown() {
   useEffect(() => {
     const id = setInterval(() => {
       setClock((c) => c + 1);
-      setSave((s) => (s ? applyUpkeep(s) : s));
+      setSave((s) => (s ? clampCrew(applyUpkeep(s)) : s));
     }, 1000);
     return () => clearInterval(id);
   }, []);
@@ -989,7 +1008,7 @@ export default function TubbyTown() {
             <span className="tt-cap-n">
               <small>Builders</small>
               <b className="mono">
-                {buildersFree}/{save.builders} free
+                {buildersFree} free <em>of {save.builders}</em>
               </b>
             </span>
             {save.builders < MAX_BUILDERS && (
@@ -1006,7 +1025,7 @@ export default function TubbyTown() {
             <span className="tt-cap-n">
               <small>Workers</small>
               <b className="mono">
-                {assignedCount(save)}/{totalSlots(save)} on shift
+                {workersFree} free <em>of {totalSlots(save)}</em>
               </b>
             </span>
             <button type="button" onClick={buyWorkerSlot} title="Buy a worker spot">
