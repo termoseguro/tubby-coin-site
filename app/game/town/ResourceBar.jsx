@@ -8,7 +8,7 @@
 
 import { useState } from "react";
 import { RESOURCES, RESOURCE_ORDER, RESOURCE_USES, storeCap } from "../../../lib/townEconomy";
-import { IconBiscuit, IconCatnip,
+import { IconBiscuit, IconCatnip, IconGold,
   IconFish, IconGoldFish, IconStone, IconTreat, IconWood } from "../icons";
 
 const ICON = {
@@ -17,6 +17,7 @@ const ICON = {
   stone: IconStone,
   catnip: IconCatnip,
   treats: IconBiscuit,
+  coin: IconGold,
 };
 
 function fmt(n) {
@@ -28,7 +29,7 @@ function fmt(n) {
   return String(n);
 }
 
-export default function ResourceBar({ res, storehouseLevel, unlocked, onBuy }) {
+export default function ResourceBar({ res, rates = {}, storehouseLevel, unlocked, onBuy }) {
   // Tap a resource to find out what it is FOR. A number with no stated purpose
   // is a number the player ignores.
   const [open, setOpen] = useState(null);
@@ -52,6 +53,13 @@ export default function ResourceBar({ res, storehouseLevel, unlocked, onBuy }) {
             </span>
             <span className="tt-resbar-n">
               <b className="mono">{fmt(have)}</b>
+              {/* Production is continuous now, so the rate belongs where the
+                  number is. Without this the player has no way to tell a town
+                  that is working from one that has stalled. */}
+              {rates[id] > 0 && !full && (
+                <em className="tt-resbar-rate mono">+{fmt(rates[id])}/h</em>
+              )}
+              {full && <em className="tt-resbar-rate over">full</em>}
               <span className="tt-resbar-cap" title={`${Math.floor(have)} of ${cap}`}>
                 <i
                   style={{

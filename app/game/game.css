@@ -2039,3 +2039,134 @@
   color: var(--ink-soft);
 }
 .tt-rent { width: 100%; margin-bottom: 12px; padding: 11px; }
+
+
+/* ===========================================================================
+   WHAT IS INSIDE A BUILDING  (docs: lib/townFurniture.js)
+
+   A dense list, on purpose. This is the screen the player spends the most time
+   on in the mid game, so it has to fit a lot of rows without scrolling and each
+   row has to be readable at a glance: what it is, what it gives, what it costs.
+   =========================================================================== */
+
+.ttown .tt-furn {
+  margin: 14px 0 4px;
+  padding: 12px 12px 8px;
+  border-radius: 16px;
+  background: #fff7fb;
+  border: 2px solid #f6dced;
+}
+
+.ttown .tt-furn-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.ttown .tt-furn-head small {
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #b07a99;
+}
+.ttown .tt-furn-head b { font-size: 13px; color: #3f9d7d; }
+
+/* The gate line. It is the only red thing in the panel because it is the only
+   thing standing between the player and the next building level. */
+.ttown .tt-furn-gate {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fff1f4;
+  border: 2px solid #ffd0da;
+  color: #b03a55;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.ttown .tt-furn-list { list-style: none; margin: 0; padding: 0; }
+
+.ttown .tt-furn-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1.5px solid #f6e6ef;
+}
+.ttown .tt-furn-row:first-child { border-top: 0; }
+
+/* An item the building is gating on gets a marker, so the eye lands on the
+   thing to do next without reading every row. */
+.ttown .tt-furn-row.gate .tt-furn-name b::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #ff7a9c;
+  vertical-align: middle;
+}
+
+.ttown .tt-furn-row.soon { opacity: 0.5; }
+
+.ttown .tt-furn-name { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ttown .tt-furn-name b { font-size: 13.5px; color: #5d2444; }
+.ttown .tt-furn-name small { font-size: 11.5px; color: #a4809a; }
+
+.ttown .tt-furn-lvl { font-size: 13px; font-weight: 800; color: #5d2444; }
+.ttown .tt-furn-lvl em { font-style: normal; font-weight: 700; color: #c3a3b8; font-size: 11px; }
+
+.ttown .tt-furn-max,
+.ttown .tt-furn-soon {
+  font-size: 11px;
+  font-weight: 800;
+  color: #b9a0b2;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ttown .tt-furn-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px;
+  border: 0;
+  border-radius: 999px;
+  background: #ffd23f;
+  box-shadow: 0 2.5px 0 #d9a800;
+  color: #6a4300;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.ttown .tt-furn-btn:active { transform: translateY(2px); box-shadow: 0 0.5px 0 #d9a800; }
+.ttown .tt-furn-btn span { display: inline-flex; align-items: center; gap: 3px; }
+.ttown .tt-furn-btn.short { background: #efe3ea; box-shadow: 0 2.5px 0 #d3c1cc; color: #8d7484; }
+.ttown .tt-furn-btn span.short { color: #d4485f; }
+
+/* ---- the per-hour rate in the top bar ----
+   With nothing to tap, this is how the player knows the town is alive. */
+.ttown .tt-resbar-rate {
+  display: block;
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #3f9d7d;
+  line-height: 1.1;
+  margin-top: 1px;
+}
+.ttown .tt-resbar-rate.over { color: #d4485f; }
+
+.ttown .tt-chain-day {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #a4809a;
+  margin-top: 1px;
+}

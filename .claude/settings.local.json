@@ -480,7 +480,8 @@
       "Bash(node --input-type=module -e \"1\")",
       "Bash(npx --yes esbuild app/game/page.jsx --loader=jsx --bundle --external:react --external:next/* --external:pixi.js --outfile=/dev/null)",
       "WebFetch(domain:www.kingshotguide.com)",
-      "WebFetch(domain:kingshotpro.com)"
+      "WebFetch(domain:kingshotpro.com)",
+      "WebFetch(domain:kingshotwiki.com)"
     ]
   }
 }

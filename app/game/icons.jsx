@@ -171,6 +171,20 @@ export function IconFish(p) {
   );
 }
 
+/** Gold — the soft currency the cottages mint and Palis drops. A stack of
+ *  coins, so it can never be read as the Golden Fish, which buys time instead. */
+export function IconGold(p) {
+  return (
+    <Ico {...p}>
+      <ellipse cx="16" cy="24.5" rx="11" ry="4.6" fill="#b57f0d" stroke="#6b4a05" strokeWidth="2.2" />
+      <rect x="5" y="17.5" width="22" height="7" fill="#e0a520" stroke="#6b4a05" strokeWidth="2.2" />
+      <ellipse cx="16" cy="17.5" rx="11" ry="4.6" fill="#ffd75e" stroke="#6b4a05" strokeWidth="2.2" />
+      <ellipse cx="16" cy="10.5" rx="8.6" ry="3.8" fill="#ffd75e" stroke="#6b4a05" strokeWidth="2.2" />
+      <path d="M9.6 8.6c2.4-1.4 6.2-1.6 9-.6" stroke="#fff4c8" strokeWidth="2" strokeLinecap="round" fill="none" />
+    </Ico>
+  );
+}
+
 /** Wood — a cut log. */
 export function IconWood(p) {
   return (

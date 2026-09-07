@@ -866,22 +866,11 @@ export async function createTown(host, cats, opts = {}) {
         ov.addChild(mark);
       }
 
-      // ready to collect — the bouncing bubble that is the whole reason a
-      // player opens a city builder at all
-      if (st.ready > 0) {
-        const bubble = new Container();
-        bubble.y = -30;
-        const g = new Graphics();
-        g.circle(0, 0, 17).fill(0xffffff);
-        g.circle(0, 0, 17).stroke({ width: 3, color: st.readyFull ? 0xff7a9c : 0xffc327, alignment: 0 });
-        g.moveTo(-6, 14).lineTo(6, 14).lineTo(0, 22).closePath().fill(0xffffff);
-        const dot = new Graphics();
-        const rc = { fish: 0x5bb8e8, wood: 0xc08b4f, stone: 0x8a97ad, catnip: 0x78be4f, treats: 0xf2a03d }[st.res] || 0xf2a03d;
-        dot.circle(0, 0, 8).fill(rc);
-        bubble.addChild(g, dot);
-        bubble.__bounce = true;
-        ov.addChild(bubble);
-      }
+      // There is no collect bubble any more. Production runs straight into the
+      // Storehouse, so a bubble over every building would be a button that does
+      // nothing — and a town covered in nothing-buttons is worse than a quiet
+      // one. What is left over a building is what you can ACT on: a plot to
+      // build, or a job in progress.
 
       // under construction: scaffolding tint + a progress bar
       if (st.job) {

@@ -11,13 +11,13 @@
 // every line, the build time, and whether a builder is free.
 
 import { BUILDINGS, BUILDING_INFO } from "../../../lib/townConfig";
+import { EFFECTS, itemCap, itemCost, itemSeconds } from "../../../lib/townFurniture";
 import {
   PRODUCERS,
   REFINERS,
   RESOURCES,
   UNLOCKS,
   buildSecondsFor,
-  holdCap,
   maxLevelFor,
   catPower,
   crewPower,
@@ -26,10 +26,11 @@ import {
   rushCost,
   staffing,
   cottageBeds,
+  canAfford as affords,
+  producedOver,
   BOOST,
   boostCost,
   MAX_BUILDERS,
-  earlyCollectCost,
   topUpCost,
   shortfall,
   upgradeCostFor,
@@ -38,6 +39,7 @@ import {
   IconBiscuit,
   IconCatnip,
   IconFish,
+  IconGold,
   IconGoldFish,
   IconHouse,
   IconPaw,
@@ -52,6 +54,7 @@ const ICON = {
   stone: IconStone,
   catnip: IconCatnip,
   treats: IconBiscuit,
+  coin: IconGold,
 };
 
 function fmt(n) {
@@ -76,7 +79,12 @@ export default function BuildingSheet({
   id,
   level,
   job,
-  ready,
+  rate = 0,
+  gate = [],
+  items = [],
+  itemLevels = {},
+  bonuses = null,
+  rushHours = 4,
   res,
   hallLevel,
   storehouseLevel,
@@ -97,14 +105,14 @@ export default function BuildingSheet({
   boostUntil = 0,
   onUpgrade,
   onRush,
-  onCollect,
   onAssign,
   onUnassign,
   onBuySlot,
   onBoost,
   onBuyBuilder,
   onBuyMissing,
-  onCollectEarly,
+  onRushProduction,
+  onUpgradeItem,
   buildersTotal = 2,
   builderPrice = 500,
   locked = false,
@@ -203,8 +211,12 @@ export default function BuildingSheet({
                       const Icon = ICON[prod.res];
                       return <Icon size={16} />;
                     })()}{" "}
-                    {fmt(effectiveRate(id, level, { power, starving }))}/h
+                    {fmt(rate)}/h
                   </span>
+                  {/* Per DAY as well, because per-hour is too small a number to
+                      feel like anything and this is now the only readout the
+                      player gets about a producer. */}
+                  <span className="tt-chain-day mono">{fmt(rate * 24)} a day</span>
                 </div>
               </div>
             )}
@@ -286,6 +298,105 @@ export default function BuildingSheet({
           </div>
         )}
 
+        {/* ================= WHAT IS INSIDE =================
+            The mechanic the town was missing. A building is not one number: it
+            is a set of things you fit inside it, each unlocking at its own
+            building level, each upgraded on its own with Gold, each paying a
+            bonus you can point at. Kingshot's Kitchen has eleven of them.
+
+            Two consequences show up right here in this list:
+              · the next BUILDING level has a named payoff — the greyed rows
+                below the line are exactly what it buys
+              · certain items must be maxed before the building may be raised,
+                which turns one long wait into a dozen small decisions. */}
+        {!locked && !plot && items.length > 0 && (
+          <div className="tt-furn">
+            <div className="tt-furn-head">
+              <small>Inside the {b.name}</small>
+              {bonuses && (
+                <b className="mono">
+                  {bonuses.produce > 0 && `+${bonuses.produce}% output`}
+                  {bonuses.produce > 0 && bonuses.coin > 0 && " · "}
+                  {bonuses.coin > 0 && `${bonuses.coin} Gold/h`}
+                </b>
+              )}
+            </div>
+
+            {gate.length > 0 && (
+              <p className="tt-furn-gate">
+                The {gate[0].it.name} must reach level {gate[0].need} before the{" "}
+                {b.name} can be raised.
+              </p>
+            )}
+
+            <ul className="tt-furn-list">
+              {items.map((it) => {
+                // Items the building is not high enough for are shown, greyed,
+                // with the level that unlocks them. That row IS the argument
+                // for the next building upgrade.
+                if (it.at > level) {
+                  return (
+                    <li key={it.id} className="tt-furn-row soon">
+                      <div className="tt-furn-name">
+                        <b>{it.name}</b>
+                        <small>
+                          +{it.amount}
+                          {EFFECTS[it.effect].unit} {EFFECTS[it.effect].label}
+                        </small>
+                      </div>
+                      <span className="tt-furn-soon">at level {it.at}</span>
+                    </li>
+                  );
+                }
+                const at = itemLevels[it.id] || 0;
+                const cap = itemCap(it, level);
+                const maxed = at >= cap;
+                const cost = itemCost(it, at);
+                const can = affords(cost, res);
+                const eff = EFFECTS[it.effect];
+                const isGate = it.gate && at < cap;
+                return (
+                  <li key={it.id} className={"tt-furn-row" + (isGate ? " gate" : "")}>
+                    <div className="tt-furn-name">
+                      <b>{it.name}</b>
+                      <small>
+                        {at > 0
+                          ? `+${it.amount * at}${eff.unit} ${eff.label}`
+                          : `fits for +${it.amount}${eff.unit} ${eff.label}`}
+                      </small>
+                    </div>
+                    <span className="tt-furn-lvl mono">
+                      {at}<em>/{it.max}</em>
+                    </span>
+                    {maxed ? (
+                      <span className="tt-furn-max">
+                        {at >= it.max ? "max" : `level ${level + 1}`}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className={"tt-furn-btn" + (can ? "" : " short")}
+                        onClick={() => onUpgradeItem(it.id)}
+                      >
+                        {Object.entries(cost).map(([k, v]) => {
+                          const Icon = ICON[k];
+                          return (
+                            <span key={k} className={(res[k] || 0) < v ? "short" : ""}>
+                              {Icon ? <Icon size={13} /> : null}
+                              {fmt(v)}
+                            </span>
+                          );
+                        })}
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+
+          </div>
+        )}
+
         {!locked && <div className="tt-sheet-stats">
           {prod && (
             <div>
@@ -299,7 +410,7 @@ export default function BuildingSheet({
             <div>
               <small>Villagers housed</small>
               <b>
-                {cottageBeds(level)} of 4
+                {Math.min(4, 1 + (bonuses?.beds || 0))} of 4
               </b>
             </div>
           )}
@@ -330,16 +441,12 @@ export default function BuildingSheet({
           )
         )}
 
-        {/* ready to collect */}
-        {!locked && prod && ready > 0 && (
-          <button className="tt-btn collect" type="button" onClick={onCollect}>
-            Collect {fmt(ready)} {RESOURCES[prod.res].short}
-            {ready >= holdCap(id, level) && <em>· store full</em>}
-          </button>
-        )}
-        {!locked && prod && ready < holdCap(id, level) && (
-          <button className="tt-mini gold tt-door" type="button" onClick={onCollectEarly}>
-            Fill the store now · {earlyCollectCost(ready, holdCap(id, level))} <IconGoldFish size={14} />
+        {/* Nothing to collect — production runs into the Storehouse on its own.
+            What IS sold here is time: this building's next few hours, now. */}
+        {!locked && prod && rate > 0 && (
+          <button className="tt-mini gold tt-door" type="button" onClick={onRushProduction}>
+            Take the next {rushHours}h now · +{fmt(producedOver(rate, rushHours * 3600))}{" "}
+            {RESOURCES[prod.res].short} · {Math.ceil(rushHours * 3)} <IconGoldFish size={14} />
           </button>
         )}
 
