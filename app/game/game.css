@@ -1947,3 +1947,40 @@
   .tt-builders button { font-size: 0.7rem; padding: 6px 8px; }
 }
 .tt-crew-note { margin-top: 6px; font-size: 0.74rem; }
+
+/* ---------- real payment sheet ---------- */
+.tt-buy { max-width: 420px; }
+.tt-rails { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-bottom: 14px; }
+.tt-rail {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 18px 12px 14px;
+  border-radius: 20px;
+  background: #fff;
+  border: 2.5px solid var(--line);
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--line-2);
+}
+.tt-rail.best { border-color: var(--g2); box-shadow: 0 4px 0 var(--g3); background: linear-gradient(180deg, #fffdf3, #fff6dd); }
+.tt-rail b { font-size: 1.35rem; font-weight: 800; color: var(--ink); }
+.tt-rail small { font-size: 0.74rem; font-weight: 700; color: var(--ink-soft); }
+.tt-rail:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--line-2); }
+.tt-rail-tag {
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  font: 900 0.6rem/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #6a4300;
+  background: linear-gradient(180deg, var(--g1), var(--g2));
+  border: 2px solid #fff;
+  border-radius: 8px;
+  padding: 4px 8px;
+  white-space: nowrap;
+  box-shadow: 0 2px 0 var(--g3);
+}

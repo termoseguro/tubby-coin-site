@@ -90,7 +90,7 @@ export default function BuildingSheet({
   idle = [],
   slotsUsed = 0,
   slotsTotal = 0,
-  slotPrice = 0,
+  slotPriceUsd = 0.99,
   boostUntil = 0,
   onUpgrade,
   onRush,
@@ -250,7 +250,7 @@ export default function BuildingSheet({
             {slotsUsed >= slotsTotal && (
               <>
                 <button className="tt-mini gold tt-crew-buy" type="button" onClick={onBuySlot}>
-                  Buy a worker spot · {slotPrice} <IconGoldFish size={14} />
+                  Buy a worker spot · ${slotPriceUsd.toFixed(2)}
                 </button>
                 <p className="tt-sheet-note tt-crew-note">
                   Or raise the Nap House — every level there gives two spots, free.
@@ -406,7 +406,7 @@ export default function BuildingSheet({
             )}
             {canAfford && buildersFree <= 0 && buildersTotal < MAX_BUILDERS && (
               <button className="tt-mini gold tt-door" type="button" onClick={onBuyBuilder}>
-                Hire builder #{buildersTotal + 1} · {builderPrice} <IconGoldFish size={14} />
+                Hire builder #{buildersTotal + 1} · ${builderPrice?.toFixed(2)}
               </button>
             )}
             <p className="tt-sheet-note">

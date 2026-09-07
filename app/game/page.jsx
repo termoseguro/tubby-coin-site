@@ -40,6 +40,7 @@ import {
 import TownCanvas from "./town/TownCanvas";
 import BuildingSheet from "./town/BuildingSheet";
 import QuestBook from "./town/QuestBook";
+import BuyModal from "./town/BuyModal";
 import { claimableCount } from "../../lib/townQuests";
 import { BUILDINGS, BUILDING_INFO } from "../../lib/townConfig";
 import ResourceBar from "./town/ResourceBar";
@@ -59,7 +60,8 @@ import {
   upgradeCostFor,
   BOOST,
   MAX_BUILDERS,
-  builderCost,
+  builderPriceUsd,
+  workerSlotPriceUsd,
   catPower,
   earlyCollectCost,
   topUpCost,
@@ -238,6 +240,7 @@ export default function TubbyTown() {
   const [picked, setPicked] = useState(null);
   const [moving, setMoving] = useState(null);
   const [book, setBook] = useState(false);
+  const [buying, setBuying] = useState(null);
   const [welcomeBack, setWelcomeBack] = useState(null);
   const [toast, setToast] = useState(null);
   // A once-a-second clock. Production accrues against wall time now, so the
@@ -670,17 +673,29 @@ export default function TubbyTown() {
   /** Buy a worker spot outright. The Nap House stays the main route; this is
    *  the impatient one, and it is priced accordingly. */
   const buyWorkerSlot = useCallback(() => {
+    setBuying({
+      kind: "workerSlot",
+      title: "One more worker spot",
+      blurb:
+        "One more cat can be on shift across the whole town, permanently. The Nap House earns these too — two per level.",
+      usd: workerSlotPriceUsd(save?.extraSlots || 0),
+    });
+  }, [save]);
+
+  /** Mocked: in the real build the grant happens only AFTER the payment is
+   *  verified on-chain, never before. See docs/security.md §3. */
+  const completePurchase = useCallback(() => {
     setSave((s) => {
-      if (!s) return s;
-      const price = extraSlotCost(s.extraSlots || 0);
-      if ((s.res.gold || 0) < price) {
-        flash(`Need ${price} Golden Fish.`);
-        return s;
+      if (!s || !buying) return s;
+      if (buying.kind === "builder") {
+        flash("A new builder joined the town.");
+        return { ...s, builders: Math.min(MAX_BUILDERS, s.builders + 1) };
       }
       flash("Worker spot added.");
-      return { ...s, res: { ...s.res, gold: s.res.gold - price }, extraSlots: (s.extraSlots || 0) + 1 };
+      return { ...s, extraSlots: (s.extraSlots || 0) + 1 };
     });
-  }, [flash]);
+    setBuying(null);
+  }, [buying, flash]);
 
   /** Catnip's own job: double a building's output for a while. Gives the
    *  rarest resource a purpose that is not "another upgrade line". */
@@ -761,21 +776,18 @@ export default function TubbyTown() {
    *  genre — and the wall it opens (every builder busy) is one the player runs
    *  into constantly, which is exactly why it works. */
   const buyBuilder = useCallback(() => {
-    setSave((s) => {
-      if (!s) return s;
-      if (s.builders >= MAX_BUILDERS) {
-        flash("That is every builder there is.");
-        return s;
-      }
-      const price = builderCost(s.builders);
-      if ((s.res.gold || 0) < price) {
-        flash(`Need ${price} Golden Fish.`);
-        return s;
-      }
-      flash("A new builder joined the town.");
-      return { ...s, res: { ...s.res, gold: s.res.gold - price }, builders: s.builders + 1 };
+    if (save && save.builders >= MAX_BUILDERS) {
+      flash("That is every builder there is.");
+      return;
+    }
+    setBuying({
+      kind: "builder",
+      title: `Builder #${(save?.builders ?? 2) + 1}`,
+      blurb:
+        "Another pair of paws on the scaffolding — one more building can be under construction at all times, forever.",
+      usd: builderPriceUsd(save?.builders ?? 2),
     });
-  }, [flash]);
+  }, [save, flash]);
 
   /** Buy exactly what is missing for one upgrade. Sells at the moment of
    *  frustration, which is the only moment it is worth anything. */
@@ -979,8 +991,7 @@ export default function TubbyTown() {
           </span>
           {save.builders < MAX_BUILDERS && (
             <button type="button" onClick={buyBuilder} title={`Hire builder #${save.builders + 1}`}>
-              + {builderCost(save.builders)}
-              <IconGoldFish size={14} />
+              + ${builderPriceUsd(save.builders)?.toFixed(2)}
             </button>
           )}
         </div>
@@ -1041,6 +1052,16 @@ export default function TubbyTown() {
       </div>
 
       {/* ---------- bottom nav, over the city ---------- */}
+      {buying && (
+        <BuyModal
+          title={buying.title}
+          blurb={buying.blurb}
+          usd={buying.usd}
+          onPay={completePurchase}
+          onClose={() => setBuying(null)}
+        />
+      )}
+
       {book && (
         <QuestBook
           save={save}
@@ -1295,7 +1316,7 @@ function TownTab({
           idle={idleCats(save).map((k) => ({ key: k, ...save.cats[k] }))}
           slotsUsed={assignedCount(save)}
           slotsTotal={totalSlots(save)}
-          slotPrice={extraSlotCost(save.extraSlots || 0)}
+
           boostUntil={save.boosts?.[picked] || 0}
           onUpgrade={() => onUpgrade(picked)}
           onRush={() => onRush(picked)}
@@ -1308,7 +1329,8 @@ function TownTab({
           onBuyMissing={() => onBuyMissing(picked)}
           onCollectEarly={() => onCollectEarly(picked)}
           buildersTotal={save.builders}
-          builderPrice={builderCost(save.builders)}
+          builderPrice={builderPriceUsd(save.builders)}
+          slotPriceUsd={workerSlotPriceUsd(save.extraSlots || 0)}
           onMove={() => onStartMove(picked)}
           onGoTo={(bid) => onPick(bid)}
           onClose={() => onPick(null)}

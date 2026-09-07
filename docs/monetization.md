@@ -51,6 +51,34 @@ Ranked by how much they matter, from the genre's own data:
 
 ---
 
+## 2.4 Earned versus paid — the line that protects the revenue
+
+Golden Fish is a **Town Book reward**. The quest book hands it out, so every
+player ends up holding some. That makes it the wrong currency for anything
+permanent: pricing builders and worker spots in Golden Fish means the quest
+book quietly gives away the two things most worth selling.
+
+So the line is drawn by **what the thing is**, not by what it costs:
+
+| | Bought with | Why |
+|---|---|---|
+| **Consumables** — rush a timer, top up a resource, empty a store early, a Catnip boost | **Golden Fish** (earnable) | Spend it and it is gone. Everyone gets a taste, which is how they learn what the currency does. |
+| **Permanent capacity** — a builder, a worker spot | **Real payment only, in $TUBBY or SOL** | These raise the ceiling forever. **A ceiling that can be earned is a ceiling nobody buys.** |
+
+Prices for permanent capacity:
+
+| | USD | In $TUBBY (−25%) |
+|---|---|---|
+| Builder #3 | $4.99 | $3.74 |
+| Builder #4 | $14.99 | $11.24 |
+| Builder #5 | $29.99 | $22.49 |
+| Worker spot | $0.99, then 1.99 / 2.99 / 4.99 / 6.99 | −25% |
+
+The worker spot at $0.99 is the small convenience charge every game makes; the
+builder at $4.99 is the gateway purchase (§2). Both stay off the Golden Fish
+menu entirely, and the free route is always named beside them — the Nap House
+earns two worker spots per level.
+
 ## 2.5 The in-game currency — $TUBBY or SOL?
 
 **Decision: both rails, with $TUBBY discounted.**
