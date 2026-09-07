@@ -1855,3 +1855,29 @@
   .tt-resbar-i svg { width: 19px; height: 19px; }
   .tt-resbar-n b { font-size: 0.85rem; }
 }
+
+/* every paid bypass looks the same, so the player learns the shape of a door */
+.tt-mini.tt-door {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 2px;
+  padding: 11px 14px;
+  font-size: 0.86rem;
+}
+
+/* a blocked building should not be a dead end — the requirements are buttons */
+.tt-blocked button {
+  font: 800 0.86rem/1 var(--font-body);
+  color: #99203c;
+  background: #fff;
+  border: 2px solid #ffc2cf;
+  padding: 6px 11px;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 2px 0 #ffc2cf;
+}
+.tt-blocked button:hover { background: #fff6f8; }
+.tt-blocked button:active { transform: translateY(2px); box-shadow: none; }

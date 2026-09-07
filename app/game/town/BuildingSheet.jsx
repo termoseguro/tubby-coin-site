@@ -27,7 +27,10 @@ import {
   staffing,
   workerCap,
   BOOST,
+  MAX_BUILDERS,
   MAX_PER_BUILDING,
+  earlyCollectCost,
+  topUpCost,
   shortfall,
   upgradeCostFor,
 } from "../../../lib/townEconomy";
@@ -96,7 +99,13 @@ export default function BuildingSheet({
   onUnassign,
   onBuySlot,
   onBoost,
+  onBuyBuilder,
+  onBuyMissing,
+  onCollectEarly,
+  buildersTotal = 2,
+  builderPrice = 500,
   onMove,
+  onGoTo,
   onClose,
 }) {
   const b = BUILDINGS.find((x) => x.id === id);
@@ -295,6 +304,11 @@ export default function BuildingSheet({
             {ready >= holdCap(id, level) && <em>· store full</em>}
           </button>
         )}
+        {prod && ready < holdCap(id, level) && (
+          <button className="tt-mini gold tt-door" type="button" onClick={onCollectEarly}>
+            Fill the store now · {earlyCollectCost(ready, holdCap(id, level))} <IconGoldFish size={14} />
+          </button>
+        )}
 
         {job ? (
           <div className="tt-sheet-job">
@@ -308,7 +322,9 @@ export default function BuildingSheet({
             <button className="tt-btn alt" type="button" onClick={onRush}>
               Finish now · {rushCost(remaining)} <IconGoldFish size={16} />
             </button>
-            <p className="tt-sheet-note">A builder is busy until this finishes.</p>
+            <p className="tt-sheet-note">
+              A builder is busy until this finishes. The nudge gets cheaper the closer it is.
+            </p>
           </div>
         ) : blocked.length ? (
           <div className="tt-sheet-job">
@@ -319,9 +335,12 @@ export default function BuildingSheet({
             <div className="tt-blocked">
               <small>Needs first</small>
               {blocked.map((r) => (
-                <span key={r.id}>
-                  {BUILDINGS.find((b) => b.id === r.id)?.name} level {r.level}
-                </span>
+                // Tappable: a dead-end screen with no way forward is the one
+                // wall in the game that has no door, so at least make the way
+                // round it one tap instead of a hunt.
+                <button key={r.id} type="button" onClick={() => onGoTo(r.id)}>
+                  {BUILDINGS.find((b) => b.id === r.id)?.name} level {r.level} →
+                </button>
               ))}
             </div>
             <p className="tt-sheet-note locked">
@@ -372,10 +391,23 @@ export default function BuildingSheet({
                   ? "All builders are busy"
                   : "Start upgrade"}
             </button>
+
+            {/* Every wall gets a door. A wall without one is pay-to-win by
+                omission — the players who would have paid just leave. */}
+            {!canAfford && (
+              <button className="tt-mini gold tt-door" type="button" onClick={onBuyMissing}>
+                Buy what is missing · {topUpCost(missing)} <IconGoldFish size={14} />
+              </button>
+            )}
+            {canAfford && buildersFree <= 0 && buildersTotal < MAX_BUILDERS && (
+              <button className="tt-mini gold tt-door" type="button" onClick={onBuyBuilder}>
+                Hire builder #{buildersTotal + 1} · {builderPrice} <IconGoldFish size={14} />
+              </button>
+            )}
             <p className="tt-sheet-note">
               {buildersFree > 0
-                ? `${buildersFree} builder${buildersFree === 1 ? "" : "s"} free.`
-                : "Every builder is on another job. Wait, or add one."}
+                ? `${buildersFree} of ${buildersTotal} builders free.`
+                : `All ${buildersTotal} builders are on other jobs.`}
             </p>
           </div>
         )}

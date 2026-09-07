@@ -52,10 +52,15 @@ import {
   pending,
   ratePerHour,
   rushCost,
+  shortfall,
   storeCap,
   upgradeCostFor,
   BOOST,
+  MAX_BUILDERS,
+  builderCost,
   catPower,
+  earlyCollectCost,
+  topUpCost,
   crewPower,
   MAX_PER_BUILDING,
   RESOURCE_USES,
@@ -750,6 +755,75 @@ export default function TubbyTown() {
     [flash]
   );
 
+  /** Buy another builder. The single highest-converting purchase in this
+   *  genre — and the wall it opens (every builder busy) is one the player runs
+   *  into constantly, which is exactly why it works. */
+  const buyBuilder = useCallback(() => {
+    setSave((s) => {
+      if (!s) return s;
+      if (s.builders >= MAX_BUILDERS) {
+        flash("That is every builder there is.");
+        return s;
+      }
+      const price = builderCost(s.builders);
+      if ((s.res.gold || 0) < price) {
+        flash(`Need ${price} Golden Fish.`);
+        return s;
+      }
+      flash("A new builder joined the town.");
+      return { ...s, res: { ...s.res, gold: s.res.gold - price }, builders: s.builders + 1 };
+    });
+  }, [flash]);
+
+  /** Buy exactly what is missing for one upgrade. Sells at the moment of
+   *  frustration, which is the only moment it is worth anything. */
+  const buyMissing = useCallback(
+    (id) => {
+      setSave((s) => {
+        if (!s) return s;
+        const level = levelOf(s, id);
+        const missing = shortfall(upgradeCostFor(id, level), s.res);
+        if (!Object.keys(missing).length) return s;
+        const price = topUpCost(missing);
+        if ((s.res.gold || 0) < price) {
+          flash(`Need ${price} Golden Fish.`);
+          return s;
+        }
+        const res = { ...s.res, gold: s.res.gold - price };
+        for (const [k, v] of Object.entries(missing)) res[k] = (res[k] || 0) + v;
+        flash("Topped up.");
+        return { ...s, res };
+      });
+    },
+    [flash]
+  );
+
+  /** Collect a producer's store early, before it has filled. */
+  const collectEarly = useCallback(
+    (id) => {
+      setSave((s) => {
+        if (!s || !PRODUCERS[id]) return s;
+        const level = levelOf(s, id);
+        const cap = holdCap(id, level);
+        const now = pendingAt(s, id);
+        const price = earlyCollectCost(now, cap);
+        if ((s.res.gold || 0) < price) {
+          flash(`Need ${price} Golden Fish.`);
+          return s;
+        }
+        const resId = PRODUCERS[id].res;
+        const { res } = addCapped(
+          { ...s.res, gold: s.res.gold - price },
+          { [resId]: cap },
+          levelOf(s, "storehouse")
+        );
+        flash("Store emptied.");
+        return { ...s, res, collected: { ...s.collected, [id]: Date.now() } };
+      });
+    },
+    [flash]
+  );
+
   const hardReset = useCallback(() => {
     try {
       localStorage.removeItem(SAVE_KEY);
@@ -913,6 +987,9 @@ export default function TubbyTown() {
             onBuySlot={buyWorkerSlot}
             onBoost={boostBuilding}
             onAutoAssign={autoAssign}
+            onBuyBuilder={buyBuilder}
+            onBuyMissing={buyMissing}
+            onCollectEarly={collectEarly}
             moving={moving}
             onStartMove={(id) => {
               setMoving(id);
@@ -1077,6 +1154,9 @@ function TownTab({
   onBuySlot,
   onBoost,
   onAutoAssign,
+  onBuyBuilder,
+  onBuyMissing,
+  onCollectEarly,
   moving,
   onStartMove,
   onMoved,
@@ -1200,7 +1280,13 @@ function TownTab({
           onUnassign={onUnassign}
           onBuySlot={onBuySlot}
           onBoost={() => onBoost(picked)}
+          onBuyBuilder={onBuyBuilder}
+          onBuyMissing={() => onBuyMissing(picked)}
+          onCollectEarly={() => onCollectEarly(picked)}
+          buildersTotal={save.builders}
+          builderPrice={builderCost(save.builders)}
           onMove={() => onStartMove(picked)}
+          onGoTo={(bid) => onPick(bid)}
           onClose={() => onPick(null)}
         />
       )}
