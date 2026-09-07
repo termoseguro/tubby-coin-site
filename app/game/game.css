@@ -937,14 +937,37 @@
   border: 3px solid #fff;
   box-shadow: 0 0 0 3px var(--line-2), 0 -6px 0 var(--line-2), 0 -18px 40px var(--drop);
   animation: tt-rise 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* The panel outgrew the screen the moment buildings gained furniture: a
+     Kitchen now lists six items, a crew, a cost table and three buttons. It
+     scrolls INSIDE itself rather than pushing off the top of the window, and
+     the close button stays pinned so there is always a way out no matter how
+     far down the player has scrolled. */
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
+/* A quiet scrollbar — a fat grey one on a pastel sheet looks broken. */
+.tt-sheet::-webkit-scrollbar { width: 10px; }
+.tt-sheet::-webkit-scrollbar-track { background: transparent; }
+.tt-sheet::-webkit-scrollbar-thumb {
+  background: #f0d6e6;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+.tt-sheet::-webkit-scrollbar-thumb:hover { background: #e3bcd5; background-clip: content-box; }
 @keyframes tt-rise {
   from { transform: translateY(40px); opacity: 0; }
 }
 .tt-sheet-x {
-  position: absolute;
-  top: 14px;
-  right: 16px;
+  position: sticky;
+  float: right;
+  top: 0;
+  right: 0;
+  z-index: 3;
+  margin: -8px -6px 0 0;
   background: none;
   border: none;
   color: var(--ink);
@@ -1029,7 +1052,13 @@
 
 @media (max-width: 620px) {
   .tt-sheet-wrap { padding: 0; }
-  .tt-sheet { max-width: none; border-radius: 28px 28px 0 0; }
+  .tt-sheet {
+    max-width: none;
+    border-radius: 28px 28px 0 0;
+    /* Full-bleed on phones, so the extra 32px of desktop margin does not eat
+       a row of furniture on the screen that has the least room for it. */
+    max-height: 92dvh;
+  }
 }
 
 /* ---------- resource bar ----------
@@ -1595,9 +1624,13 @@
 
 /* ---------- moving a building ---------- */
 .tt-sheet-move {
-  position: absolute;
-  top: 16px;
-  right: 52px;
+  /* Rides along with the close button so both stay reachable while the sheet's
+     body scrolls under them. */
+  position: sticky;
+  float: right;
+  top: 0;
+  z-index: 3;
+  margin: -4px 8px 0 0;
   font: 800 0.76rem/1 var(--font-body);
   color: var(--ink);
   background: #fff;

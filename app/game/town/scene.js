@@ -98,9 +98,6 @@ async function spriteBuilding(b) {
   c.__body = s;
   c.__shadow = shadow;
 
-  const plateA = namePlate(b, -s.height);
-  c.__plate = plateA[0];
-  c.addChild(...plateA);
   c.scale.set(b.scale);
   c.zIndex = b.y;
   return c;
@@ -191,9 +188,6 @@ function drawBuilding(b) {
   c.__body = g;
   c.__shadow = shadow;
 
-  const plateB = namePlate(b, -b.h - b.h * 0.42);
-  c.__plate = plateB[0];
-  c.addChild(...plateB);
   c.scale.set(b.scale);
   c.zIndex = b.y;
   return c;
@@ -205,7 +199,7 @@ function drawBuilding(b) {
  *  labelled diagram rather than a place. The art now identifies each building
  *  on its own (a gift box, a barn, a tower); the label is a quiet confirmation
  *  sitting on the grass, and the full detail lives in the tap panel. */
-function namePlate(b, topY = 0) {
+function namePlate(b) {
   // Front row labels sit on the grass below. Back row labels sit ABOVE the
   // roof — otherwise the front row covers them and half the town goes unnamed.
   const y = 6;
@@ -428,6 +422,10 @@ export async function createTown(host, cats, opts = {}) {
       moving.node.x = sp.x;
       moving.node.y = sp.y;
       moving.node.zIndex = sp.y;
+      if (moving.node.__label) {
+        moving.node.__label.x = sp.x;
+        moving.node.__label.y = sp.y;
+      }
       ghost.clear();
       ghost.ellipse(sp.x, sp.y + 6, 92, 30).fill({ color: 0xffd23f, alpha: 0.35 });
       ghost.ellipse(sp.x, sp.y + 6, 92, 30).stroke({ width: 4, color: 0xffc327, alpha: 0.9 });
@@ -678,6 +676,20 @@ export async function createTown(host, cats, opts = {}) {
   world.sortableChildren = true;
   root.addChild(world);
 
+  // NAME PLATES LIVE IN THEIR OWN LAYER, ABOVE EVERY BUILDING.
+  //
+  // They used to be children of the building they name, which meant a big
+  // building standing in front of a smaller one drew straight over its label —
+  // the Adoption Center swallowed the Treat Factory's name, and any future
+  // layout tweak could do the same to any other pair. Checking distances kept
+  // it mostly working and "mostly" is the wrong word for whether a town's
+  // buildings are legible.
+  //
+  // In their own layer, no building can ever cover a name, at any spacing.
+  const labels = new Container();
+  labels.zIndex = 99998;
+  world.addChild(labels);
+
   // Real art first, drawn placeholder only where a file is still missing — so
   // the town upgrades one building at a time as art lands. See docs/art-brief.md.
   //
@@ -708,20 +720,10 @@ export async function createTown(host, cats, opts = {}) {
     ring.visible = false;
     node.addChildAt(ring, 0);
 
-    // overlay slot: level chip, build progress, ready badge
-    // Transient markers (collect bubble, build progress) stay above the roof.
+    // overlay slot: build progress and the "build here" marker, above the roof
     const overlay = new Container();
     overlay.y = -artH - 14;
     node.addChild(overlay);
-
-    // The LEVEL belongs with the NAME, not floating above the roof: in a town
-    // laid out in a ring, a level chip above one building lands right beside
-    // the name plate of another and looks like it belongs to that one.
-    const levelTag = new Container();
-    levelTag.y = (node.__plate?.__y ?? 6) + 14;
-    levelTag.x = -((node.__plate?.__w ?? 80) / 2) - 15;
-    node.addChild(levelTag);
-    node.__levelTag = levelTag;
 
     // An empty PLOT, drawn under the building and swapped in when the building
     // does not exist yet. A locked town that simply hides its buildings has no
@@ -733,7 +735,6 @@ export async function createTown(host, cats, opts = {}) {
     const ph = Math.max(26, b.w * 0.3);
     plot.ellipse(0, 0, pw / 2 + 10, ph / 2 + 6).fill({ color: 0xd9c49a, alpha: 0.85 });
     plot.ellipse(0, 0, pw / 2, ph / 2).fill({ color: 0xc7ab7d, alpha: 0.9 });
-    // corner stakes, so it reads as marked-out ground rather than a puddle
     for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
       const px = (sx * pw) / 2;
       const py = (sy * ph) / 2;
@@ -744,8 +745,7 @@ export async function createTown(host, cats, opts = {}) {
     node.addChildAt(plot, 0);
     node.__plot = plot;
 
-    // Scaffolding, sized to this building and drawn OVER it. Added last so it
-    // sits above the body but below the overlay markers.
+    // Scaffolding, sized to this building and drawn OVER it while it builds.
     if (scaffoldTex) {
       const sc = new Sprite(scaffoldTex);
       sc.anchor.set(0.5, 1);
@@ -755,12 +755,24 @@ export async function createTown(host, cats, opts = {}) {
       node.__scaffold = sc;
     }
 
+    // The label group: plate, name, and the level chip docked to its left edge
+    // as one unit. It lives in the `labels` layer, never in the building, so no
+    // building can cover another's name.
+    const label = new Container();
+    label.scale.set(b.scale);
+    const [plate, text] = namePlate(b);
+    const levelTag = new Container();
+    levelTag.y = plate.__y + 14;
+    levelTag.x = -plate.__w / 2 - 15;
+    label.addChild(plate, text, levelTag);
+    labels.addChild(label);
+    node.__label = label;
+    node.__levelTag = levelTag;
+
     node.__ring = ring;
     node.__overlay = overlay;
     node.__artH = artH;
     node.__baseY = b.y;
-    // Name plate parts, so a locked building can dim its label with the rest.
-    node.__plateLabel = node.children.find((ch) => ch instanceof Text);
 
     node.eventMode = "static";
     node.cursor = "pointer";
@@ -769,11 +781,13 @@ export async function createTown(host, cats, opts = {}) {
       if (wasDrag()) return;
       opts.onSelect?.(b.id);
     });
+    // Hover lifts the building only. The label stays put on the grass — a name
+    // that bobs with the mouse reads as a glitch, not as feedback.
     node.on("pointerover", () => {
-      node.y = b.y - 6;
+      node.y = node.__baseY - 6;
     });
     node.on("pointerout", () => {
-      node.y = b.y;
+      node.y = node.__baseY;
     });
 
     buildingNodes[b.id] = node;
@@ -842,6 +856,10 @@ export async function createTown(host, cats, opts = {}) {
       node.y = pos ? pos.y : b.y;
       node.zIndex = node.y;
       node.__baseY = node.y;
+      if (node.__label) {
+        node.__label.x = node.x;
+        node.__label.y = node.y;
+      }
     }
   }
 
@@ -867,6 +885,7 @@ export async function createTown(host, cats, opts = {}) {
       if (node.__body) node.__body.visible = !isPlot;
       if (node.__shadow) node.__shadow.visible = !isPlot;
       node.alpha = isLocked ? 0.4 : 1;
+      if (node.__label) node.__label.alpha = isLocked ? 0.55 : 1;
       ov.y = isPlot ? -34 : -node.__artH - 14;
 
       // level, docked to the name plate
