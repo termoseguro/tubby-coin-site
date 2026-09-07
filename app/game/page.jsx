@@ -44,6 +44,15 @@ import BuyModal from "./town/BuyModal";
 import RaidPanel from "./town/RaidPanel";
 import { claimableCount } from "../../lib/townQuests";
 import {
+  MAX_HELPS_PER_JOB,
+  NEIGHBOUR_EVERY_MS,
+  TOKENS_PER_HELP,
+  applyHelp,
+  helpReduction,
+  helpsLeft,
+  randomNeighbour,
+} from "../../lib/townAlliance";
+import {
   HURT_MULTIPLIER,
   healCost,
   healSeconds,
@@ -170,6 +179,9 @@ function freshSave() {
     positions: {},
     // quest rewards already taken
     claimed: {},
+    // Clowder tokens, earned by helping. Spent in the Guild Hall once it does
+    // something (lib/townAlliance.js).
+    tokens: 0,
   };
 }
 
@@ -375,6 +387,7 @@ function migrate(s) {
   if (s.raidStage == null) s.raidStage = 0;
   if (!s.lastRaidAt) s.lastRaidAt = Date.now();
   if (!s.hurt) s.hurt = {};
+  if (s.tokens == null) s.tokens = 0;
   if (s.res && s.res.coin == null) s.res.coin = 250;
   if (!s.lastProd) s.lastProd = Date.now();
   delete s.collected;
@@ -784,6 +797,53 @@ export default function TubbyTown() {
     [flash]
   );
 
+  /** Ask the clowder to speed a job along.
+   *
+   *  In Kingshot this is the single most-tapped button in the game, and the
+   *  reason is the FLOOR rather than the percentage: one tap takes 1% off the
+   *  remaining time or a whole minute, whichever is MORE. Small jobs evaporate
+   *  under a few taps; a two-day job merely bends. Generous exactly when a new
+   *  player needs it, and never trivialising the late game.
+   *
+   *  Nobody can actually tap yet — there is no server and no clowder — so the
+   *  prototype has neighbours wander by instead, and the panel says so. The
+   *  maths here is the real thing and moves to the server unchanged. */
+  const askForHelp = useCallback(
+    (id) => {
+      setSave((s) => {
+        if (!s?.jobs?.[id]) return s;
+        if (s.jobs[id].asked) {
+          flash("The clowder already knows.");
+          return s;
+        }
+        flash("Asked the clowder for a hand.");
+        return { ...s, jobs: { ...s.jobs, [id]: { ...s.jobs[id], asked: Date.now() } } };
+      });
+    },
+    [flash]
+  );
+
+  /** Tap help on someone else's job. Earns tokens, which is the only reason
+   *  anyone ever taps — a help system that does not pay the helper is
+   *  decoration. Wired to the neighbours until there are real towns to help. */
+  const helpOnce = useCallback(
+    (id, who) => {
+      setSave((s) => {
+        const job = s?.jobs?.[id];
+        if (!job) return s;
+        const { job: next, helped, cut } = applyHelp(job);
+        if (!helped) return s;
+        flash(`${who} helped · −${Math.round(cut)}s`);
+        return {
+          ...s,
+          jobs: { ...s.jobs, [id]: next },
+          tokens: (s.tokens || 0) + TOKENS_PER_HELP,
+        };
+      });
+    },
+    [flash]
+  );
+
   /** Send the town against Palis.
    *
    *  Everything about this is deliberately reversible except the ladder. A win
@@ -1153,6 +1213,26 @@ export default function TubbyTown() {
     flash("Save wiped.");
   }, [flash]);
 
+  // ---- the neighbours -------------------------------------------------------
+  // Prototype only: real clowder members replace this entirely (townAlliance.js).
+  //
+  // Placed here for two reasons that pull in opposite directions and leave
+  // exactly one legal window: it must come AFTER `helpOnce`, because a
+  // dependency array naming a `const` throws on the temporal dead zone, and
+  // BEFORE the early return below, because a hook that only sometimes runs is
+  // the crash this file has already had twice.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const s = saveRef.current;
+      if (!s) return;
+      const asked = Object.entries(s.jobs || {}).find(
+        ([, j]) => j.asked && (j.helps || 0) < MAX_HELPS_PER_JOB && j.finishesAt > Date.now()
+      );
+      if (asked) helpOnce(asked[0], randomNeighbour());
+    }, NEIGHBOUR_EVERY_MS);
+    return () => clearInterval(id);
+  }, [helpOnce]);
+
   if (!save) {
     return (
       <main className="ttown">
@@ -1423,6 +1503,7 @@ export default function TubbyTown() {
             onBuyMissing={buyMissing}
             onRushProduction={rushProduction}
             onUpgradeItem={upgradeItem}
+            onAskHelp={askForHelp}
             moving={moving}
             onStartMove={(id) => {
               setMoving(id);
@@ -1653,6 +1734,7 @@ function TownTab({
   onBuyMissing,
   onRushProduction,
   onUpgradeItem,
+  onAskHelp,
   moving,
   onStartMove,
   onMoved,
@@ -1772,6 +1854,7 @@ function TownTab({
           itemLevels={save.furniture?.[picked] || {}}
           bonuses={bonusesAt(save, picked, levelOf(save, picked))}
           onUpgradeItem={(itemId) => onUpgradeItem(picked, itemId)}
+          onAskHelp={() => onAskHelp(picked)}
           res={save.res}
           hallLevel={levelOf(save, "hall")}
           storehouseLevel={levelOf(save, "storehouse")}

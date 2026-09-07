@@ -685,6 +685,16 @@ export async function createTown(host, cats, opts = {}) {
   // hover lift, a selection ring, and overlays drawn on top for level, build
   // progress and "ready" badges. This is exactly how the genre does it — no 3D
   // is involved or needed.
+  // The construction overlay, loaded once and shared. Tinting a building grey
+  // said "something is happening here"; actual scaffolding says WHAT.
+  let scaffoldTex = null;
+  const scaffoldUrl = await resolveArt("scaffold");
+  if (scaffoldUrl) {
+    try {
+      scaffoldTex = await Assets.load(scaffoldUrl);
+    } catch {}
+  }
+
   const buildingNodes = {};
   for (const b of BUILDINGS) {
     const node = (await spriteBuilding(b)) || drawBuilding(b);
@@ -733,6 +743,17 @@ export async function createTown(host, cats, opts = {}) {
     plot.visible = false;
     node.addChildAt(plot, 0);
     node.__plot = plot;
+
+    // Scaffolding, sized to this building and drawn OVER it. Added last so it
+    // sits above the body but below the overlay markers.
+    if (scaffoldTex) {
+      const sc = new Sprite(scaffoldTex);
+      sc.anchor.set(0.5, 1);
+      sc.scale.set((b.h * 1.95) / scaffoldTex.height);
+      sc.visible = false;
+      node.addChild(sc);
+      node.__scaffold = sc;
+    }
 
     node.__ring = ring;
     node.__overlay = overlay;
@@ -920,9 +941,14 @@ export async function createTown(host, cats, opts = {}) {
         hammer.y = -32;
         hammer.rotation = -0.3;
         ov.addChild(hammer);
-        if (node.__art) node.__art.tint = 0xcfc4cc;
-      } else if (node.__art) {
-        node.__art.tint = isLocked ? 0xa9b4c7 : 0xffffff;
+        if (node.__scaffold) node.__scaffold.visible = true;
+        // The grey tint stays as well, but lighter now the scaffolding carries
+        // the message — a building under construction should still read as
+        // itself, not as a ghost.
+        if (node.__art) node.__art.tint = node.__scaffold ? 0xe4dce2 : 0xcfc4cc;
+      } else {
+        if (node.__scaffold) node.__scaffold.visible = false;
+        if (node.__art) node.__art.tint = isLocked ? 0xa9b4c7 : 0xffffff;
       }
     }
   }

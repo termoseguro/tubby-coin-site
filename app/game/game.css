@@ -2265,3 +2265,30 @@
 /* the Palis chip on the map, lit when a raid is banked */
 .ttown .tt-cap.ready { background: #fff4d6; border-color: #f2d894; }
 .ttown .tt-cap.ready .tt-cap-n b { color: #a06a00; }
+
+
+/* ---- alliance help (docs: lib/townAlliance.js) ----
+   Sits above the paid speed-up on purpose: ask first, pay for what is left. */
+.ttown .tt-help-ask {
+  width: 100%;
+  background: #e6f6ee;
+  box-shadow: 0 2.5px 0 #a8d8c2;
+  color: #2f7a60;
+}
+.ttown .tt-help {
+  margin: 8px 0;
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: #eefaf3;
+  border: 2px solid #bfe8d3;
+}
+.ttown .tt-help b { display: block; font-size: 12.5px; color: #2f7a60; }
+.ttown .tt-help small { font-size: 11.5px; color: #5c9280; }
+.ttown .tt-help-bar {
+  height: 8px;
+  margin: 6px 0 5px;
+  border-radius: 999px;
+  background: #cfeadd;
+  overflow: hidden;
+}
+.ttown .tt-help-bar i { display: block; height: 100%; background: #3f9d7d; }

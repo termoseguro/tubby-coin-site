@@ -12,6 +12,7 @@
 
 import { BUILDINGS, BUILDING_INFO } from "../../../lib/townConfig";
 import { EFFECTS, itemCap, itemCost, itemSeconds } from "../../../lib/townFurniture";
+import { MAX_HELPS_PER_JOB, helpReduction, helpsLeft } from "../../../lib/townAlliance";
 import {
   PRODUCERS,
   REFINERS,
@@ -113,6 +114,7 @@ export default function BuildingSheet({
   onBuyMissing,
   onRushProduction,
   onUpgradeItem,
+  onAskHelp,
   buildersTotal = 2,
   builderPrice = 500,
   locked = false,
@@ -459,11 +461,35 @@ export default function BuildingSheet({
             <div className="tt-sheet-bar">
               <i style={{ width: `${Math.min(100, job.pct * 100)}%` }} />
             </div>
+            {/* Help comes BEFORE the paid rush, which is Kingshot's own advice
+                to its players: ask the alliance first, spend only for what is
+                left. Putting the free option second would be a dark pattern,
+                and it would also make the paid one feel worse. */}
+            {job.asked ? (
+              <div className="tt-help on">
+                <b>
+                  {job.helps || 0} of {MAX_HELPS_PER_JOB} helped
+                </b>
+                <div className="tt-help-bar">
+                  <i style={{ width: `${((job.helps || 0) / MAX_HELPS_PER_JOB) * 100}%` }} />
+                </div>
+                <small>
+                  Each neighbour takes off {Math.round(helpReduction(remaining))}s.
+                  {helpsLeft(job) === 0 && " Nobody left to ask."}
+                </small>
+              </div>
+            ) : (
+              <button className="tt-mini tt-help-ask" type="button" onClick={onAskHelp}>
+                Ask the clowder for help · free
+              </button>
+            )}
+
             <button className="tt-btn alt" type="button" onClick={onRush}>
               Finish now · {rushCost(remaining)} <IconGoldFish size={16} />
             </button>
             <p className="tt-sheet-note">
               A builder is busy until this finishes. The nudge gets cheaper the closer it is.
+              {job.asked && " Neighbours help on their own — real clowders come with the server."}
             </p>
           </div>
         ) : blocked.length ? (
