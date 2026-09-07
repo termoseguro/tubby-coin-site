@@ -1,0 +1,445 @@
+{
+  "source": "tubby cats, CC0 — 0xca7ca7bcc765f77339be2d648ba53ce9c8a262bd",
+  "pulled": 24,
+  "cats": [
+    {
+      "id": 16666,
+      "name": "16666",
+      "rarity": "mythic",
+      "art": "/cats/16666.webp",
+      "traits": {
+        "Background": "Gradient Dots Orange Yellow",
+        "Body": "Latte",
+        "Top": "Tee Cheese",
+        "Eyes": "Pie",
+        "Eye Color": "Black",
+        "Mouth": "Shocked",
+        "Eyebrows": "Sad",
+        "Hair": "Short Spiky",
+        "Hair Color": "Ginger",
+        "Pet": "Hamster",
+        "Hat": "Cat Beret Orange"
+      }
+    },
+    {
+      "id": 15000,
+      "name": "15000",
+      "rarity": "mythic",
+      "art": "/cats/15000.webp",
+      "traits": {
+        "Background": "Solid",
+        "Body": "Raspberry",
+        "Top": "Chunky Turtleneck Black",
+        "Eyes": "Squint",
+        "Eye Color": "Black Leak",
+        "Lashes": "true",
+        "Mouth": "Toothy Blood Smear",
+        "Eyebrows": "Angry Cute",
+        "Hair": "Face Hugging Short",
+        "Hair Color": "Black",
+        "Hat": "Backwards Cap Edgy"
+      }
+    },
+    {
+      "id": 13333,
+      "name": "13333",
+      "rarity": "mythic",
+      "art": "/cats/13333.webp",
+      "traits": {
+        "Background": "Cherry Blossoms",
+        "Body": "Vanilla",
+        "Top": "Sailor Pink",
+        "Eyes": "Cat Half Lidded",
+        "Eye Color": "Black",
+        "Mouth": "Happy Small",
+        "Eyebrows": "Pien",
+        "Hair": "Fluffy Short",
+        "Hair Color": "Teal",
+        "Hands": "Point",
+        "Hair Clip": "Heart Red"
+      }
+    },
+    {
+      "id": 1666,
+      "name": "1666",
+      "rarity": "legendary",
+      "art": "/cats/1666.webp",
+      "traits": {
+        "Background": "Solid",
+        "Body": "Black Sesame",
+        "Top": "Overalls Black",
+        "Eyes": "Dot",
+        "Eye Color": "Black",
+        "Lashes": "true",
+        "Mouth": "Pout",
+        "Eyebrows": "Ayo Thin",
+        "Hair": "Wolf Cut",
+        "Hair Color": "White",
+        "Hair Clip": "Tubby Head Black Sesame"
+      }
+    },
+    {
+      "id": 17500,
+      "name": "17500",
+      "rarity": "legendary",
+      "art": "/cats/17500.webp",
+      "traits": {
+        "Background": "Starry Pink Blue White",
+        "Body": "Mochi",
+        "Top": "Blanket Wrap Pink",
+        "Eyes": "Sleepy",
+        "Eye Color": "Black",
+        "Lashes": "true",
+        "Mouth": "Happy Nervous",
+        "Eyebrows": "Angry Thin",
+        "Hair": "Side Bun",
+        "Hair Color": "Dark Pink",
+        "Hands": "Scritch",
+        "Hair Clip": "Narutomaki"
+      }
+    },
+    {
+      "id": 5833,
+      "name": "5833",
+      "rarity": "legendary",
+      "art": "/cats/5833.webp",
+      "traits": {
+        "Background": "Tubby Crowd Ube",
+        "Body": "Matcha",
+        "Top": "Open Shirt Green",
+        "Eyes": "Looking Down",
+        "Eye Color": "Black",
+        "Mouth": "Full Catmouth",
+        "Eyebrows": "Worried",
+        "Hair": "Glam Rock",
+        "Hair Color": "Green",
+        "Misc": "Blush"
+      }
+    },
+    {
+      "id": 15833,
+      "name": "15833",
+      "rarity": "legendary",
+      "art": "/cats/15833.webp",
+      "traits": {
+        "Background": "Gradient Dots Salmon Yellow",
+        "Body": "Ube",
+        "Top": "Overalls Black Purple",
+        "Eyes": "Anime",
+        "Eye Color": "Black",
+        "Mouth": "Fanged Smile",
+        "Eyebrows": "Pien",
+        "Hair": "Side Bun",
+        "Hair Color": "Purple",
+        "Misc": "Cheek Freckles",
+        "Hair Clip": "Eye Ribbon Purple"
+      }
+    },
+    {
+      "id": 7500,
+      "name": "7500",
+      "rarity": "legendary",
+      "art": "/cats/7500.webp",
+      "traits": {
+        "Background": "Goopy Green White",
+        "Body": "Matcha",
+        "Top": "Chunky Turtleneck Purple",
+        "Eyes": "Detailed",
+        "Eye Color": "Purple",
+        "Sunglasses": "Hearts Transparent Purple",
+        "Mouth": "Surprised",
+        "Eyebrows": "Neutral",
+        "Hair": "Side Bun",
+        "Hair Color": "Purple",
+        "Misc": "Blush"
+      }
+    },
+    {
+      "id": 12500,
+      "name": "12500",
+      "rarity": "legendary",
+      "art": "/cats/12500.webp",
+      "traits": {
+        "Background": "Cute Knives",
+        "Body": "Mochi",
+        "Top": "Sailor Navy Bloody",
+        "Eyes": "Long Pupils",
+        "Eye Color": "Black",
+        "Mouth": "Shocked",
+        "Eyebrows": "Concerned",
+        "Hair": "Flared Sides Short",
+        "Hair Color": "Red",
+        "Hair Clip": "Bandage White"
+      }
+    },
+    {
+      "id": 18333,
+      "name": "18333",
+      "rarity": "legendary",
+      "art": "/cats/18333.webp",
+      "traits": {
+        "Background": "Stars Purple",
+        "Body": "Mint",
+        "Top": "Overalls Purple White",
+        "Eyes": "Half Lidded",
+        "Eye Color": "Black",
+        "Mouth": "Wide",
+        "Eyebrows": "Angry Furrowed",
+        "Hair": "Double Buns",
+        "Hair Color": "Indigo",
+        "Hands": "Scritch"
+      }
+    },
+    {
+      "id": 10833,
+      "name": "10833",
+      "rarity": "legendary",
+      "art": "/cats/10833.webp",
+      "traits": {
+        "Background": "Fluffy Clouds Blue",
+        "Body": "Blue Raspberry",
+        "Top": "Baby Shirt Round Collar",
+        "Eyes": "Looking Right",
+        "Eye Color": "Black",
+        "Lashes": "true",
+        "Mouth": "Candy Blue",
+        "Eyebrows": "Neutral",
+        "Hair": "Aristocrat",
+        "Hair Color": "Blue"
+      }
+    },
+    {
+      "id": 19166,
+      "name": "19166",
+      "rarity": "epic",
+      "art": "/cats/19166.webp",
+      "traits": {
+        "Background": "Tubby Pattern Cotton Candy",
+        "Body": "Cotton Candy",
+        "Costume": "Angel",
+        "Eyes": "Half Lid",
+        "Eye Color": "Pink",
+        "Mouth": "Happy Nervous",
+        "Eyebrows": "Sad",
+        "Hair": "Side Ponytail",
+        "Hair Color": "Pink"
+      }
+    },
+    {
+      "id": 5000,
+      "name": "5000",
+      "rarity": "epic",
+      "art": "/cats/5000.webp",
+      "traits": {
+        "Background": "Mountain Field",
+        "Body": "Blue Raspberry",
+        "Top": "Bow With Brooch Light Blue",
+        "Eyes": "Smug",
+        "Eye Color": "Black",
+        "Mouth": "Unsure",
+        "Eyebrows": "Relaxed",
+        "Hands": "Shrug",
+        "Misc": "Blush",
+        "Hair": "Bald Udi"
+      }
+    },
+    {
+      "id": 11666,
+      "name": "11666",
+      "rarity": "epic",
+      "art": "/cats/11666.webp",
+      "traits": {
+        "Background": "Pawprint Yellow",
+        "Body": "Vanilla",
+        "Top": "Headphones Blue Black",
+        "Eyes": "Half Lid",
+        "Eye Color": "Black",
+        "Lashes": "true",
+        "Mouth": "Shocked",
+        "Eyebrows": "Chill",
+        "Hands": "Lollipop Red",
+        "Misc": "Blush",
+        "Hat": "Goggles Yellow",
+        "Hair": "Bald Udi"
+      }
+    },
+    {
+      "id": 10000,
+      "name": "10000",
+      "rarity": "epic",
+      "art": "/cats/10000.webp",
+      "traits": {
+        "Background": "Dots Yellow",
+        "Body": "Pudding",
+        "Top": "Hoodie Pudding",
+        "Eyes": "Cat Half Lidded",
+        "Eye Color": "Black",
+        "Lashes": "true",
+        "Mouth": "Default",
+        "Eyebrows": "Angry Cute",
+        "Hair": "Short Messy Flared",
+        "Hair Color": "Blonde",
+        "Misc": "Blush"
+      }
+    },
+    {
+      "id": 8333,
+      "name": "8333",
+      "rarity": "epic",
+      "art": "/cats/8333.webp",
+      "traits": {
+        "Background": "Dots Teal",
+        "Body": "Mochi",
+        "Top": "Varsity Jacket Strawberry",
+        "Eyes": "Detailed",
+        "Eye Color": "Black",
+        "Lashes": "true",
+        "Mouth": "Strawberry Pink",
+        "Eyebrows": "Chill",
+        "Hair": "Fluffy Short",
+        "Hair Color": "Pink",
+        "Hair Clip": "Strawberry Pastel"
+      }
+    },
+    {
+      "id": 833,
+      "name": "833",
+      "rarity": "epic",
+      "art": "/cats/833.webp",
+      "traits": {
+        "Background": "Grid Purple",
+        "Body": "Pudding",
+        "Top": "#1 Tubby Badge Yellow",
+        "Eyes": "Detailed",
+        "Eye Color": "Purple Yellow",
+        "Mouth": "Tongue Down",
+        "Eyebrows": "Angry Furrowed",
+        "Hat": "Heart Arrows Gold",
+        "Hair": "Bald Udi"
+      }
+    },
+    {
+      "id": 6666,
+      "name": "6666",
+      "rarity": "epic",
+      "art": "/cats/6666.webp",
+      "traits": {
+        "Background": "Derp Tubby",
+        "Body": "Mochi",
+        "Top": "Hoodie Pudding",
+        "Eyes": "Half Lidded",
+        "Eye Color": "Black",
+        "Lashes": "true",
+        "Mouth": "Tongue Down",
+        "Eyebrows": "Pien Short",
+        "Hair": "Bedhead",
+        "Hair Color": "Pink",
+        "Misc": "Blush"
+      }
+    },
+    {
+      "id": 0,
+      "name": "0",
+      "rarity": "epic",
+      "art": "/cats/0.webp",
+      "traits": {
+        "Background": "Grid Light Blue",
+        "Body": "Mochi",
+        "Top": "Sweater Vest Yellow",
+        "Eyes": "Looking Down",
+        "Eye Color": "Black",
+        "Lashes": "true",
+        "Mouth": "Happy Nervous",
+        "Eyebrows": "Pien Cute",
+        "Hat": "Maid Headband",
+        "Hair": "Bald Udi"
+      }
+    },
+    {
+      "id": 14166,
+      "name": "14166",
+      "rarity": "epic",
+      "art": "/cats/14166.webp",
+      "traits": {
+        "Background": "Solid",
+        "Body": "Pudding",
+        "Top": "Sweater Straps White",
+        "Eyes": "Detailed",
+        "Eye Color": "Yellow",
+        "Lashes": "true",
+        "Mouth": "Baby Tubby Pudding",
+        "Eyebrows": "Neutral",
+        "Misc": "Cheek Freckles",
+        "Hair": "Bald Udi",
+        "Hair Clip": "Bandage White"
+      }
+    },
+    {
+      "id": 2500,
+      "name": "2500",
+      "rarity": "epic",
+      "art": "/cats/2500.webp",
+      "traits": {
+        "Background": "Solid",
+        "Body": "Mint",
+        "Top": "Hoodie Teal",
+        "Eyes": "Hipster",
+        "Eye Color": "Black",
+        "Mouth": "Pout",
+        "Eyebrows": "Chill",
+        "Hands": "Ninja Mask",
+        "Misc": "Cheek Freckles",
+        "Hair": "Bald Udi"
+      }
+    },
+    {
+      "id": 9166,
+      "name": "9166",
+      "rarity": "epic",
+      "art": "/cats/9166.webp",
+      "traits": {
+        "Background": "Candy",
+        "Body": "Ube",
+        "Top": "Sweater Vest Blue",
+        "Eyes": "Special",
+        "Eye Color": "Black",
+        "Mouth": "Special",
+        "Hair": "Bald Udi",
+        "Whole Head Hat": "Candy"
+      }
+    },
+    {
+      "id": 3333,
+      "name": "3333",
+      "rarity": "epic",
+      "art": "/cats/3333.webp",
+      "traits": {
+        "Background": "Solid",
+        "Body": "Mochi",
+        "Top": "Frilly Dress Black",
+        "Eyes": "Cute",
+        "Eye Color": "Black",
+        "Lashes": "true",
+        "Mouth": "Baby Tubby Black Sesame",
+        "Eyebrows": "Angry Cute",
+        "Hair": "Bald Udi"
+      }
+    },
+    {
+      "id": 4166,
+      "name": "4166",
+      "rarity": "epic",
+      "art": "/cats/4166.webp",
+      "traits": {
+        "Background": "Solid",
+        "Body": "Blue Raspberry",
+        "Top": "Puffer Jacket Blue White",
+        "Eyes": "Special",
+        "Eye Color": "Black",
+        "Mouth": "Special",
+        "Hat": "Earmuffs Blue",
+        "Hair": "Bald Udi"
+      }
+    }
+  ]
+}

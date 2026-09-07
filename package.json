@@ -20,7 +20,8 @@
     "db:diff": "node scripts/db.mjs diff",
     "db:pull": "node scripts/db.mjs pull",
     "db:status": "node scripts/db.mjs status",
-    "check:rls": "node scripts/check-rls.mjs"
+    "check:rls": "node scripts/check-rls.mjs",
+    "cats:pull": "node scripts/pull-cats.mjs"
   },
   "dependencies": {
     "next": "^14.2.35",

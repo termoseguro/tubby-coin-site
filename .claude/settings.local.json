@@ -491,7 +491,16 @@
       "Bash(npx supabase *)",
       "Bash(npm i *)",
       "Bash(cat > *)",
-      "Bash(node scripts/db.mjs reset)"
+      "Bash(node scripts/db.mjs reset)",
+      "WebFetch(domain:kingshotmastery.com)",
+      "WebFetch(domain:kingshotoptimizer.com)",
+      "WebFetch(domain:kingshotwin.com)",
+      "Bash(curl -s -m 40 -o /tmp/t.png \"https://gateway.pinata.cloud/ipfs/QmXAYm2pZ7onGmpCjkCqKFLD4d1qaTdJcKqBMTrD63Ew11/5490.png\")",
+      "Bash(magick /tmp/t.png -resize 320x320 -quality 88 /tmp/t.webp)",
+      "Bash(node scripts/pull-cats.mjs 24)",
+      "Bash(node scripts/pull-cats.mjs 340)",
+      "WebFetch(domain:kingshothandbook.com)",
+      "WebFetch(domain:kingshotdata.com)"
     ]
   }
 }

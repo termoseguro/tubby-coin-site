@@ -42,6 +42,28 @@ import BuildingSheet from "./town/BuildingSheet";
 import QuestBook from "./town/QuestBook";
 import BuyModal from "./town/BuyModal";
 import RaidPanel from "./town/RaidPanel";
+import LuckyLitter from "./town/LuckyLitter";
+import HeroesTab from "./town/HeroesTab";
+import catPool from "../../lib/catPool.json";
+import { HERO_BY_ID } from "../../lib/heroes";
+import {
+  MILESTONES,
+  WHEELS,
+  eventLeft,
+  freeSpinsReady,
+  nextMilestone,
+  spin as spinWheel,
+} from "../../lib/luckyLitter";
+import {
+  grantShards,
+  levelCapFor,
+  levelCost,
+  nextStepCost,
+  patrolSlots,
+  rosterBonuses,
+  rosterPower,
+  starsFor,
+} from "../../lib/heroProgress";
 import { claimableCount } from "../../lib/townQuests";
 import {
   MAX_HELPS_PER_JOB,
@@ -121,8 +143,14 @@ import {
   upkeepPerHour,
 } from "../../lib/townEconomy";
 import "./game.css";
+import "./heroes.css";
 
 const SAVE_KEY = "tubbytown.v1";
+/** Is `r` at least as rare as `floor`? Used to decide whether a spin resets the
+ *  pity counter — only a result the counter was PROMISING should clear it. */
+const RARITY_LADDER = ["common", "rare", "epic", "legendary", "mythic"];
+const RARITY_AT_LEAST = (r, floor) =>
+  RARITY_LADDER.indexOf(r) >= RARITY_LADDER.indexOf(floor);
 /** How many hours of one building's output a Golden Fish purchase buys. */
 const RUSH_HOURS = 4;
 const TICK_MS = 250;
@@ -140,6 +168,18 @@ function freshSave() {
     lastProd: Date.now(),
     // furniture levels: { kitchen: { stove: 3, ... } }
     furniture: {},
+    // ---- HERO CATS ----
+    // Deliberately separate from `cats`, which is the villager pool. Heroes are
+    // named, have stars and skills, and never work inside a building.
+    // { biscuit: { steps, level, shards } }
+    heroes: {},
+    // shards banked toward a hero not yet recruited
+    pendingShards: {},
+    // hero ids currently on patrol — only these count for anything
+    patrol: [],
+    keys: { silver: 3, gold: 1 },
+    litter: { startedAt: Date.now(), spins: 0, pity: { silver: 0, gold: 0 }, claimed: {}, lastFreeAt: 0 },
+
     // ---- Palis raids ----
     // The deepest stage cleared. Never goes down, and it permanently raises the
     // town's idle Gold — that is what makes the ladder an economic decision
@@ -264,11 +304,17 @@ function rateAt(s, id, now = Date.now(), cats = null) {
   if (level < 1) return 0;
   const here = (cats || catsPerBuilding(s))[id] || 0;
   const boosted = (s.boosts?.[id] || 0) > now ? BOOST.multiplier : 1;
+  // Hero skills are not decoration: a deployed Biscuit really does add 8% to
+  // the Kitchen. Folded in here so a hero's card and the building's stated
+  // rate can never disagree.
+  const roster = rosterBonuses(s);
+  const res = PRODUCERS[id].res;
+  const fromHeroes = (roster.produce[res] || 0) + roster.allProduce;
   return (
     effectiveRate(id, level, {
       power: here,
       starving: isStarving(s),
-      furniture: bonusesAt(s, id, level).produce,
+      furniture: bonusesAt(s, id, level).produce + fromHeroes,
     }) * boosted
   );
 }
@@ -282,7 +328,8 @@ function townRates(s, now = Date.now()) {
     if (r > 0) out[PRODUCERS[id].res] = (out[PRODUCERS[id].res] || 0) + r;
   }
   const levels = levelsOf(s);
-  const gold = goldPerHour(s, levels);
+  const roster = rosterBonuses(s);
+  const gold = goldPerHour(s, levels) * (1 + roster.gold / 100);
   if (gold > 0) out.coin = (out.coin || 0) + gold;
   return out;
 }
@@ -324,7 +371,8 @@ function applyProduction(s, now = Date.now()) {
   }
 
   const levels = levelsOf(s);
-  const gold = producedOver(goldPerHour(s, levels), secs);
+  const roster = rosterBonuses(s);
+  const gold = producedOver(goldPerHour(s, levels) * (1 + roster.gold / 100), secs);
   if (gold > 0) gains.coin = (gains.coin || 0) + gold;
 
   let res = { ...s.res };
@@ -388,6 +436,13 @@ function migrate(s) {
   if (!s.lastRaidAt) s.lastRaidAt = Date.now();
   if (!s.hurt) s.hurt = {};
   if (s.tokens == null) s.tokens = 0;
+  if (!s.heroes) s.heroes = {};
+  if (!s.pendingShards) s.pendingShards = {};
+  if (!s.patrol) s.patrol = [];
+  if (!s.keys) s.keys = { silver: 3, gold: 1 };
+  if (!s.litter) {
+    s.litter = { startedAt: Date.now(), spins: 0, pity: { silver: 0, gold: 0 }, claimed: {}, lastFreeAt: 0 };
+  }
   if (s.res && s.res.coin == null) s.res.coin = 250;
   if (!s.lastProd) s.lastProd = Date.now();
   delete s.collected;
@@ -442,6 +497,8 @@ export default function TubbyTown() {
   const [welcomeBack, setWelcomeBack] = useState(null);
   const [raidResult, setRaidResult] = useState(null);
   const [raidOpen, setRaidOpen] = useState(false);
+  const [litterOpen, setLitterOpen] = useState(false);
+  const [spinResult, setSpinResult] = useState(null);
   const [toast, setToast] = useState(null);
   // A once-a-second clock. Production accrues against wall time now, so the
   // derived values (what is ready, build countdowns) need a reason to recompute
@@ -844,6 +901,173 @@ export default function TubbyTown() {
     [flash]
   );
 
+  // ---- HERO CATS ------------------------------------------------------------
+
+  /** Spin a wheel. `how` is free, key or fish — three doors onto the same
+   *  roll, which is the point: the free one gets the screen opened and the
+   *  screen is where the other two are sold.
+   *
+   *  Written against saveRef rather than inside a setSave updater, and that is
+   *  not a style preference. React runs updaters twice under StrictMode to
+   *  surface impure ones, so rolling the dice in there rolled it TWICE and
+   *  threw one away — a gacha that silently discards results is the worst
+   *  possible bug for this particular screen. Updaters stay pure; the roll and
+   *  the modal happen out here. */
+  const doSpin = useCallback(
+    (wheelId, how) => {
+      const s = saveRef.current;
+      if (!s) return;
+      const w = WHEELS[wheelId];
+      const litter = { ...s.litter };
+      const keys = { ...s.keys };
+      const res = { ...s.res };
+
+      if (how === "free") {
+        if (wheelId !== "silver" || freeSpinsReady(litter.lastFreeAt, litter.startedAt) < 1) {
+          flash("No free spin today.");
+          return;
+        }
+        litter.lastFreeAt = Date.now();
+      } else if (how === "key") {
+        if ((keys[wheelId] || 0) < 1) {
+          flash(`No ${w.key}s.`);
+          return;
+        }
+        keys[wheelId] -= 1;
+      } else {
+        if ((res.gold || 0) < w.goldFish) {
+          flash(`Need ${w.goldFish} Golden Fish.`);
+          return;
+        }
+        res.gold -= w.goldFish;
+      }
+
+      const pity = { ...(litter.pity || {}) };
+      const out = spinWheel(wheelId, pity[wheelId] || 0);
+      // The counter clears only on a result it was actually promising.
+      pity[wheelId] =
+        out.pity || RARITY_AT_LEAST(out.rarity, w.pityFloor) ? 0 : (pity[wheelId] || 0) + 1;
+      litter.pity = pity;
+      litter.spins = (litter.spins || 0) + 1;
+
+      let next = { ...s, res, keys, litter };
+      let recruited = false;
+      if (out.hero) {
+        const g = grantShards(next, out.hero.id, out.shards);
+        recruited = g.recruited;
+        next = { ...next, heroes: g.heroes, pendingShards: g.pendingShards };
+      } else {
+        // An "ordinary cat" is not nothing — it pays Gold, so the common slot
+        // still moves a bar somewhere.
+        next = { ...next, res: { ...next.res, coin: (next.res.coin || 0) + out.shards * 25 } };
+      }
+      setSave(next);
+      setSpinResult({ ...out, recruited });
+    },
+    [flash]
+  );
+
+  /** Take a milestone reward. */
+  const claimMilestone = useCallback(
+    (at) => {
+      setSave((s) => {
+        const m = MILESTONES.find((x) => x.at === at);
+        if (!m || (s.litter.spins || 0) < at || s.litter.claimed?.[at]) return s;
+        const res = { ...s.res, coin: (s.res.coin || 0) + (m.reward.gold || 0) };
+        const keys = { ...s.keys };
+        for (const [k, n] of Object.entries(m.reward.keys || {})) keys[k] = (keys[k] || 0) + n;
+        let next = {
+          ...s,
+          res,
+          keys,
+          litter: { ...s.litter, claimed: { ...s.litter.claimed, [at]: true } },
+        };
+        if (m.reward.shards) {
+          // Banked against whoever the player is already closest to.
+          const target = Object.keys(next.heroes)[0] || "biscuit";
+          const g = grantShards(next, target, m.reward.shards);
+          next = { ...next, heroes: g.heroes, pendingShards: g.pendingShards };
+        }
+        flash(`Claimed: ${m.label}`);
+        return next;
+      });
+    },
+    [flash]
+  );
+
+  /** Spend shards to take a hero up one ascension step. */
+  const ascendHero = useCallback(
+    (id) => {
+      setSave((s) => {
+        const st = s.heroes?.[id];
+        if (!st) return s;
+        const cost = nextStepCost(st.steps || 0);
+        if (cost == null) return s;
+        if ((st.shards || 0) < cost) {
+          flash(`Needs ${cost} shards.`);
+          return s;
+        }
+        const steps = (st.steps || 0) + 1;
+        const before = starsFor(st.steps || 0);
+        const after = starsFor(steps);
+        if (after > before) flash(`${HERO_BY_ID[id].name} is now ${after}★`);
+        return {
+          ...s,
+          heroes: { ...s.heroes, [id]: { ...st, steps, shards: st.shards - cost } },
+        };
+      });
+    },
+    [flash]
+  );
+
+  /** Level a hero with Gold. */
+  const levelHero = useCallback(
+    (id) => {
+      setSave((s) => {
+        const st = s.heroes?.[id];
+        if (!st) return s;
+        const cap = levelCapFor(starsFor(st.steps || 0));
+        if (st.level >= cap) {
+          flash("Ascend to raise the level cap.");
+          return s;
+        }
+        const cost = levelCost(st.level);
+        if ((s.res.coin || 0) < cost) {
+          flash(`Needs ${cost} Gold.`);
+          return s;
+        }
+        return {
+          ...s,
+          res: { ...s.res, coin: s.res.coin - cost },
+          heroes: { ...s.heroes, [id]: { ...st, level: st.level + 1 } },
+        };
+      });
+    },
+    [flash]
+  );
+
+  /** Send a hero on patrol, or stand them down. */
+  const togglePatrol = useCallback(
+    (id) => {
+      setSave((s) => {
+        if (!s.heroes?.[id]) return s;
+        const patrol = [...(s.patrol || [])];
+        const i = patrol.indexOf(id);
+        if (i >= 0) {
+          patrol.splice(i, 1);
+          return { ...s, patrol };
+        }
+        if (patrol.length >= patrolSlots(levelOf(s, "warroom"))) {
+          flash("The War Room cannot command any more.");
+          return s;
+        }
+        patrol.push(id);
+        return { ...s, patrol };
+      });
+    },
+    [flash]
+  );
+
   /** Send the town against Palis.
    *
    *  Everything about this is deliberately reversible except the ladder. A win
@@ -853,24 +1077,32 @@ export default function TubbyTown() {
    *  and the stage never falls — a raid that can undo a week of building is a
    *  raid people quit over. */
   const doRaid = useCallback(() => {
-    setSave((s) => {
-      if (!s) return s;
+    // Same reason as doSpin: rolling dice inside a setSave updater rolls them
+    // twice under StrictMode.
+    const s = saveRef.current;
+    {
+      if (!s) return;
       const levels = levelsOf(s);
       if (raidsReady(s.lastRaidAt) < 1) {
         flash("Palis is not back yet.");
-        return s;
+        return;
       }
       if (assignedCount(s) < 1) {
         flash("Put a cat on shift first — nobody is defending.");
-        return s;
+        return;
       }
       const stage = (s.raidStage || 0) + 1;
-      const out = resolveRaid(s, levels, stage);
+      // The patrol is what actually fights. Villagers on shift still defend,
+      // but a roster of ascended heroes is the difference between stage 5 and
+      // stage 40 — which is the whole reason to pull.
+      const out = resolveRaid(s, levels, stage, {
+        heroPower: rosterPower(s),
+        bonuses: rosterBonuses(s),
+      });
       const { res } = addCapped(s.res, out.loot, levelOf(s, "storehouse"));
       const hurt = { ...s.hurt };
       for (const k of out.hurt) hurt[k] = Date.now();
-      setRaidResult({ ...out, stage });
-      return {
+      setSave({
         ...s,
         res,
         hurt,
@@ -879,8 +1111,9 @@ export default function TubbyTown() {
         // single cooldown rather than resetting it, or banking three runs would
         // be worth exactly one.
         lastRaidAt: Math.min(Date.now(), (s.lastRaidAt || Date.now()) + RAID_EVERY_HOURS * 3_600_000),
-      };
-    });
+      });
+      setRaidResult({ ...out, stage });
+    }
   }, [flash]);
 
   /** Patch the hurt cats up at the Cat Clinic. Costs Gold, which is what Gold
@@ -1399,7 +1632,7 @@ export default function TubbyTown() {
             the player cannot see never converts — and an unlabelled "2/2" is
             worse than nothing, because it reads as whichever thing they were
             last thinking about. */}
-        <div className="tt-caps">
+        {tab === "town" && <div className="tt-caps">
           <div className={"tt-cap" + (buildersFree === 0 ? " busy" : "")}>
             <span className="tt-cap-i">
               <IconHammer size={18} />
@@ -1472,7 +1705,7 @@ export default function TubbyTown() {
               </span>
             </button>
           )}
-        </div>
+        </div>}
 
         <button
           className={"tt-book-btn" + (claims > 0 ? " ready" : "")}
@@ -1524,6 +1757,17 @@ export default function TubbyTown() {
             {tab === "board" && (
               <BoardTab save={save} onHold={(h) => setSave((s) => ({ ...s, hold: h }))} />
             )}
+            {tab === "heroes" && (
+              <HeroesTab
+                save={save}
+                pool={catPool.cats}
+                litterLive={eventLeft(save.litter?.startedAt) > 0}
+                onAscend={ascendHero}
+                onLevel={levelHero}
+                onPatrol={togglePatrol}
+                onOpenLitter={() => setLitterOpen(true)}
+              />
+            )}
             {tab === "shop" && <ShopTab onBuy={mockBuy} onReset={hardReset} />}
           </div>
         )}
@@ -1563,6 +1807,7 @@ export default function TubbyTown() {
         {[
           ["town", "Town", <IconHouse key="i" size={19} />],
           ["litter", "Adoption", <IconBox key="i" size={19} />],
+          ["heroes", "Heroes", <IconTrophy key="i" size={19} />],
           ["album", "Album", <IconPaw key="i" size={19} />],
           ["board", "Board", <IconTrophy key="i" size={19} />],
           ["shop", "Shop", <IconCart key="i" size={19} />],
@@ -1596,6 +1841,46 @@ export default function TubbyTown() {
             )}
           </div>
           <button className="tt-btn" type="button" onClick={() => setWelcomeBack(null)}>
+            Good
+          </button>
+        </Modal>
+      )}
+
+      {litterOpen && (
+        <LuckyLitter
+          litter={save.litter}
+          keys={save.keys}
+          goldFish={save.res.gold}
+          freeSpins={freeSpinsReady(save.litter?.lastFreeAt, save.litter?.startedAt)}
+          onSpin={doSpin}
+          onClaim={claimMilestone}
+          onClose={() => setLitterOpen(false)}
+        />
+      )}
+
+      {spinResult && (
+        <Modal
+          onClose={() => setSpinResult(null)}
+          title={spinResult.recruited ? "Recruited!" : spinResult.hero ? spinResult.hero.name : "An ordinary cat"}
+        >
+          <div className={"tt-spin r-" + spinResult.rarity}>
+            <div className="tt-spin-tier">{spinResult.rarity}</div>
+            {spinResult.hero ? (
+              <>
+                <p className="tt-p">{spinResult.hero.blurb}</p>
+                <p className="tt-p">
+                  <b>+{spinResult.shards}</b> shards
+                  {spinResult.recruited && " — and that was enough to recruit them."}
+                </p>
+              </>
+            ) : (
+              <p className="tt-p">
+                Not a hero, but not nothing: <b>+{spinResult.shards * 25} Gold</b>.
+              </p>
+            )}
+            {spinResult.pity && <p className="tt-p warn">The counter came through.</p>}
+          </div>
+          <button className="tt-btn" type="button" onClick={() => setSpinResult(null)}>
             Good
           </button>
         </Modal>

@@ -1,0 +1,285 @@
+/* ===========================================================================
+   HERO CATS AND THE LUCKY LITTER
+
+   Kept in its own file rather than piled onto game.css, which is already long
+   enough that finding anything in it is a search rather than a scroll.
+
+   Every hero card answers the two questions a gacha player actually has, in
+   order: how far to the next star, and what does that star give me. That is why
+   locked skills are listed with the star that unlocks them instead of hidden —
+   an ascension whose payoff you cannot see is an ascension you postpone.
+   =========================================================================== */
+
+.ttown .tt-heroes-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.ttown .tt-heroes-head h2 { margin: 0 0 4px; font-size: 1.25rem; color: var(--ink); }
+.ttown .tt-heroes-head .tt-p { margin: 0; max-width: 46ch; }
+.ttown .tt-heroes-head .tt-btn { width: auto; flex: 0 0 auto; }
+
+/* ---- the patrol ----
+   Only these count. The bench does nothing, so the bench is not shown here. */
+.ttown .tt-patrol {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #fff7fb;
+  border: 2px solid #f6dced;
+}
+.ttown .tt-patrol > small {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #b07a99;
+  margin-bottom: 8px;
+}
+.ttown .tt-patrol-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.ttown .tt-patrol-slot {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+  border: 3px solid #e6cddd;
+  background: #fff;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  color: #d8b6cb;
+}
+.ttown .tt-patrol-slot img { width: 100%; height: 100%; object-fit: cover; }
+.ttown .tt-patrol-slot.empty { border-style: dashed; cursor: default; }
+.ttown .tt-patrol-slot.r-rare { border-color: #6cc2f7; }
+.ttown .tt-patrol-slot.r-epic { border-color: #c489ff; }
+.ttown .tt-patrol-slot.r-legendary { border-color: #ffbe2e; }
+.ttown .tt-patrol-slot.r-mythic { border-color: #ff7a9c; }
+
+/* ---- the roster ---- */
+.ttown .tt-hero-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+}
+.ttown .tt-hero {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 18px;
+  background: var(--card);
+  border: 2px solid var(--line);
+}
+.ttown .tt-hero.locked { opacity: 0.62; }
+.ttown .tt-hero.r-rare { border-color: #b7e0f8; }
+.ttown .tt-hero.r-epic { border-color: #dcc0ff; }
+.ttown .tt-hero.r-legendary { border-color: #ffdf9a; }
+.ttown .tt-hero.r-mythic { border-color: #ffc0d0; }
+
+.ttown .tt-hero-face { position: relative; flex: 0 0 84px; }
+.ttown .tt-hero-face img {
+  width: 84px;
+  height: 84px;
+  border-radius: 14px;
+  object-fit: cover;
+  display: block;
+}
+.ttown .tt-hero-none {
+  display: block;
+  width: 84px;
+  height: 84px;
+  border-radius: 14px;
+  background: #f2e6ee;
+}
+.ttown .tt-hero-cls {
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 7px;
+  padding: 2px 6px;
+  color: #7a5a70;
+}
+
+.ttown .tt-hero-body { flex: 1; min-width: 0; }
+.ttown .tt-hero-name { display: flex; align-items: baseline; gap: 8px; }
+.ttown .tt-hero-name b { font-size: 15px; color: var(--ink); }
+.ttown .tt-hero-tier {
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.ttown .tt-hero-tier.r-rare { color: #2f8fc4; }
+.ttown .tt-hero-tier.r-epic { color: #8e4fd0; }
+.ttown .tt-hero-tier.r-legendary { color: #c98900; }
+.ttown .tt-hero-tier.r-mythic { color: #d4485f; }
+.ttown .tt-hero-blurb { margin: 4px 0 0; font-size: 12px; color: #a4809a; }
+
+.ttown .tt-stars { display: flex; align-items: center; gap: 3px; margin: 5px 0 7px; }
+.ttown .tt-stars i {
+  width: 11px;
+  height: 11px;
+  background: #e6d5e0;
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+.ttown .tt-stars i.on { background: #ffc327; }
+.ttown .tt-stars em { margin-left: 6px; font-style: normal; font-size: 11px; color: #a4809a; }
+
+.ttown .tt-hero-skills { list-style: none; margin: 0 0 8px; padding: 0; }
+.ttown .tt-hero-skills li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  color: #6d5266;
+  padding: 1.5px 0;
+}
+.ttown .tt-hero-skills li.locked { color: #bda6b8; }
+.ttown .tt-hero-skills em { font-style: normal; font-weight: 800; color: #c9a86a; }
+
+.ttown .tt-hero-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ttown .tt-hero-shards { flex: 1 1 100%; }
+.ttown .tt-hero-shards b { font-size: 13px; color: var(--ink); }
+.ttown .tt-hero-shards small { font-size: 11px; color: #a4809a; margin-left: 4px; }
+.ttown .tt-shard-bar {
+  height: 6px;
+  margin-top: 3px;
+  border-radius: 999px;
+  background: #efe0ea;
+  overflow: hidden;
+}
+.ttown .tt-shard-bar i { display: block; height: 100%; background: #c489ff; }
+.ttown .tt-hero-actions .tt-mini { flex: 0 0 auto; font-size: 11px; padding: 5px 9px; }
+.ttown .tt-hero-actions .tt-mini.on {
+  background: #d8f2e6;
+  box-shadow: 0 2.5px 0 #a8d8c2;
+  color: #2f7a60;
+}
+.ttown .tt-hero-recruit { margin-top: 6px; }
+.ttown .tt-hero-recruit small { font-size: 11px; color: #a4809a; }
+.ttown .tt-hero-power { display: block; margin-top: 6px; font-size: 11px; color: #b07a99; }
+
+/* ===========================================================================
+   THE LUCKY LITTER
+
+   The next milestone sits above the wheels, because a player deciding whether
+   to spin is not asking what they might get — they are asking how far to the
+   next box.
+   =========================================================================== */
+
+.ttown .tt-mile-next {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fff8e4, #fff1cf);
+  border: 2px solid #f2d894;
+}
+.ttown .tt-mile-head { display: flex; align-items: baseline; justify-content: space-between; }
+.ttown .tt-mile-head small {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a07f2e;
+}
+.ttown .tt-mile-head b { font-size: 15px; color: #6a4300; }
+.ttown .tt-mile-next p { margin: 4px 0 8px; font-size: 12.5px; color: #6a4300; }
+.ttown .tt-mile-bar { height: 9px; border-radius: 999px; background: #f0dda8; overflow: hidden; }
+.ttown .tt-mile-bar i { display: block; height: 100%; background: #ffc327; }
+
+/* All five milestones, always. The shape of the whole run has to be visible
+   from the first spin, or the player is choosing in the dark. */
+.ttown .tt-mile-rail { display: flex; gap: 6px; list-style: none; margin: 0 0 14px; padding: 0; }
+.ttown .tt-mile-rail li { flex: 1; }
+.ttown .tt-mile-rail button {
+  width: 100%;
+  padding: 7px 2px;
+  cursor: default;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  font: inherit;
+}
+.ttown .tt-mile-rail b { font-size: 13px; color: var(--ink); }
+.ttown .tt-mile-rail small {
+  font-size: 9.5px;
+  color: #a4809a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.ttown .tt-mile-rail li.done button { background: #f4ecf3; opacity: 0.7; }
+.ttown .tt-mile-rail li.ready button {
+  background: #ffd23f;
+  border-color: #d9a800;
+  cursor: pointer;
+  animation: tt-mile-pulse 1.3s ease-in-out infinite;
+}
+.ttown .tt-mile-rail li.ready b,
+.ttown .tt-mile-rail li.ready small { color: #6a4300; }
+@keyframes tt-mile-pulse { 50% { transform: translateY(-2px); } }
+
+.ttown .tt-wheels { display: grid; gap: 12px; }
+@media (min-width: 620px) { .ttown .tt-wheels { grid-template-columns: 1fr 1fr; } }
+.ttown .tt-wheel {
+  padding: 12px;
+  border-radius: 16px;
+  border: 2px solid var(--line);
+  background: #fff;
+}
+.ttown .tt-wheel.w-gold {
+  border-color: #f2d894;
+  background: linear-gradient(180deg, #fffdf6, #fff8e6);
+}
+.ttown .tt-wheel-top { display: flex; align-items: center; gap: 7px; }
+.ttown .tt-wheel-dot { width: 12px; height: 12px; border-radius: 50%; }
+.ttown .tt-wheel-top b { font-size: 14px; color: var(--ink); }
+.ttown .tt-wheel-keys { margin-left: auto; font-size: 11px; color: #a4809a; }
+.ttown .tt-wheel-blurb { margin: 5px 0 9px; font-size: 11.5px; color: #a4809a; }
+
+/* The odds, printed. Not behind a tap, not in a footnote. */
+.ttown .tt-odds { width: 100%; border-collapse: collapse; margin-bottom: 9px; }
+.ttown .tt-odds td { font-size: 11.5px; padding: 2.5px 0; color: #6d5266; }
+.ttown .tt-odds td:nth-child(2) { text-align: right; font-weight: 800; width: 4.5em; }
+.ttown .tt-odds-shards { text-align: right; color: #a4809a; width: 6em; }
+.ttown .tt-odds tr.r-legendary td { color: #c98900; }
+.ttown .tt-odds tr.r-mythic td { color: #d4485f; }
+
+.ttown .tt-pity { margin-bottom: 9px; }
+.ttown .tt-pity small { font-size: 11px; color: #a4809a; }
+.ttown .tt-pity-bar {
+  height: 6px;
+  margin-top: 3px;
+  border-radius: 999px;
+  background: #efe0ea;
+  overflow: hidden;
+}
+.ttown .tt-pity-bar i { display: block; height: 100%; background: #ff7a9c; }
+.ttown .tt-wheel-btns { display: grid; gap: 6px; }
+
+.ttown .tt-spin { text-align: center; }
+.ttown .tt-spin-tier {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.ttown .tt-spin.r-rare .tt-spin-tier { color: #2f8fc4; }
+.ttown .tt-spin.r-epic .tt-spin-tier { color: #8e4fd0; }
+.ttown .tt-spin.r-legendary .tt-spin-tier { color: #c98900; }
+.ttown .tt-spin.r-mythic .tt-spin-tier { color: #d4485f; }
