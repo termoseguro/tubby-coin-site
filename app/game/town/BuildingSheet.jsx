@@ -248,9 +248,14 @@ export default function BuildingSheet({
               })}
             </div>
             {slotsUsed >= slotsTotal && (
-              <button className="tt-mini gold tt-crew-buy" type="button" onClick={onBuySlot}>
-                Buy a worker spot · {slotPrice} <IconGoldFish size={14} />
-              </button>
+              <>
+                <button className="tt-mini gold tt-crew-buy" type="button" onClick={onBuySlot}>
+                  Buy a worker spot · {slotPrice} <IconGoldFish size={14} />
+                </button>
+                <p className="tt-sheet-note tt-crew-note">
+                  Or raise the Nap House — every level there gives two spots, free.
+                </p>
+              </>
             )}
           </div>
         )}
