@@ -102,13 +102,16 @@ ten buildings matters far more than any single one being pretty:
 
 ---
 
-# ROUND 2 — the new buildings
+# ROUND 2 — the new buildings ✅ ALL DONE
+
+Generated and imported. Every building below is on the map.
+
+`nap.png` is retired: the Nap House no longer exists (Kingshot has no such
+building — see the note at the top of `lib/townConfig.js`), and the cottages
+have their own art now.
 
 Same spec, same style line, same conversation in ChatGPT so the style carries.
 Save each as the filename shown, into Downloads, then `npm run art:import`.
-
-Priorities come from `kingshot-teardown.md`: P1 is needed for the next build,
-P2 once raids and alliances exist.
 
 ### `cottage.png` — Cat Cottage · **P1**
 > A small cosy cat cottage where the town's cats live. Round windows with
@@ -164,6 +167,8 @@ P2 once raids and alliances exist.
 ---
 
 # ROUND 3 — characters and states
+
+`scaffold.png` is done. **Still needed: `palis.png` and `icy.png`.**
 
 These are **not** buildings, so drop the "no characters" clause from the style
 line for these three and keep everything else.

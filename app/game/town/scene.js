@@ -14,7 +14,7 @@
 // ============================================================================
 
 import { Application, Assets, Container, Graphics, Rectangle, Sprite, Text } from "pixi.js";
-import { BUILDINGS, FOCUS, HORIZON, PLAZA, WORLD, workSpot } from "../../../lib/townConfig";
+import { BUILDINGS, FOCUS, HORIZON, PLAZA, RING_ROADS, WORLD, workSpot } from "../../../lib/townConfig";
 import { RARITIES } from "../../../lib/gameConfig";
 
 const RARITY_HEX = {
@@ -528,26 +528,44 @@ export async function createTown(host, cats, opts = {}) {
   // ---- the roads -----------------------------------------------------------
   // Every road runs out of the central plaza. A town reads as a town when it
   // has a centre things point at — two parallel streets read as a shelf.
+  // Spokes reach the INNER ring only, and the outer rings get ring roads.
+  //
+  // The first version drew a spoke from the plaza to every building. That was
+  // fine at ten buildings and became a starburst of nineteen lines at twenty —
+  // the town read as a diagram of itself. Real settlements do this instead: a
+  // few roads out of the centre, and concentric streets joining what is further
+  // out. It also makes the rings legible, which is the point of having them.
   const road = new Graphics();
-  road.setStrokeStyle({ width: 46, color: 0xe9d3ae, cap: "round", join: "round" });
+  road.setStrokeStyle({ width: 52, color: 0xe9d3ae, cap: "round", join: "round" });
   for (const b of BUILDINGS) {
-    if (b.id === "hall" || b.cottage) continue;
+    if (b.ring !== 1) continue;
     road.moveTo(PLAZA.x, PLAZA.y);
     const dx = b.x - PLAZA.x;
     const dy = b.y + 26 - PLAZA.y;
     // a gentle bow so the spokes are not laser-straight
-    road.quadraticCurveTo(PLAZA.x + dx * 0.55 - dy * 0.10, PLAZA.y + dy * 0.55 + dx * 0.10, b.x, b.y + 26);
+    road.quadraticCurveTo(PLAZA.x + dx * 0.55 - dy * 0.1, PLAZA.y + dy * 0.55 + dx * 0.1, b.x, b.y + 26);
   }
   road.stroke();
 
-  // the residential ring road, threaded through the cottages
+  // the plaza itself
+  road.ellipse(PLAZA.x, PLAZA.y, 250, 155).fill(0xefdcbb);
+  road.ellipse(PLAZA.x, PLAZA.y, 250, 155).stroke({ width: 6, color: 0xe0c79f, alignment: 0 });
+  road.ellipse(PLAZA.x, PLAZA.y, 158, 98).fill({ color: 0xf7e9d0, alpha: 0.9 });
+  root.addChild(road);
+
+  // The ring roads: one per outer ring, each drawn a touch narrower than the
+  // one inside it so the town reads as spreading rather than as a target.
   const lane = new Graphics();
-  lane.setStrokeStyle({ width: 34, color: 0xe9d3ae, cap: "round", join: "round" });
-  lane.ellipse(PLAZA.x, PLAZA.y + 96, 1080, 520);
-  lane.stroke();
-  // and one link back to the plaza, so the belt is not a moat
+  for (const r of RING_ROADS) {
+    lane.setStrokeStyle({ width: r.w, color: 0xe9d3ae, cap: "round", join: "round" });
+    lane.ellipse(PLAZA.x, PLAZA.y + r.dy, r.rx, r.ry);
+    lane.stroke();
+  }
+  // and four short links out of the plaza so the rings are not moats
   lane.setStrokeStyle({ width: 34, color: 0xe9d3ae, cap: "round" });
-  lane.moveTo(PLAZA.x, PLAZA.y).lineTo(PLAZA.x, PLAZA.y + 616);
+  for (const [dx, dy] of [[0, 1], [0, -1], [1, 0.35], [-1, 0.35]]) {
+    lane.moveTo(PLAZA.x, PLAZA.y).lineTo(PLAZA.x + dx * 1300, PLAZA.y + dy * 660);
+  }
   lane.stroke();
   root.addChild(lane);
 
