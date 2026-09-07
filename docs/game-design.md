@@ -179,17 +179,30 @@ asymmetric: Stamina *stops* work (hard, immediate, fixable), Happiness only
 *scales* it (soft, forgiving). A player returning after a week finds a slow
 town, never a broken one.
 
-### Worker cap — one cat to start
+### Cat villagers — capped by the Cat Hall
 
-The number of cats that can be on shift at once is set by the **Nap House**:
-every cat needs a bed. It starts at **one**, and each level adds one more.
+The cats that live in the town and work inside buildings are **cat villagers**,
+and how many can be on shift at once is set by the **Cat Hall** — the same way
+Kingshot's Town Center caps assignable survivors. Two at Cat Hall 1, one more
+per level. The Nap House is where tired cats sleep; that is a different job.
 
-One is deliberate. With a single worker the player staffs exactly one building
-and watches the other four crawl, so the bottleneck is unmissable inside the
-first session — the only time a bottleneck is worth anything. Going from one to
-two doubles the town's workforce, which is why the second spot is a gateway
-purchase priced at $4.99 (`monetization.md` §2.4) and why the Nap House upgrade
-that grants it for free is always named right beside the offer.
+**Places inside a building are separate from villagers.** Every building comes
+with one place, and up to two more can be bought **for that building alone** —
+capacity is bought where it is needed, and paid for again at the next building,
+so the spend repeats naturally.
+
+**Builders are a different resource entirely.** You start with **one**, and the
+second is the gateway purchase — Kingshot prices its permanent second
+construction queue at **$2.99** and it is the most recommended purchase in that
+game, so we match the number rather than guess a higher one. It is also offered
+as a **two-day rental for Golden Fish**, deliberately poor value against the
+pack: the rental exists so everyone tastes two builders, and tasting is what
+makes the permanent one sell.
+
+**Verified against Kingshot**, not assumed: the Town Center capping assignable
+workers and starting with one builder are both confirmed. Buying places
+per-building is **our** extension — it is not something the research confirmed
+Kingshot does.
 
 ---
 

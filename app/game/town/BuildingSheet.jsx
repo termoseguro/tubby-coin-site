@@ -28,7 +28,6 @@ import {
   workerCap,
   BOOST,
   MAX_BUILDERS,
-  MAX_PER_BUILDING,
   earlyCollectCost,
   topUpCost,
   shortfall,
@@ -90,7 +89,10 @@ export default function BuildingSheet({
   idle = [],
   slotsUsed = 0,
   slotsTotal = 0,
-  slotPriceUsd = 0.99,
+  slotPriceUsd = null,
+  slotsHere = 1,
+  boughtHere = 0,
+  villagersFree = 0,
   boostUntil = 0,
   onUpgrade,
   onRush,
@@ -202,13 +204,13 @@ export default function BuildingSheet({
         {prod && (
           <div className="tt-crew">
             <div className="tt-crew-head">
-              <small>Crew · ×{staffing(power).toFixed(2)} output</small>
+              <small>Cat villagers · ×{staffing(power).toFixed(2)} output</small>
               <b className="mono">
-                {slotsUsed}/{slotsTotal} spots used
+                {villagersFree} free in town
               </b>
             </div>
             <div className="tt-crew-row">
-              {Array.from({ length: MAX_PER_BUILDING }).map((_, i) => {
+              {Array.from({ length: slotsHere }).map((_, i) => {
                 const c = crew[i];
                 if (c) {
                   return (
@@ -226,7 +228,7 @@ export default function BuildingSheet({
                     </button>
                   );
                 }
-                const canAdd = idle.length > 0 && slotsUsed < slotsTotal;
+                const canAdd = idle.length > 0 && villagersFree > 0;
                 return (
                   <button
                     key={i}
@@ -237,9 +239,9 @@ export default function BuildingSheet({
                     title={
                       idle.length === 0
                         ? "Every cat already has a job"
-                        : slotsUsed >= slotsTotal
-                          ? "No worker spots left"
-                          : "Put a cat to work here"
+                        : villagersFree <= 0
+                          ? "The Cat Hall has no more villagers to give"
+                          : "Put a cat villager to work here"
                     }
                   >
                     +
@@ -247,16 +249,16 @@ export default function BuildingSheet({
                 );
               })}
             </div>
-            {slotsUsed >= slotsTotal && (
-              <>
-                <button className="tt-mini gold tt-crew-buy" type="button" onClick={onBuySlot}>
-                  Buy a worker spot · ${slotPriceUsd.toFixed(2)}
-                </button>
-                <p className="tt-sheet-note tt-crew-note">
-                  Or raise the Nap House — every level there gives two spots, free.
-                </p>
-              </>
+            {slotPriceUsd != null && (
+              <button className="tt-mini gold tt-crew-buy" type="button" onClick={onBuySlot}>
+                Another place here · ${slotPriceUsd.toFixed(2)}
+              </button>
             )}
+            <p className="tt-sheet-note tt-crew-note">
+              {villagersFree <= 0
+                ? "Every villager is already working. Raise the Cat Hall for more."
+                : "Places belong to this building. The Cat Hall decides how many villagers exist at all."}
+            </p>
           </div>
         )}
 

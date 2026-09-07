@@ -59,9 +59,12 @@ import {
   storeCap,
   upgradeCostFor,
   BOOST,
+  BUILDER_RENTAL,
   MAX_BUILDERS,
   builderPriceUsd,
-  workerSlotPriceUsd,
+  buildingSlotPriceUsd,
+  slotsIn,
+  villagerCap,
   catPower,
   earlyCollectCost,
   topUpCost,
@@ -109,11 +112,12 @@ function freshSave() {
     // (docs/security.md §4b — a timer the client can influence is free money).
     buildings: {},
     jobs: {},
-    builders: 2,
+    // One builder to start. The second is the gateway purchase.
+    builders: 1,
     // which building each cat works at — the player's decision, not a rota
     assign: {},
-    // worker spots bought with Golden Fish, on top of what the Nap House gives
-    extraSlots: 0,
+    // villager places bought for a SPECIFIC building: { kitchen: 1, ... }
+    buildingSlots: {},
     // active building boosts: { [buildingId]: endsAt }
     boosts: {},
     // where the player has moved buildings to
@@ -134,8 +138,11 @@ const levelsOf = (s) => {
   return out;
 };
 
-/** Total worker spots: what the Nap House gives, plus any bought. */
-const totalSlots = (s) => workerCap(levelOf(s, "nap")) + (s.extraSlots || 0);
+/** How many cat villagers can be on shift at once — set by the Cat Hall. */
+const totalSlots = (s) => villagerCap(levelOf(s, "hall"));
+
+/** Villager places inside one building: the one it comes with, plus bought. */
+const slotsAt = (s, id) => slotsIn(s.buildingSlots?.[id] || 0);
 const assignedCount = (s) => Object.keys(s.assign || {}).length;
 
 /** Crew POWER per building, not head count. A Legendary pulls far more weight
@@ -219,7 +226,9 @@ function migrate(s) {
   }
   if (!s.collected) s.collected = {};
   if (!s.assign) s.assign = {};
-  if (s.extraSlots == null) s.extraSlots = 0;
+  if (!s.buildingSlots) s.buildingSlots = {};
+  delete s.extraSlots;
+  if (s.builders > 1 && !s.buildersBought) s.builders = 1;
   if (!s.boosts) s.boosts = {};
   if (!s.positions) s.positions = {};
   if (!s.claimed) s.claimed = {};
@@ -549,7 +558,8 @@ export default function TubbyTown() {
           return s;
         }
         const busy = Object.keys(s.jobs || {}).length;
-        if (busy >= s.builders) {
+        const totalBuilders = s.builders + ((s.rentedUntil || 0) > Date.now() ? 1 : 0);
+        if (busy >= totalBuilders) {
           flash("Every builder is busy.");
           return s;
         }
@@ -661,12 +671,12 @@ export default function TubbyTown() {
       setSave((s) => {
         if (!s) return s;
         const here = Object.values(s.assign || {}).filter((b) => b === buildingId).length;
-        if (here >= MAX_PER_BUILDING) {
-          flash(`${MAX_PER_BUILDING} cats is the most one building can hold.`);
+        if (here >= slotsAt(s, buildingId)) {
+          flash("This building has no free place — buy one for it.");
           return s;
         }
         if (assignedCount(s) >= totalSlots(s)) {
-          flash("No worker spots left — grow the Nap House or buy one.");
+          flash("No villagers left — grow the Cat Hall.");
           return s;
         }
         const key = catKey || idleCats(s)[0];
@@ -691,15 +701,26 @@ export default function TubbyTown() {
 
   /** Buy a worker spot outright. The Nap House stays the main route; this is
    *  the impatient one, and it is priced accordingly. */
-  const buyWorkerSlot = useCallback(() => {
-    setBuying({
-      kind: "workerSlot",
-      title: "One more worker spot",
-      blurb:
-        "One more cat can be on shift across the whole town, permanently. The Nap House earns these too — two per level.",
-      usd: workerSlotPriceUsd(save?.extraSlots || 0),
-    });
-  }, [save]);
+  const buyBuildingSlot = useCallback(
+    (id) => {
+      const bought = save?.buildingSlots?.[id] || 0;
+      const usd = buildingSlotPriceUsd(bought);
+      if (usd == null) {
+        flash("This building is full.");
+        return;
+      }
+      const b = BUILDINGS.find((x) => x.id === id);
+      setBuying({
+        kind: "buildingSlot",
+        id,
+        title: `Another place at the ${b?.name}`,
+        blurb:
+          "One more cat villager can work in this building, permanently. Places belong to the building that has them — every building is bought for separately.",
+        usd,
+      });
+    },
+    [save, flash]
+  );
 
   /** Mocked: in the real build the grant happens only AFTER the payment is
    *  verified on-chain, never before. See docs/security.md §3. */
@@ -708,10 +729,13 @@ export default function TubbyTown() {
       if (!s || !buying) return s;
       if (buying.kind === "builder") {
         flash("A new builder joined the town.");
-        return { ...s, builders: Math.min(MAX_BUILDERS, s.builders + 1) };
+        return { ...s, builders: Math.min(MAX_BUILDERS, s.builders + 1), buildersBought: true };
       }
-      flash("Worker spot added.");
-      return { ...s, extraSlots: (s.extraSlots || 0) + 1 };
+      flash("A new place opened up.");
+      return {
+        ...s,
+        buildingSlots: { ...s.buildingSlots, [buying.id]: (s.buildingSlots?.[buying.id] || 0) + 1 },
+      };
     });
     setBuying(null);
   }, [buying, flash]);
@@ -757,7 +781,7 @@ export default function TubbyTown() {
       ranked.forEach((c, i) => {
         for (let t = 0; t < producers.length; t++) {
           const id = producers[(i + t) % producers.length];
-          if ((per[id] || 0) < MAX_PER_BUILDING) {
+          if ((per[id] || 0) < slotsAt(s, id)) {
             assign[c.key] = id;
             per[id] = (per[id] || 0) + 1;
             return;
@@ -801,10 +825,12 @@ export default function TubbyTown() {
     }
     setBuying({
       kind: "builder",
-      title: `Builder #${(save?.builders ?? 2) + 1}`,
+      title: `Builder #${(save?.builders ?? 1) + 1}`,
       blurb:
-        "Another pair of paws on the scaffolding — one more building can be under construction at all times, forever.",
-      usd: builderPriceUsd(save?.builders ?? 2),
+        "Another pair of paws on the scaffolding — one more building under construction at all times, forever.",
+      usd: builderPriceUsd(save?.builders ?? 1),
+      rent: (save?.rentedUntil || 0) > Date.now() ? null : BUILDER_RENTAL,
+      onRent: rentBuilder,
     });
   }, [save, flash]);
 
@@ -856,6 +882,29 @@ export default function TubbyTown() {
     },
     [flash]
   );
+
+  /** Rent a second builder for two days with Golden Fish. Deliberately worse
+   *  value than the permanent pack — it exists so everyone tastes two builders,
+   *  because tasting is what makes the permanent one sell. */
+  const rentBuilder = useCallback(() => {
+    setSave((s) => {
+      if (!s) return s;
+      if ((s.rentedUntil || 0) > Date.now()) {
+        flash("The rented builder is still with you.");
+        return s;
+      }
+      if ((s.res.gold || 0) < BUILDER_RENTAL.gold) {
+        flash(`Need ${BUILDER_RENTAL.gold} Golden Fish.`);
+        return s;
+      }
+      flash(`A builder joins you for ${BUILDER_RENTAL.days} days.`);
+      return {
+        ...s,
+        res: { ...s.res, gold: s.res.gold - BUILDER_RENTAL.gold },
+        rentedUntil: Date.now() + BUILDER_RENTAL.days * 86400000,
+      };
+    });
+  }, [flash]);
 
   const hardReset = useCallback(() => {
     try {
@@ -939,7 +988,9 @@ export default function TubbyTown() {
   const catsHere = catsPerBuilding(save);
   const starving = isStarving(save);
   const claims = claimableCount(save);
-  const buildersFree = save.builders - Object.keys(save.jobs || {}).length;
+  const rented = (save.rentedUntil || 0) > Date.now() ? 1 : 0;
+  const buildersTotal = save.builders + rented;
+  const buildersFree = buildersTotal - Object.keys(save.jobs || {}).length;
   const workersFree = totalSlots(save) - assignedCount(save);
   const levelsTop = levelsOf(save);
   const buildingStateTop = Object.fromEntries(
@@ -1008,7 +1059,7 @@ export default function TubbyTown() {
             <span className="tt-cap-n">
               <small>Builders</small>
               <b className="mono">
-                {buildersFree} free <em>of {save.builders}</em>
+                {buildersFree} free <em>of {buildersTotal}</em>
               </b>
             </span>
             {save.builders < MAX_BUILDERS && (
@@ -1018,20 +1069,22 @@ export default function TubbyTown() {
             )}
           </div>
 
-          <div className={"tt-cap" + (workersFree === 0 ? " busy" : "")}>
+          <button
+            className={"tt-cap" + (workersFree === 0 ? " busy" : "")}
+            type="button"
+            onClick={() => setPicked("hall")}
+            title="The Cat Hall sets how many villagers you can have"
+          >
             <span className="tt-cap-i">
               <IconPaw size={18} />
             </span>
             <span className="tt-cap-n">
-              <small>Workers</small>
+              <small>Cat villagers</small>
               <b className="mono">
                 {workersFree} free <em>of {totalSlots(save)}</em>
               </b>
             </span>
-            <button type="button" onClick={buyWorkerSlot} title="Buy a worker spot">
-              + ${workerSlotPriceUsd(save.extraSlots || 0).toFixed(2)}
-            </button>
-          </div>
+          </button>
         </div>
 
         <button
@@ -1057,7 +1110,7 @@ export default function TubbyTown() {
             onCollectAll={collectAll}
             onAssign={assignCat}
             onUnassign={unassignCat}
-            onBuySlot={buyWorkerSlot}
+            onBuySlot={buyBuildingSlot}
             onBoost={boostBuilding}
             onAutoAssign={autoAssign}
             onBuyBuilder={buyBuilder}
@@ -1359,6 +1412,7 @@ function TownTab({
           idle={idleCats(save).map((k) => ({ key: k, ...save.cats[k] }))}
           slotsUsed={assignedCount(save)}
           slotsTotal={totalSlots(save)}
+          villagersFree={totalSlots(save) - assignedCount(save)}
 
           boostUntil={save.boosts?.[picked] || 0}
           onUpgrade={() => onUpgrade(picked)}
@@ -1373,7 +1427,9 @@ function TownTab({
           onCollectEarly={() => onCollectEarly(picked)}
           buildersTotal={save.builders}
           builderPrice={builderPriceUsd(save.builders)}
-          slotPriceUsd={workerSlotPriceUsd(save.extraSlots || 0)}
+          slotPriceUsd={buildingSlotPriceUsd(save.buildingSlots?.[picked] || 0)}
+          slotsHere={slotsAt(save, picked)}
+          boughtHere={save.buildingSlots?.[picked] || 0}
           onMove={() => onStartMove(picked)}
           onGoTo={(bid) => onPick(bid)}
           onClose={() => onPick(null)}

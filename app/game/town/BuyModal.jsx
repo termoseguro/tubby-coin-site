@@ -14,7 +14,7 @@
 import { TUBBY_DISCOUNT, inTubby } from "../../../lib/townEconomy";
 import { config } from "../../../lib/config";
 
-export default function BuyModal({ title, blurb, usd, onPay, onClose }) {
+export default function BuyModal({ title, blurb, usd, rent, onRent, onPay, onClose }) {
   const tubby = inTubby(usd);
 
   return (
@@ -45,6 +45,19 @@ export default function BuyModal({ title, blurb, usd, onPay, onClose }) {
             <small>paid in SOL</small>
           </button>
         </div>
+
+        {rent && (
+          <button
+            className="tt-mini tt-rent"
+            type="button"
+            onClick={() => {
+              onRent?.();
+              onClose();
+            }}
+          >
+            Or rent one for {rent.days} days · {rent.gold} Golden Fish
+          </button>
+        )}
 
         <p className="tt-sheet-note">
           Prototype — nothing is charged. Real payments are verified on-chain before
