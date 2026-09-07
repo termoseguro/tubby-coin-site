@@ -384,6 +384,18 @@ export async function createTown(host, cats, opts = {}) {
   let last = null;
   let pinchDist = 0;
 
+  // The building currently being dragged, if any. Declared HERE rather than
+  // down with beginMove/endMove where it reads more naturally: the pointer
+  // listeners below go live immediately, while createTown still has several
+  // awaits to go (loading the building art, then the cat portraits). A pointer
+  // released during that window runs onUp, and a `let` declared further down
+  // the function is in its temporal dead zone — so it threw
+  // "Cannot access 'moving' before initialization" instead of simply being null.
+  //
+  // `ghost` is only ever touched inside `if (moving)`, and moving can only be
+  // set by beginMove once everything is built, so it needs no such treatment.
+  let moving = null;
+
   const onDown = (e) => {
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.size === 1) {
@@ -732,7 +744,7 @@ export async function createTown(host, cats, opts = {}) {
   // ---- moving a building ---------------------------------------------------
   // The map has empty land around the ring on purpose. Being able to rearrange
   // it is what turns "a picture of a town" into "my town".
-  let moving = null;
+  // (`moving` itself is declared up with the pointer state — see the note there.)
 
   function screenToWorld(clientX, clientY) {
     const r = app.canvas.getBoundingClientRect();
