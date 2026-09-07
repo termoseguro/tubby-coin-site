@@ -99,23 +99,37 @@ database, you add a new migration file; you never edit an applied one.
 
 ### The guard, and why it is there
 
-**This machine has other Supabase projects on it.** The CLI stores its login
-token *globally*, so one token reaches every project on the account, while the
-link — which project this folder talks to — lives in a gitignored file. That is
-exactly the combination that lets a `db push` quietly land in the wrong
-database.
+**This machine has other Supabase projects on it, and they are not ours to
+break.** The CLI stores its login token *globally*, so one token reaches every
+project on the account, while the link — which project this folder talks to —
+lives in a gitignored file that nothing reviews. That is exactly the combination
+that lets a `db push` quietly land in the wrong database.
 
-So `scripts/db.mjs` wraps every command and refuses to run unless the linked
-project ref matches `SUPABASE_PROJECT_REF` from this repo's `.env.local`:
+So the allowed project is **pinned in a committed file**,
+[`supabase/ALLOWED_PROJECT_REF`](../supabase/ALLOWED_PROJECT_REF), and
+`scripts/db.mjs` checks it before every command. Pinning it in git rather than
+in `.env.local` is the whole point: a gitignored file can change without anyone
+noticing, a committed one cannot. Even with a missing or wrong `.env.local`,
+this repo cannot reach another project.
+
+Three refusals, all verified:
 
 ```
+✗ This folder is not linked yet. Run: npm run db:link
+
 ✗ LINKED TO THE WRONG PROJECT.
-  supabase/.temp/project-ref says: zzzz-someone-elses-project
-  .env.local expects:              abcdefghijklmnop
+  supabase/.temp/project-ref says: termoseguro-project-ref
+  this repo is pinned to:          rkxosjkictvjgudonohu
+
+✗ .env.local DISAGREES WITH THE PINNED PROJECT.
+  supabase/ALLOWED_PROJECT_REF: rkxosjkictvjgudonohu
+  .env.local:                   some-other-project
 ```
 
-`db reset` is blocked outright — against a linked remote it drops every table.
-If you ever genuinely need it, run the CLI by hand and mean it.
+`npm run db:link` passes the pinned ref itself, so even linking cannot point
+somewhere else. `reset`, `remote-commit` and `branches` are blocked outright:
+there is no version of "drop every table on the linked remote" that deserves a
+convenience wrapper.
 
 ---
 

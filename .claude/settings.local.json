@@ -490,7 +490,8 @@
       "Bash(node scripts/check-server-safe.mjs)",
       "Bash(npx supabase *)",
       "Bash(npm i *)",
-      "Bash(cat > *)"
+      "Bash(cat > *)",
+      "Bash(node scripts/db.mjs reset)"
     ]
   }
 }

@@ -7,27 +7,35 @@
 // talks to — is stored per-repo in supabase/.temp/project-ref, and that file is
 // gitignored, so it is exactly the kind of thing that can quietly be wrong.
 //
-// This machine has other Supabase projects on it. A `db push` that runs against
-// the wrong one would apply Tubby Town's schema to somebody else's database,
-// and `db reset` would drop it. That is not a risk worth carrying for the sake
-// of typing four fewer words.
+// This machine has other Supabase projects on it, and they are not ours to
+// break. A `db push` that ran against the wrong one would apply Tubby Town's
+// schema over somebody else's database; `db reset` would drop it.
 //
-// So: every command here first checks that the linked project ref matches
-// SUPABASE_PROJECT_REF from .env.local, and refuses to run if it does not.
-// The ref is not a secret — it is in your public Supabase URL — which is why it
-// can live in an env file and be compared out loud.
+// So the allowed project is PINNED IN A COMMITTED FILE,
+// supabase/ALLOWED_PROJECT_REF, and every command checks that three things
+// agree before anything runs:
 //
-// Destructive commands (`db reset`) are blocked against a linked remote
-// entirely. If you ever genuinely need one, run it by hand and mean it.
+//     the pinned ref  ==  the linked ref  ==  SUPABASE_PROJECT_REF (if set)
+//
+// Pinning it in git rather than only in .env.local is the point: .env.local is
+// gitignored, so nothing reviews it and nothing would notice if it changed. A
+// committed file cannot drift silently, and it means that even with a wrong or
+// missing .env.local, this repo still cannot reach another project.
+//
+// The ref is not a secret — it is the subdomain of the public Supabase URL —
+// which is exactly why it can be committed and compared out loud.
+//
+// Destructive commands are blocked rather than guarded. There is no version of
+// "drop every table on the linked remote" that deserves a convenience wrapper.
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
 const ROOT = new URL("..", import.meta.url);
-const envPath = new URL(".env.local", ROOT);
 
 /** Read .env.local without a dependency. Values may be quoted. */
 function readEnv() {
+  const envPath = new URL(".env.local", ROOT);
   if (!existsSync(envPath)) return {};
   const out = {};
   for (const line of readFileSync(envPath, "utf8").split(/\r?\n/)) {
@@ -39,74 +47,79 @@ function readEnv() {
 }
 
 const env = { ...readEnv(), ...process.env };
-const expected = env.SUPABASE_PROJECT_REF;
 const [cmd, ...rest] = process.argv.slice(2);
-
-const linkedPath = new URL("supabase/.temp/project-ref", ROOT);
-const linked = existsSync(linkedPath) ? readFileSync(linkedPath, "utf8").trim() : null;
 
 function die(msg) {
   console.error("\n✗ " + msg + "\n");
   process.exit(1);
 }
 
-if (!expected) {
+// ---- the authority --------------------------------------------------------
+const pinPath = new URL("supabase/ALLOWED_PROJECT_REF", ROOT);
+const pinned = existsSync(pinPath) ? readFileSync(pinPath, "utf8").trim() : null;
+
+if (!pinned) {
   die(
-    "SUPABASE_PROJECT_REF is not set.\n" +
-      "  Put it in .env.local (gitignored). It is the subdomain of your project\n" +
-      "  URL: https://<THIS-PART>.supabase.co — not a secret.\n" +
-      "  See docs/backend-setup.md."
+    "supabase/ALLOWED_PROJECT_REF is missing.\n" +
+      "  That file pins the one project this repo may touch. Without it there\n" +
+      "  is nothing to check against, so nothing runs."
   );
 }
 
-if (cmd === "reset") {
+// If .env.local names a ref too, it must agree. A disagreement means something
+// is pointing this repo somewhere it does not belong: say so, never pick one.
+if (env.SUPABASE_PROJECT_REF && env.SUPABASE_PROJECT_REF !== pinned) {
   die(
-    "`db reset` DROPS EVERY TABLE and is blocked here.\n" +
-      "  Against a linked remote it would destroy real data. If you genuinely\n" +
-      "  want it, run the CLI by hand and mean it."
+    ".env.local DISAGREES WITH THE PINNED PROJECT.\n" +
+      `  supabase/ALLOWED_PROJECT_REF: ${pinned}\n` +
+      `  .env.local:                   ${env.SUPABASE_PROJECT_REF}\n\n` +
+      `  This repo may only ever touch ${pinned}. Fix .env.local.`
   );
 }
 
-// `link` is the one command allowed to run without a matching link, since it is
-// the thing that creates one.
+// ---- destructive commands do not get a wrapper ----------------------------
+if (["reset", "remote-commit", "branches"].includes(cmd)) {
+  die(
+    `"${cmd}" can destroy data and is blocked here.\n` +
+      "  If you genuinely want it, run the CLI by hand and mean it."
+  );
+}
+
+// ---- the link must match --------------------------------------------------
+const linkedPath = new URL("supabase/.temp/project-ref", ROOT);
+const linked = existsSync(linkedPath) ? readFileSync(linkedPath, "utf8").trim() : null;
+
+// `link` is the one command allowed to run without a matching link, because it
+// is the thing that creates one — and it can only ever link to the pinned ref.
 if (cmd !== "link") {
-  if (!linked) {
-    die("This folder is not linked to a project yet. Run: npm run db:link");
-  }
-  if (linked !== expected) {
+  if (!linked) die("This folder is not linked yet. Run: npm run db:link");
+  if (linked !== pinned) {
     die(
-      `LINKED TO THE WRONG PROJECT.\n` +
+      "LINKED TO THE WRONG PROJECT.\n" +
         `  supabase/.temp/project-ref says: ${linked}\n` +
-        `  .env.local expects:             ${expected}\n\n` +
-        `  Refusing to touch a database this repo does not own. Fix the link\n` +
-        `  with: npm run db:link`
+        `  this repo is pinned to:          ${pinned}\n\n` +
+        "  Refusing to touch a database this repo does not own — the other\n" +
+        "  projects on this machine are not ours to break. Relink with:\n" +
+        "  npm run db:link"
     );
   }
 }
 
-const args =
-  cmd === "link"
-    ? ["link", "--project-ref", expected, ...rest]
-    : cmd === "push"
-      ? ["db", "push", ...rest]
-      : cmd === "diff"
-        ? ["db", "diff", ...rest]
-        : cmd === "pull"
-          ? ["db", "pull", ...rest]
-          : cmd === "status"
-            ? ["projects", "list"]
-            : null;
+const args = {
+  link: ["link", "--project-ref", pinned, ...rest],
+  push: ["db", "push", ...rest],
+  diff: ["db", "diff", ...rest],
+  pull: ["db", "pull", ...rest],
+  status: ["projects", "list"],
+}[cmd];
 
-if (!args) {
-  die(`Unknown command "${cmd}". Try: link, push, diff, pull, status.`);
-}
+if (!args) die(`Unknown command "${cmd}". Try: link, push, diff, pull, status.`);
 
-if (cmd !== "link") console.log(`→ project ${linked}`);
+console.log(`→ project ${pinned}`);
 
 const r = spawnSync("npx", ["supabase", ...args], {
   stdio: "inherit",
   shell: true,
-  cwd: new URL(".", ROOT).pathname.replace(/^\/([A-Za-z]:)/, "$1"),
   env,
 });
 process.exit(r.status ?? 1);
