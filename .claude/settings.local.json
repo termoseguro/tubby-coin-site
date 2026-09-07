@@ -481,7 +481,11 @@
       "Bash(npx --yes esbuild app/game/page.jsx --loader=jsx --bundle --external:react --external:next/* --external:pixi.js --outfile=/dev/null)",
       "WebFetch(domain:www.kingshotguide.com)",
       "WebFetch(domain:kingshotpro.com)",
-      "WebFetch(domain:kingshotwiki.com)"
+      "WebFetch(domain:kingshotwiki.com)",
+      "WebFetch(domain:kingshotguides.com)",
+      "WebFetch(domain:centurygames.helpshift.com)",
+      "WebFetch(domain:comiccone.com)",
+      "Bash(node -e \"import\\('./lib/townRaids.js'\\).then\\(\\(\\)=>console.log\\('no cycle'\\)\\)\")"
     ]
   }
 }

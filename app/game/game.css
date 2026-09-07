@@ -2170,3 +2170,98 @@
   color: #a4809a;
   margin-top: 1px;
 }
+
+
+/* ===========================================================================
+   PALIS RAIDS  (docs: lib/townRaids.js)
+
+   Ordered the way a player asks: can I win, what do I get, what does it cost.
+   The "+7% Gold forever" block sits ABOVE the odds on purpose — the permanent
+   raise is the reason to raid, and the loot is only the tip.
+   =========================================================================== */
+
+.ttown .tt-raid-why {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 12px 0;
+  padding: 11px 13px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff8e4, #fff1cf);
+  border: 2px solid #f2d894;
+}
+.ttown .tt-raid-why b { display: block; font-size: 13.5px; color: #6a4300; }
+.ttown .tt-raid-why small { font-size: 12px; color: #a07f2e; }
+
+.ttown .tt-raid-odds {
+  margin: 12px 0;
+  padding: 12px 13px;
+  border-radius: 14px;
+  background: #f7f2fb;
+  border: 2px solid #e6d8f2;
+}
+.ttown .tt-raid-odds.o-easy { background: #eefaf3; border-color: #bfe8d3; }
+.ttown .tt-raid-odds.o-favoured { background: #f2faf5; border-color: #cfe8db; }
+.ttown .tt-raid-odds.o-risky { background: #fff4ec; border-color: #f7d6bd; }
+.ttown .tt-raid-odds.o-hopeless { background: #fff0f3; border-color: #ffd0da; }
+
+.ttown .tt-raid-word { display: flex; align-items: baseline; gap: 9px; margin-bottom: 9px; }
+.ttown .tt-raid-word b { font-size: 17px; color: #5d2444; }
+.ttown .tt-raid-word small { font-size: 12.5px; font-weight: 700; color: #a4809a; }
+
+.ttown .tt-raid-bars {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+.ttown .tt-raid-side small { display: block; font-size: 10.5px; font-weight: 800; color: #a4809a; text-transform: uppercase; letter-spacing: .04em; }
+.ttown .tt-raid-side b { font-size: 14px; color: #5d2444; }
+.ttown .tt-raid-side.right { text-align: right; }
+.ttown .tt-raid-bar {
+  height: 12px;
+  border-radius: 999px;
+  background: #d9a8c4;
+  overflow: hidden;
+}
+.ttown .tt-raid-bar i { display: block; height: 100%; background: #57c89a; }
+
+.ttown .tt-raid-loot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0;
+}
+.ttown .tt-raid-loot > small {
+  font-size: 11px; font-weight: 800; color: #b07a99;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.ttown .tt-raid-loot > div { display: flex; flex-wrap: wrap; gap: 12px; }
+.ttown .tt-raid-loot span { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 800; }
+
+.ttown .tt-raid-hurt {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff1f4;
+  border: 2px solid #ffd0da;
+}
+.ttown .tt-raid-hurt p { margin: 0 0 8px; font-size: 13px; color: #b03a55; }
+.ttown .tt-raid-hurt small { font-size: 12px; color: #b03a55; }
+
+.ttown .tt-raid-verdict {
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  margin-bottom: 6px;
+}
+.ttown .tt-raid-verdict.win { color: #3f9d7d; }
+.ttown .tt-raid-verdict.loss { color: #c2506c; }
+
+.ttown .tt-raid-gains { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px 16px; justify-content: center; }
+.ttown .tt-raid-gains li { font-size: 13px; color: #7a5a70; }
+.ttown .tt-raid-gains b { color: #3f9d7d; margin-right: 3px; }
+
+/* the Palis chip on the map, lit when a raid is banked */
+.ttown .tt-cap.ready { background: #fff4d6; border-color: #f2d894; }
+.ttown .tt-cap.ready .tt-cap-n b { color: #a06a00; }

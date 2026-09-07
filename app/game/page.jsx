@@ -41,7 +41,22 @@ import TownCanvas from "./town/TownCanvas";
 import BuildingSheet from "./town/BuildingSheet";
 import QuestBook from "./town/QuestBook";
 import BuyModal from "./town/BuyModal";
+import RaidPanel from "./town/RaidPanel";
 import { claimableCount } from "../../lib/townQuests";
+import {
+  HURT_MULTIPLIER,
+  healCost,
+  healSeconds,
+  nextRaidIn,
+  oddsLabel,
+  RAID_EVERY_HOURS,
+  palisPower,
+  raidGoldMultiplier,
+  raidsReady,
+  resolveRaid,
+  townPower,
+  winChance,
+} from "../../lib/townRaids";
 import {
   bonusesAt,
   furnitureGate,
@@ -57,6 +72,7 @@ import { BUILDINGS, BUILDING_INFO, COTTAGE_IDS, nextUnlock, unlockedAt } from ".
 import ResourceBar from "./town/ResourceBar";
 import {
   PRODUCERS,
+  RESOURCES,
   RESOURCE_ORDER,
   addCapped,
   buildSecondsFor,
@@ -115,6 +131,15 @@ function freshSave() {
     lastProd: Date.now(),
     // furniture levels: { kitchen: { stove: 3, ... } }
     furniture: {},
+    // ---- Palis raids ----
+    // The deepest stage cleared. Never goes down, and it permanently raises the
+    // town's idle Gold — that is what makes the ladder an economic decision
+    // rather than a combat one (lib/townRaids.js).
+    raidStage: 0,
+    lastRaidAt: Date.now(),
+    // cats that came back hurt: they work at half speed until the Clinic sees
+    // them. This is the only thing a lost raid costs, and it costs TIME.
+    hurt: {},
     cats: { [catKey(starter)]: starter },
     slotted: [catKey(starter)],
     slots: game.startSlots,
@@ -177,7 +202,11 @@ function catsPerBuilding(s) {
   for (const [key, id] of Object.entries(s.assign || {})) {
     const cat = s.cats[key];
     if (!cat) continue;
-    out[id] = (out[id] || 0) + catPower(cat.rarity, cat.level);
+    // A cat that came back from Palis hurt pulls half its weight until the
+    // Cat Clinic sees it. That is the whole cost of losing a raid, and it is
+    // the whole reason the Clinic exists.
+    const hurt = s.hurt?.[key] ? HURT_MULTIPLIER : 1;
+    out[id] = (out[id] || 0) + catPower(cat.rarity, cat.level) * hurt;
   }
   return out;
 }
@@ -343,6 +372,9 @@ function migrate(s) {
     s.res = { ...s.res, treats: Math.max(s.res.treats || 0, Math.floor(s.treats)) };
   }
   if (!s.furniture) s.furniture = {};
+  if (s.raidStage == null) s.raidStage = 0;
+  if (!s.lastRaidAt) s.lastRaidAt = Date.now();
+  if (!s.hurt) s.hurt = {};
   if (s.res && s.res.coin == null) s.res.coin = 250;
   if (!s.lastProd) s.lastProd = Date.now();
   delete s.collected;
@@ -395,6 +427,8 @@ export default function TubbyTown() {
   const [book, setBook] = useState(false);
   const [buying, setBuying] = useState(null);
   const [welcomeBack, setWelcomeBack] = useState(null);
+  const [raidResult, setRaidResult] = useState(null);
+  const [raidOpen, setRaidOpen] = useState(false);
   const [toast, setToast] = useState(null);
   // A once-a-second clock. Production accrues against wall time now, so the
   // derived values (what is ready, build countdowns) need a reason to recompute
@@ -749,6 +783,66 @@ export default function TubbyTown() {
     },
     [flash]
   );
+
+  /** Send the town against Palis.
+   *
+   *  Everything about this is deliberately reversible except the ladder. A win
+   *  banks the stage forever and raises idle Gold forever; a loss costs some
+   *  cats a shift at half speed and still pays a small purse, because a run
+   *  that pays nothing is a run the player resents. Nothing is ever destroyed
+   *  and the stage never falls — a raid that can undo a week of building is a
+   *  raid people quit over. */
+  const doRaid = useCallback(() => {
+    setSave((s) => {
+      if (!s) return s;
+      const levels = levelsOf(s);
+      if (raidsReady(s.lastRaidAt) < 1) {
+        flash("Palis is not back yet.");
+        return s;
+      }
+      if (assignedCount(s) < 1) {
+        flash("Put a cat on shift first — nobody is defending.");
+        return s;
+      }
+      const stage = (s.raidStage || 0) + 1;
+      const out = resolveRaid(s, levels, stage);
+      const { res } = addCapped(s.res, out.loot, levelOf(s, "storehouse"));
+      const hurt = { ...s.hurt };
+      for (const k of out.hurt) hurt[k] = Date.now();
+      setRaidResult({ ...out, stage });
+      return {
+        ...s,
+        res,
+        hurt,
+        raidStage: out.won ? stage : s.raidStage || 0,
+        // The bank is consumed one run at a time: push the clock forward by a
+        // single cooldown rather than resetting it, or banking three runs would
+        // be worth exactly one.
+        lastRaidAt: Math.min(Date.now(), (s.lastRaidAt || Date.now()) + RAID_EVERY_HOURS * 3_600_000),
+      };
+    });
+  }, [flash]);
+
+  /** Patch the hurt cats up at the Cat Clinic. Costs Gold, which is what Gold
+   *  is for — and what the raid just paid you in. */
+  const healCats = useCallback(() => {
+    setSave((s) => {
+      if (!s) return s;
+      const hurtKeys = Object.keys(s.hurt || {});
+      if (!hurtKeys.length) return s;
+      if (levelOf(s, "clinic") < 1) {
+        flash("Build the Cat Clinic first.");
+        return s;
+      }
+      const cost = healCost(levelOf(s, "clinic"), hurtKeys.length);
+      if (!canAfford(cost, s.res)) {
+        flash(`Needs ${cost.coin} Gold.`);
+        return s;
+      }
+      flash(`${hurtKeys.length} cat${hurtKeys.length === 1 ? "" : "s"} patched up.`);
+      return { ...s, res: { ...s.res, coin: s.res.coin - cost.coin }, hurt: {} };
+    });
+  }, [flash]);
 
   /** Fit or upgrade one piece of furniture inside a building.
    *
@@ -1158,6 +1252,8 @@ export default function TubbyTown() {
   const workersFree = totalSlots(save) - assignedCount(save);
   const levelsTop = levelsOf(save);
   const coming = nextUnlock(levelsTop.hall);
+  const raidsWaiting = levelsTop.watchtower >= 1 ? raidsReady(save.lastRaidAt) : 0;
+  const hurtCount = Object.keys(save.hurt || {}).length;
   // The cottage worth growing next: the cheapest route to one more villager is
   // always the lowest-level cottage that is actually unlocked.
   const growCottage =
@@ -1257,6 +1353,28 @@ export default function TubbyTown() {
               </b>
             </span>
           </button>
+
+          {/* Palis. Kept on the map beside the other two caps because a raid
+              the player has to go looking for is a raid they never run — and
+              the raid ladder is what raises the town's Gold forever. */}
+          {levelsTop.watchtower >= 1 && (
+            <button
+              className={"tt-cap" + (raidsWaiting > 0 ? " ready" : "")}
+              type="button"
+              onClick={() => setRaidOpen(true)}
+            >
+              <span className="tt-cap-i">
+                <IconPaw size={18} />
+              </span>
+              <span className="tt-cap-n">
+                <small>Palis</small>
+                <b className="mono">
+                  {raidsWaiting > 0 ? `${raidsWaiting} raid${raidsWaiting === 1 ? "" : "s"} ready` : "quiet"}
+                  <em> stage {(save.raidStage || 0) + 1}</em>
+                </b>
+              </span>
+            </button>
+          )}
 
           {/* The next thing the Cat Hall opens. Kingshot never lets a player
               wonder what the next level is FOR, and this one line is the whole
@@ -1397,6 +1515,61 @@ export default function TubbyTown() {
             )}
           </div>
           <button className="tt-btn" type="button" onClick={() => setWelcomeBack(null)}>
+            Good
+          </button>
+        </Modal>
+      )}
+
+      {raidOpen && (
+        <RaidPanel
+          save={save}
+          levels={levelsTop}
+          hurtCount={hurtCount}
+          clinicLevel={levelsTop.clinic || 0}
+          healPrice={healCost(levelsTop.clinic || 0, hurtCount).coin}
+          onRaid={doRaid}
+          onHeal={healCats}
+          onClose={() => setRaidOpen(false)}
+        />
+      )}
+
+      {raidResult && (
+        <Modal
+          onClose={() => setRaidResult(null)}
+          title={raidResult.won ? `Stage ${raidResult.stage} cleared` : "Palis got through"}
+        >
+          <div className="tt-wb">
+            <div className={"tt-raid-verdict" + (raidResult.won ? " win" : " loss")}>
+              {raidResult.won ? "The town held" : "Driven back"}
+            </div>
+            <p className="tt-p">
+              {raidResult.won ? (
+                <>
+                  Your Gold is now <b>×{raidGoldMultiplier(raidResult.stage).toFixed(2)}</b> — and
+                  it stays that way.
+                </>
+              ) : (
+                <>
+                  Stage {raidResult.stage} needs <b>{Math.round(raidResult.palis)}</b> power and the
+                  town brought <b>{Math.round(raidResult.town)}</b>. Nothing was lost but time.
+                </>
+              )}
+            </p>
+            <ul className="tt-raid-gains">
+              {Object.entries(raidResult.loot).map(([k, v]) => (
+                <li key={k}>
+                  <b className="mono">+{Math.floor(v)}</b> {RESOURCES[k]?.name || k}
+                </li>
+              ))}
+            </ul>
+            {raidResult.hurt.length > 0 && (
+              <p className="tt-p warn">
+                {raidResult.hurt.length} cat{raidResult.hurt.length === 1 ? " came" : "s came"} back
+                hurt — half speed until the Clinic sees them.
+              </p>
+            )}
+          </div>
+          <button className="tt-btn" type="button" onClick={() => setRaidResult(null)}>
             Good
           </button>
         </Modal>
