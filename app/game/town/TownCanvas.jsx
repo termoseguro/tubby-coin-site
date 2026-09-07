@@ -25,7 +25,7 @@ export default function TownCanvas({ cats, buildingState, selected, napBeds, pos
 
   // The cat list is rebuilt on every render of the parent, so compare by value
   // — otherwise the town tears itself down four times a second.
-  const signature = cats.map((c) => `${c.rarity}|${c.art}`).join(",");
+  const signature = cats.map((c) => `${c.rarity}|${c.art}@${c.building}`).join(",");
 
   useEffect(() => {
     let cancelled = false;

@@ -810,6 +810,7 @@ export async function createTown(host, cats, opts = {}) {
     (b) => !["hall", "storehouse", "watchtower", "nap", "adoption"].includes(b.id)
   );
   const NAP = BUILDINGS.find((b) => b.id === "nap");
+  const PRODUCERS_OK = ["kitchen", "lumber", "quarry", "garden", "treats"];
   let napBeds = () => 3;
 
   let agents = [];
@@ -848,10 +849,16 @@ export async function createTown(host, cats, opts = {}) {
   function buildAgents(list) {
     for (const a of agents) a.node.destroy({ children: true });
     agents = [];
+    // Slot index WITHIN a building, so two cats at the same building stand
+    // side by side instead of on top of each other.
+    const seat = {};
     list.forEach((cat, i) => {
       const node = makeCat(cat.texture, cat.rarity);
-      const start = pick(WORKABLE);
-      const spot = workSpot(start, i);
+      const home =
+        BUILDINGS.find((b) => b.id === cat.building && PRODUCERS_OK.includes(b.id)) || pick(WORKABLE);
+      const slot = (seat[home.id] = (seat[home.id] || 0) + 1) - 1;
+      const start = home;
+      const spot = workSpot(start, slot);
       node.x = spot.x;
       node.y = spot.y;
       node.zIndex = spot.y + 1;
@@ -859,7 +866,8 @@ export async function createTown(host, cats, opts = {}) {
       const a = {
         key: cat.key,
         node,
-        slot: i,
+        home,
+        slot,
         state: "work",
         target: start,
         timer: rand(2, 7),
@@ -954,8 +962,10 @@ export async function createTown(host, cats, opts = {}) {
           a.coinTimer = rand(1.4, 3.2);
         }
         if (a.timer <= 0) {
-          // occasionally go for a nap, otherwise switch job
-          sendTo(a, Math.random() < 0.28 ? NAP : pick(WORKABLE));
+          // a tired cat goes to bed and then returns to its OWN job — cats do
+          // not wander between buildings, because the player chose where each
+          // of them works and the town has to show that choice
+          sendTo(a, Math.random() < 0.3 ? NAP : a.home);
         }
       } else if (a.state === "entering") {
         // shrink into the door
@@ -984,7 +994,7 @@ export async function createTown(host, cats, opts = {}) {
         if (a.t >= 1) {
           a.node.scale.set(1);
           a.node.alpha = 1;
-          sendTo(a, pick(WORKABLE));
+          sendTo(a, a.home);
         }
       }
 

@@ -1136,10 +1136,15 @@ function TownTab({
   // Only cats on shift walk the town — the scene shows who is actually working.
   const townCats = useMemo(
     () =>
-      Object.keys(save.assign || {})
-        .map((k) => save.cats[k])
-        .filter(Boolean)
-        .map((c) => ({ key: `${c.rarity}|${c.art}`, art: c.art, rarity: c.rarity })),
+      Object.entries(save.assign || {})
+        .map(([k, building]) => [save.cats[k], building])
+        .filter(([c]) => c)
+        .map(([c, building]) => ({
+          key: `${c.rarity}|${c.art}`,
+          art: c.art,
+          rarity: c.rarity,
+          building,
+        })),
     [save.assign, save.cats]
   );
 

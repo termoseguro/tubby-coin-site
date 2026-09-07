@@ -1806,3 +1806,52 @@
   .tt-resbar-i { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 10px; }
   .tt-resbar-n b { font-size: 0.88rem; }
 }
+
+/* ---------- resource bar: fit the number, give the height back ----------
+   Two faults: `overflow: hidden` on the number column was clipping anything
+   past three digits ("2.4K" showing as "2.4"), and the taller pills were
+   stealing height from the city, which is the thing worth looking at. */
+.tt-resbar { margin-top: 8px; gap: 6px; padding: 0 10px; }
+.tt-resbar-item {
+  padding: 5px 9px 5px 6px;
+  border-radius: 15px;
+  gap: 7px;
+  min-width: 0;
+}
+.tt-resbar-i {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 10px;
+}
+.tt-resbar-i svg { width: 22px; height: 22px; }
+.tt-resbar-n {
+  overflow: visible;
+  gap: 3px;
+  min-width: 0;
+}
+.tt-resbar-n b {
+  font-size: 0.95rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  overflow: visible;
+}
+.tt-resbar-cap { height: 5px; }
+.tt-resbar-item.gold { padding-right: 6px; }
+.tt-resbar-plus { width: 22px; height: 22px; border-radius: 8px; font-size: 0.92rem; }
+
+/* the header row above it can be tighter too — every pixel here is a pixel
+   the town does not get */
+.tt-bar { padding: 8px 16px 0; }
+.tt-title-main { font-size: clamp(1.15rem, 3vw, 1.6rem); }
+.tt-back, .tt-tier { padding: 8px 13px; font-size: 0.8rem; }
+.tt-stage { margin-top: 6px; }
+.tt-tabs { padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px)); }
+.tt-tab { padding: 10px 17px; }
+
+@media (max-width: 900px) {
+  .tt-resbar-item { padding: 4px 7px 4px 5px; gap: 5px; }
+  .tt-resbar-i { width: 26px; height: 26px; flex: 0 0 26px; border-radius: 9px; }
+  .tt-resbar-i svg { width: 19px; height: 19px; }
+  .tt-resbar-n b { font-size: 0.85rem; }
+}
