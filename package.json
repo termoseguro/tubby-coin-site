@@ -14,12 +14,20 @@
     "check": "node scripts/check.mjs",
     "check:layout": "node scripts/check-layout.mjs",
     "check:server": "node scripts/check-server-safe.mjs",
-    "check:all": "npm run check:server && npm run check:layout && npm run check"
+    "check:all": "npm run check:server && npm run check:layout && npm run check",
+    "db:link": "node scripts/db.mjs link",
+    "db:push": "node scripts/db.mjs push",
+    "db:diff": "node scripts/db.mjs diff",
+    "db:pull": "node scripts/db.mjs pull",
+    "db:status": "node scripts/db.mjs status"
   },
   "dependencies": {
     "next": "^14.2.35",
     "pixi.js": "^8.20.1",
     "react": "18.3.1",
     "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "supabase": "^2.116.0"
   }
 }

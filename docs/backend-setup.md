@@ -4,8 +4,9 @@ Written for someone who has never configured Supabase. Follow it top to bottom.
 Nothing here is optional, and the order matters.
 
 Companion documents: [`security.md`](security.md) is the threat model and the
-reasoning; this is the procedure. [`../supabase/schema.sql`](../supabase/schema.sql)
-is the database itself.
+reasoning; this is the procedure. The database itself lives in
+[`../supabase/migrations/`](../supabase/migrations/) as migrations you apply
+with the CLI (§2b).
 
 ---
 
@@ -42,12 +43,81 @@ themselves out of:
 
 ## 2. Run the schema
 
+Either use the CLI (see §2b — do this, it is better) or, once, by hand:
+
 1. In the sidebar: **SQL Editor** → **New query**.
-2. Paste the entire contents of [`supabase/schema.sql`](../supabase/schema.sql).
+2. Paste the contents of `supabase/migrations/*_init.sql`.
 3. **Run.** It is idempotent, so running it again later is safe.
 4. Sidebar → **Table Editor**. You should see twelve tables, each showing
    *RLS enabled*. If any table says RLS is disabled, stop and fix it — one
    unprotected table is a public read/write API onto your game.
+
+## 2b. The CLI, so you never paste SQL again
+
+Pasting into the SQL editor works once. It does not give you a history, it does
+not tell you what changed, and it cannot be reviewed. The CLI turns the schema
+into **migrations** — ordinary files in git that get applied in order.
+
+The schema now lives at `supabase/migrations/*_init.sql`. To change the
+database, you add a new migration file; you never edit an applied one.
+
+### One-time setup
+
+1. Copy `.env.local.example` to `.env.local` and fill in four values:
+
+   | Variable | Where to find it | Secret? |
+   |---|---|---|
+   | `SUPABASE_PROJECT_REF` | the subdomain of your project URL | no |
+   | `SUPABASE_DB_PASSWORD` | the password you set when creating the project | **yes** |
+   | `SUPABASE_ACCESS_TOKEN` | <https://supabase.com/dashboard/account/tokens> | **yes** |
+   | `SUPABASE_SERVICE_ROLE_KEY` | Project Settings → API | **yes** |
+
+   `.env.local` is gitignored. Nothing in it is ever committed, and the two
+   secrets should not be pasted into a chat window either — put them straight
+   into the file.
+
+2. Link the folder to the project:
+
+   ```bash
+   npm run db:link
+   ```
+
+3. Apply everything:
+
+   ```bash
+   npm run db:push
+   ```
+
+### Day to day
+
+| Command | What it does |
+|---|---|
+| `npm run db:push` | applies any migration not yet applied |
+| `npm run db:diff -f <name>` | writes a new migration from changes made in the dashboard |
+| `npm run db:pull` | pulls the remote schema down into a migration |
+| `npm run db:status` | lists the projects your token can reach |
+
+### The guard, and why it is there
+
+**This machine has other Supabase projects on it.** The CLI stores its login
+token *globally*, so one token reaches every project on the account, while the
+link — which project this folder talks to — lives in a gitignored file. That is
+exactly the combination that lets a `db push` quietly land in the wrong
+database.
+
+So `scripts/db.mjs` wraps every command and refuses to run unless the linked
+project ref matches `SUPABASE_PROJECT_REF` from this repo's `.env.local`:
+
+```
+✗ LINKED TO THE WRONG PROJECT.
+  supabase/.temp/project-ref says: zzzz-someone-elses-project
+  .env.local expects:              abcdefghijklmnop
+```
+
+`db reset` is blocked outright — against a linked remote it drops every table.
+If you ever genuinely need it, run the CLI by hand and mean it.
+
+---
 
 ## 3. Wire the keys
 

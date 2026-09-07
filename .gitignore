@@ -3,6 +3,8 @@
 /out
 /build
 .env*
+# ...but the template carries no secrets and must be committed
+!.env.local.example
 .DS_Store
 *.log
 .vercel
