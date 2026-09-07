@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { config } from "../../lib/config";
 
-const FundContext = createContext({ fundedSol: 0, live: false, loading: true });
+const FundContext = createContext({ basketSol: 0, live: false, loading: true });
 
 export function useFund() {
   return useContext(FundContext);
@@ -11,7 +11,10 @@ export function useFund() {
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
-// Read a wallet's SOL balance straight from the browser via JSON-RPC (getBalance).
+// Read the Tubby Cares wallet balance straight from the browser (getBalance).
+// NOTE: this is the BASKET, not the total ever raised. The balance drops to
+// zero every time we go shopping, so "delivered so far" comes from the signed
+// delivery log in config.care.deliveries, never from here.
 // Public RPCs (Helius/QuickNode/Triton) allow CORS reads — no backend required.
 async function fetchBalanceSol(rpcUrl, wallet) {
   const res = await fetch(rpcUrl, {
@@ -31,8 +34,8 @@ async function fetchBalanceSol(rpcUrl, wallet) {
 }
 
 export function FundProvider({ children }) {
-  const { rpcUrl, artWallet, refreshMs, demoFundedSol } = config.liveData;
-  const isLiveData = Boolean(config.live && rpcUrl && artWallet);
+  const { rpcUrl, careWallet, refreshMs, demoFundedSol } = config.liveData;
+  const isLiveData = Boolean(config.live && rpcUrl && careWallet);
 
   // target = the real (or demo) number we ease toward
   const [target, setTarget] = useState(isLiveData ? 0 : demoFundedSol);
@@ -50,7 +53,7 @@ export function FundProvider({ children }) {
     let cancelled = false;
     async function tick() {
       try {
-        const sol = await fetchBalanceSol(rpcUrl, artWallet);
+        const sol = await fetchBalanceSol(rpcUrl, careWallet);
         if (!cancelled) {
           setTarget(sol);
           setLoading(false);
@@ -66,7 +69,7 @@ export function FundProvider({ children }) {
       cancelled = true;
       clearInterval(id);
     };
-  }, [isLiveData, rpcUrl, artWallet, refreshMs, demoFundedSol]);
+  }, [isLiveData, rpcUrl, careWallet, refreshMs, demoFundedSol]);
 
   // ease the displayed number toward the target (the "counting up" wow effect)
   useEffect(() => {
@@ -91,7 +94,7 @@ export function FundProvider({ children }) {
   }, [target]);
 
   return (
-    <FundContext.Provider value={{ fundedSol: display, live: isLiveData, loading }}>
+    <FundContext.Provider value={{ basketSol: display, live: isLiveData, loading }}>
       {children}
     </FundContext.Provider>
   );

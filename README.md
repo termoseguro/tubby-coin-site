@@ -19,19 +19,26 @@ npm run build    # production build
 | Go live | `live: true` | flips buy buttons + CA copy on |
 | Contract address | `token.contractAddress` | keep `"TBA"` until launch minute |
 | Buy routes | `links.pump`, `links.jupiter` | auto-append the CA when live |
-| Fee wallets shown on site | `wallets.art`, `wallets.ops` | display only |
-| **Live art-fund counter** | `liveData.rpcUrl` + `liveData.artWallet` | paste a Helius/QuickNode RPC url + the art wallet address, then set `live:true` |
+| Fee split | `feeSplit` | care 20 / ops 30 / treats 25 / bite 15 / art 10 — must total 100 |
+| Fee wallets shown on site | `wallets.*` | five of them; display only |
+| **Live Cares counter** | `liveData.rpcUrl` + `liveData.careWallet` | paste a Helius/QuickNode RPC url + the Tubby Cares wallet address, then set `live:true` |
 | Demo number (pre-launch) | `liveData.demoFundedSol` | shown until live data is wired |
-| Milestones (progress bar) | `milestones[]` | cumulative SOL targets |
+| Delivery runs (progress bar) | `milestones[]` | cumulative SOL targets; `items` is a commitment — set it from a real quote |
+| Delivery log | `care.deliveries[]` | every completed run: receipt, CNPJ, tx, photos |
 | Side-rail + bg art | `art[]` | drop images in `/public/art` and list paths, or paste OpenSea/IPFS URLs |
 
 ### Wiring live data (no backend needed)
 Solana RPCs allow browser reads via CORS. Just:
 1. `liveData.rpcUrl = "https://mainnet.helius-rpc.com/?api-key=YOUR_KEY"`
-2. `liveData.artWallet = "<the art fund Solana address>"`
+2. `liveData.careWallet = "<the Tubby Cares Solana address>"`
 3. `live = true`
 
 The counter reads `getBalance` on that wallet every `refreshMs` and eases the number up.
+
+**That number is the *basket*, not the total ever donated.** The balance empties
+every time supplies are bought, so "delivered so far" is summed from
+`care.deliveries[]` — the hand-maintained log where every entry has a signed
+receipt behind it. See `docs/tubby-cares.md` §4.
 
 ## Deploy (Vercel)
 Push to a git repo and import in Vercel, or run `vercel` from this folder. No env vars required —

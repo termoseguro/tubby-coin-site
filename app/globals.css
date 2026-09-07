@@ -183,8 +183,19 @@ img{max-width:100%;display:block}
 .fund .amount{font-size:clamp(3rem,9vw,5rem);font-weight:900;line-height:1;color:var(--gold);letter-spacing:-.03em}
 .fund .amount .unit{font-size:.32em;font-weight:800;color:#fff;margin-left:10px}
 .fund .cap{font-weight:600;opacity:.9;margin-top:10px}
-.fund .next{margin-top:18px;font-size:.92rem;opacity:.9}
+.fund .next{margin-top:14px;font-size:.92rem;opacity:.9}
 .fund .next b{color:var(--gold)}
+.fund-bar{margin-top:20px;height:14px;border-radius:999px;background:rgba(0,0,0,.28);border:2px solid rgba(255,255,255,.25);overflow:hidden}
+.fund-bar i{display:block;height:100%;background:var(--gold);border-radius:999px;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.fund-done{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.18);font-size:.86rem;opacity:.85}
+.fund-done b{color:var(--gold)}
+.fund-done a{color:var(--gold);text-decoration:underline}
+
+/* ---------- the care basket (what the fund buys) ---------- */
+.basket{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:28px auto 0;max-width:760px}
+.basket-item{display:inline-flex;align-items:center;gap:9px;background:rgba(0,0,0,.16);border:2px solid rgba(255,255,255,.25);border-radius:var(--pill);padding:9px 18px;font-weight:700;font-size:.9rem}
+.basket-item .b-ic{font-size:1.15rem}
+.care-note{max-width:760px;margin:26px auto 0;text-align:center;font-size:.84rem;opacity:.8}
 
 /* ---------- receipts ---------- */
 .receipt-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:8px}

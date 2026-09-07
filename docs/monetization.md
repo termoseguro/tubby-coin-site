@@ -8,18 +8,26 @@ Which is exactly why some of it says "do not do X" — the failure modes below
 are the ones that destroy the revenue, not the ones that offend anyone.
 
 Related: `game-design.md` (the game) · `roadmap.md` (when) ·
-`security.md` (how each product gets attacked)
+`tubby-cares.md` (the donation engine) · `security.md` (how each product gets
+attacked)
 
 ---
 
-## 1. Two engines. Never confuse them.
+## 1. Three engines. Never confuse them.
 
-| | **Revenue** | **Rewards** |
-|---|---|---|
-| Money flows | **In** — players buy Golden Fish | **Out** — payouts to players |
-| Funded by | Real purchases (SOL / Telegram Stars) | The `treats` bucket = 25% of creator fees |
-| Purpose | This is the profit | Acquisition — it brings crypto players in |
-| Goes to | The shop wallet → us | The season board + plushies |
+| | **Revenue** | **Rewards** | **Cares** |
+|---|---|---|---|
+| Money flows | **In** — players buy Golden Fish | **Out** — payouts to players | **Out** — supplies to shelters |
+| Funded by | Real purchases (SOL / Telegram Stars) | The `treats` bucket = 25% of creator fees | The `care` bucket = 20% of creator fees |
+| Purpose | This is the profit | Acquisition — it brings crypto players in | The reason the project is worth being attached to |
+| Goes to | The shop wallet → us | The season board + plushies | Nappies, formula, medicine, food — in Rio |
+
+**The Cares engine is not a product and must never behave like one.** Its size
+is fixed by the fee split; no purchase moves it. Everything about why is in
+`tubby-cares.md` §2 — the short version is that a sale which raises a donation
+is a charitable solicitation, and a buyer who cannot see their own money land in
+the care wallet will assume it was pocketed. There is no rebuttal to that
+accusation, so the design never creates it.
 
 **The single hard constraint: rewards out ≤ fees in. Never dip into shop
 revenue or treasury to pay rewards.** The moment reward spending outruns fee
@@ -289,6 +297,21 @@ Skins, town themes, decorations, name colours, profile auras.
 **Cosmetics stay cosmetic — always.** Pure margin, no balance argument ever,
 and a paying player becomes a walking advertisement inside the game.
 
+### 3.9 The Cares item — the one product at 100%
+
+**Exactly one** shop product where **100% of the price goes to the care wallet**,
+published and permanent. A cosmetic — a Care House banner, a supply-crate
+decoration, something visibly of the cause.
+
+One product at 100% beats "10% of everything" on every axis that matters: it is
+a far better sentence, it costs nothing on the rest of the catalogue, and it
+keeps the line in `tubby-cares.md` §2 intact — the *rest* of the shop is
+straightforwardly commerce, and nobody has to wonder which is which.
+
+Rules: it never grants power, never grants leaderboard score, and is never
+bundled into a pack that also contains paid advantages. Its revenue is reported
+in the delivery log alongside the fee income, separately labelled.
+
 ---
 
 ## 4. The reward economy
@@ -497,3 +520,8 @@ Not ethics — these are the things that kill the revenue:
   something the player owns. See `game-design.md` §4 and §7.
 - **No rewards funded from shop revenue.** That is the profit. If rewards need
   it, the reward design is wrong.
+- **No donation that scales with spending.** Not "10% of this pack", not a
+  charity bundle, not a double-donation weekend. One product at 100% (§3.9) and
+  the fee split. See `tubby-cares.md` §2.
+- **No charity framing on a paid product** other than §3.9 itself. "Buy this and
+  help a child" is the sentence that turns a shop into a solicitation.

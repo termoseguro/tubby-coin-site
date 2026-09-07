@@ -8,6 +8,7 @@ export default function Tokenomics() {
   const [supply, setSupply] = useState("1,000,000,000");
   const [burned, setBurned] = useState(null);
   const [burnedPct, setBurnedPct] = useState("");
+  const [balCare, setBalCare] = useState("—");
   const [balArt, setBalArt] = useState("—");
   const [balOps, setBalOps] = useState("—");
   const [balTreats, setBalTreats] = useState("—");
@@ -16,6 +17,7 @@ export default function Tokenomics() {
 
   useEffect(() => {
     const CA = config.token.contractAddress !== "TBA" ? config.token.contractAddress : "";
+    const WALLET_CARE = config.wallets.care;
     const WALLET_ART = config.wallets.art;
     const WALLET_OPS = config.wallets.ops;
     const WALLET_TREATS = config.wallets.treats;
@@ -95,6 +97,7 @@ export default function Tokenomics() {
     const tick = () => {
       updateMarket();
       updateSupply();
+      updateBalance(WALLET_CARE, setBalCare);
       updateBalance(WALLET_ART, setBalArt);
       updateBalance(WALLET_OPS, setBalOps);
       updateBalance(WALLET_TREATS, setBalTreats);
@@ -135,10 +138,10 @@ export default function Tokenomics() {
     <div className="wrap">
       <span className="kicker">Numbers, but make them cute</span>
       <h1>TUBBYNOMICS</h1>
-      <p>No taxes. No team bags. No gimmicks. $TUBBY's whole economy is the protocol fee pump.fun pays coin creators — your tokens are never touched, and this page watches where every bit of it goes, straight from the Solana blockchain.</p>
+      <p>No taxes. No team bags. No gimmicks. $TUBBY&apos;s whole economy is the protocol fee pump.fun pays coin creators — your tokens are never touched. {config.feeSplit.care}% of it buys diapers, formula, medicine and food for children&apos;s shelters in Rio de Janeiro, and this page watches where every bit of it goes, straight from the Solana blockchain.</p>
 
       <div style={{marginTop: "30px"}}>
-        <span className="live-badge" id="liveBadge" className={`live-badge ${isLive ? "on" : ""}`}><span className="pulse"></span><span id="liveBadgeText">{isLive ? "Live — reading the chain" : "Preview — demo data"}</span></span>
+        <span id="liveBadge" className={`live-badge ${isLive ? "on" : ""}`}><span className="pulse"></span><span id="liveBadgeText">{isLive ? "Live — reading the chain" : "Preview — demo data"}</span></span>
         <div className="board">
           <div className="tile"><div className="v" id="lvPrice">{market.price}</div><div className="k">price (usd)</div></div>
           <div className="tile"><div className="v" id="lvMcap">{market.mcap}</div><div className="k">market cap</div></div>
@@ -152,8 +155,8 @@ export default function Tokenomics() {
 
   <div className="marquee" aria-hidden="true">
     <div className="marquee-track">
-      <span>tubbynomics</span><span>★</span><span>no taxes</span><span>★</span><span>no team bags</span><span>★</span><span>30% back to the project</span><span>★</span><span>on-chain, not on-trust</span><span>★</span>
-      <span>tubbynomics</span><span>★</span><span>no taxes</span><span>★</span><span>no team bags</span><span>★</span><span>30% back to the project</span><span>★</span><span>on-chain, not on-trust</span><span>★</span>
+      <span>tubbynomics</span><span>★</span><span>no taxes</span><span>★</span><span>no team bags</span><span>★</span><span>{config.feeSplit.care}% to children&apos;s shelters</span><span>★</span><span>goods, never cash</span><span>★</span><span>on-chain, not on-trust</span><span>★</span>
+      <span>tubbynomics</span><span>★</span><span>no taxes</span><span>★</span><span>no team bags</span><span>★</span><span>{config.feeSplit.care}% to children&apos;s shelters</span><span>★</span><span>goods, never cash</span><span>★</span><span>on-chain, not on-trust</span><span>★</span>
     </div>
   </div>
 
@@ -222,7 +225,7 @@ export default function Tokenomics() {
       <div className="section-head">
         <span className="kicker">On-chain, not on-trust</span>
         <h2>Where every fee goes 🧾</h2>
-        <p>Four wallets, one protocol setting. Pump.fun allows splitting fees into up to 10 wallets — so we configured all four directly in the fee sharing when creating the coin. The entire allocation becomes code, not a promise. Balances update live.</p>
+        <p>Five wallets, one protocol setting. Pump.fun allows splitting fees into up to 10 wallets — so we configured all five directly in the fee sharing when creating the coin. The donation slice is routed by the protocol before we ever touch it: the entire allocation is code, not a promise. Balances update live.</p>
       </div>
       <div className="alloc-grid">
         <div className="donut fee-donut">
@@ -230,32 +233,38 @@ export default function Tokenomics() {
         </div>
         <div className="slices">
           <div className="slice">
-            <div className="head"><span className="swatch" style={{background: 'var(--gold)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>🎨 Art Fund</h3><span className="pct">30%</span></div>
-            <p>Flows back to the creator to fund new art, products, merch, and expand the tubby universe.</p>
-            <div className="wallet"><span>{config.wallets.art}</span><span className="bal">bal: <b id="balArt">{balArt}</b></span></div>
+            <div className="head"><span className="swatch" style={{background: 'var(--pink-deep)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>🧡 Tubby Cares</h3><span className="pct">{config.feeSplit.care}%</span></div>
+            <p>Buys diapers, formula, medicine, food and hygiene supplies for children&apos;s shelters in Rio de Janeiro. Goods, never cash — every run published with the institution, its CNPJ, the item list, the funding tx and photos of the supplies. This slice came out of the art fund, which went from 30% to {config.feeSplit.art}%.</p>
+            <div className="wallet"><span>{config.wallets.care}</span><span className="bal">bal: <b id="balCare">{balCare}</b></span></div>
           </div>
           <div className="slice">
-            <div className="head"><span className="swatch" style={{background: 'var(--choco)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>⚙️ Ops & Team</h3><span className="pct">30%</span></div>
+            <div className="head"><span className="swatch" style={{background: 'var(--choco)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>⚙️ Ops &amp; Team</h3><span className="pct">{config.feeSplit.ops}%</span></div>
             <p>Funds infrastructure, developers, servers, and the team operating the project day-to-day.</p>
             <div className="wallet"><span>{config.wallets.ops}</span><span className="bal">bal: <b id="balOps">{balOps}</b></span></div>
           </div>
           <div className="slice">
-            <div className="head"><span className="swatch" style={{background: 'var(--pink-soft)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>🎁 Treats</h3><span className="pct">25%</span></div>
-            <p>Community rewards, airdrops for active holders, and prizes for art contests.</p>
+            <div className="head"><span className="swatch" style={{background: 'var(--pink-soft)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>🎁 Treats</h3><span className="pct">{config.feeSplit.treats}%</span></div>
+            <p>The game&apos;s reward pool — the season board, prizes, and community rewards. Rewards out never exceed fees in.</p>
             <div className="wallet"><span>{config.wallets.treats}</span><span className="bal">bal: <b id="balTreats">{balTreats}</b></span></div>
           </div>
           <div className="slice">
-            <div className="head"><span className="swatch" style={{background: 'var(--ink)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>🔥 The Bite</h3><span className="pct">15%</span></div>
-            <p>The deflationary fund. Used exclusively for buyback & burn at every completed milestone.</p>
+            <div className="head"><span className="swatch" style={{background: 'var(--ink)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>🔥 The Bite</h3><span className="pct">{config.feeSplit.bite}%</span></div>
+            <p>The deflationary fund. Used exclusively for buyback &amp; burn at every completed milestone.</p>
             <div className="wallet"><span>{config.wallets.bite}</span><span className="bal">bal: <b id="balBite">{balBite}</b></span></div>
+          </div>
+          <div className="slice">
+            <div className="head"><span className="swatch" style={{background: 'var(--gold)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>🎨 Art Fund</h3><span className="pct">{config.feeSplit.art}%</span></div>
+            <p>Flows back to the tubby cats brand to fund new art, products and merch. Cut from 30% to {config.feeSplit.art}% to open the Tubby Cares slice — the donation came out of our own share.</p>
+            <div className="wallet"><span>{config.wallets.art}</span><span className="bal">bal: <b id="balArt">{balArt}</b></span></div>
           </div>
         </div>
       </div>
       <div className="enforced">
         <span className="ic">🔍</span>
-        <span>Don't trust the pie — audit it. The split is visible in the coin's fee configuration, and both wallets are public forever.</span>
-        <a className="chip" href="{config.links.feeConfig}" target="_blank" rel="noopener">🧾 View fee config</a>
-        <a className="chip" href="{config.links.reports}" target="_blank" rel="noopener">📬 Updates</a>
+        <span>Don&apos;t trust the pie — audit it. The split is visible in the coin&apos;s fee configuration, and all five wallets are public forever.</span>
+        <a className="chip" href={config.links.feeConfig} target="_blank" rel="noopener">🧾 View fee config</a>
+        <a className="chip" href={config.links.deliveryLog} target="_blank" rel="noopener">🧡 Delivery log</a>
+        <a className="chip" href={config.links.reports} target="_blank" rel="noopener">📬 Updates</a>
       </div>
     </div>
   </section>
@@ -282,7 +291,7 @@ export default function Tokenomics() {
           <div className="bite-step"><span className="num">1</span> A share of ops funds accrues for bites — the wallet is public, watch it fill up.</div>
           <div className="bite-step"><span className="num">2</span> A quest milestone unlocks → the wallet market-buys $TUBBY in the open, like anyone else.</div>
           <div className="bite-step"><span className="num">3</span> The tokens go to the burn address — gone from supply, permanently. Chomp.</div>
-          <div className="bite-step"><span className="num">4</span> The burn tx is posted to the public bite log. <a className="chip" href="{config.links.burns}" target="_blank" rel="noopener">Bite log 🧾</a></div>
+          <div className="bite-step"><span className="num">4</span> The burn tx is posted to the public bite log. <a className="chip" href={config.links.burns} target="_blank" rel="noopener">Bite log 🧾</a></div>
         </div>
       </div>
     </div>
@@ -322,8 +331,8 @@ export default function Tokenomics() {
         <div className={`life ${lives[4] ? "" : "locked"}`} data-life="4">
           <div className="paw">🐾</div>
           <div className="body">
-            <h3>Life 4 · First Commission <span className="tag">25 SOL to the project fund</span>{lives[4] ? <span className="state on">unlocked</span> : <span className="state off">locked</span>}</h3>
-            <p>The Project Fund reveals its first commissioned piece: brand-new tubby art, artist credited, funded entirely by trading fees 🎨</p>
+            <h3>Life 4 · The First Run <span className="tag">{config.milestones[0].sol} SOL in the Cares basket</span>{lives[4] ? <span className="state on">unlocked</span> : <span className="state off">locked</span>}</h3>
+            <p>The first Tubby Cares delivery goes out to a children&apos;s shelter in Rio — {config.milestones[0].items}, bought with trading fees. Signed receipt, CNPJ, funding tx and photos of every item, all published 🧡</p>
           </div>
         </div>
         <div className={`life ${lives[5] ? "" : "locked"}`} data-life="5">
@@ -336,8 +345,8 @@ export default function Tokenomics() {
         <div className={`life ${lives[6] ? "" : "locked"}`} data-life="6">
           <div className="paw">🐾</div>
           <div className="body">
-            <h3>Life 6 · Fresh Drip <span className="tag">100 SOL to the project fund</span>{lives[6] ? <span className="state on">unlocked</span> : <span className="state off">locked</span>}</h3>
-            <p>A brand-new merch drop, designed for the coin era and funded by the Project Fund. Real objects, real world 👕</p>
+            <h3>Life 6 · Fresh Drip <span className="tag">5 Cares runs delivered</span>{lives[6] ? <span className="state on">unlocked</span> : <span className="state off">locked</span>}</h3>
+            <p>A brand-new merch drop, designed for the coin era and funded by the Art Fund. Real objects, real world 👕</p>
           </div>
         </div>
         <div className={`life ${lives[7] ? "" : "locked"}`} data-life="7">
@@ -350,7 +359,7 @@ export default function Tokenomics() {
         <div className={`life ${lives[8] ? "" : "locked"}`} data-life="8">
           <div className="paw">🐾</div>
           <div className="body">
-            <h3>Life 8 · The Grant <span className="tag">250 SOL to the project fund</span>{lives[8] ? <span className="state on">unlocked</span> : <span className="state off">locked</span>}</h3>
+            <h3>Life 8 · The Grant <span className="tag">100 SOL to the art fund</span>{lives[8] ? <span className="state on">unlocked</span> : <span className="state off">locked</span>}</h3>
             <p>The tubby grant: we finance a community creator's project — animation, game, zine, anything tubbiful. Chosen in public.</p>
           </div>
         </div>
@@ -380,9 +389,9 @@ export default function Tokenomics() {
             <tr><th></th><th>typical cat coin</th><th>$TUBBY</th></tr>
             <tr><td>Supply & launch</td><td>1B fixed, fair launch</td><td className="yes">1B fixed, 100% on the curve — same standard, kept</td></tr>
             <tr><td>Treasury source</td><td>none, or a quiet team bag</td><td className="yes">protocol creator fees — no bag to dump, ever</td></tr>
-            <tr><td>Fee allocation</td><td>undisclosed</td><td className="yes">30/30/25/15 across four public wallets, enforced on-chain</td></tr>
+            <tr><td>Fee allocation</td><td>undisclosed</td><td className="yes">{config.feeSplit.care}/{config.feeSplit.ops}/{config.feeSplit.treats}/{config.feeSplit.bite}/{config.feeSplit.art} across five public wallets, enforced on-chain</td></tr>
             <tr><td>Deflation</td><td>arbitrary or none</td><td className="yes">milestone Bites 🍫 — every burn with a tx receipt</td></tr>
-            <tr><td>What fees build</td><td>—</td><td className="yes">new art, merch & grants for a real CC0 brand</td></tr>
+            <tr><td>What fees build</td><td>—</td><td className="yes">supplies for children&apos;s shelters in Rio — plus a game, art and merch</td></tr>
             <tr><td>Live transparency</td><td>screenshots, maybe</td><td className="yes">this page reads the chain itself, on refresh</td></tr>
           </tbody>
         </table>
@@ -398,16 +407,20 @@ export default function Tokenomics() {
         <h2>Tubbynomics questions</h2>
       </div>
       <details>
-        <summary>Why 4 wallets for the fee split?</summary>
-        <div className="a">Because we can! Pump.fun allows splitting fees into up to 10 wallets, so we baked the exact allocations (Art, Ops, Treats, Bite) directly into the protocol's fee sharing. You don't have to trust us to move the money — the contract routes it for us automatically. 💗</div>
+        <summary>Why 5 wallets for the fee split?</summary>
+        <div className="a">Because we can! Pump.fun allows splitting fees into up to 10 wallets, so we baked the exact allocations (Cares, Ops, Treats, Bite, Art) directly into the protocol&apos;s fee sharing. You don&apos;t have to trust us to move the money — and you especially don&apos;t have to trust us with the donation slice, because the contract routes it there before we ever see it. 💗</div>
       </details>
       <details>
-        <summary>Why 30% back to the project?</summary>
-        <div className="a">Because the coin exists to feed the tubby universe, not the other way around. The Project Fund goes to the collection's creator to make new things — art, products, merch — and the wallet is open, so the community always sees the fuel arriving. A memecoin whose fees build a real creative catalog is a rare cat indeed 🐱</div>
+        <summary>Why {config.feeSplit.care}% to children&apos;s shelters?</summary>
+        <div className="a">Because a memecoin can afford to be useful. {config.feeSplit.care}% of every creator fee buys diapers, formula, medicine and food for shelters in Rio de Janeiro — in goods, delivered in person, never in cash. And it came out of our own slice: the art fund dropped from 30% to {config.feeSplit.art}% to make room. Nobody else&apos;s share moved 🧡</div>
       </details>
       <details>
         <summary>Can the tokenomics ever change?</summary>
         <div className="a">The supply can never increase — that's protocol law, not our promise. The fee split is an on-chain setting: if it ever changed, we'd announce it first and anyone could see it in the fee config. Silent changes are literally impossible. That's the whole point of putting it on-chain ✦</div>
+      </details>
+      <details>
+        <summary>Does buying or playing more increase the donation?</summary>
+        <div className="a">No. The donation is {config.feeSplit.care}% of creator fees and nothing else — no shop purchase, no pull, no season pass changes it. The game decides where a run goes and whose name is on the delivery card; it never decides how much. If spending could move the number, every sale in the game would be a charity pitch, and you would never be able to tell the two apart 🧡</div>
       </details>
       <details>
         <summary>What do Bites actually do?</summary>
@@ -432,10 +445,13 @@ export default function Tokenomics() {
       advice. Please enjoy the project responsibly and have fun!
     </p>
     <p className="fine">
-      tubby cats artwork is in the public domain (CC0). $TUBBY creator fees are split 30/70 between the
-      project fund and coin operations via pump.fun creator fee sharing; both wallets are published above.
-      We will never DM you, never ask for your seed phrase, and never post a contract address anywhere
-      before posting it on the home page first.
+      tubby cats artwork is in the public domain (CC0). $TUBBY creator fees are routed by pump.fun
+      creator fee sharing into five public wallets — {config.feeSplit.care}% Tubby Cares,
+      {" "}{config.feeSplit.ops}% operations, {config.feeSplit.treats}% game rewards,
+      {" "}{config.feeSplit.bite}% buyback &amp; burn and {config.feeSplit.art}% art fund; all five are
+      published above. Tubby Cares donations are made in goods to children&apos;s shelters in Rio de
+      Janeiro and are not a tax-deductible contribution by you. We will never DM you, never ask for your
+      seed phrase, and never post a contract address anywhere before posting it on the home page first.
     </p>
   </div>
 </footer>

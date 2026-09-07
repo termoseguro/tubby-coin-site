@@ -6,6 +6,7 @@ import { BuyButton } from "./BuyModal";
 // absolute hrefs so the menu works from any route (home and /tokenomics)
 const LINKS = [
   ["/#find", "Find $TUBBY"],
+  ["/#cares", "Tubby Cares"],
   ["/tokenomics", "Tokenomics"],
   ["/#nfts", "NFTs"],
   ["/#art", "Art"],

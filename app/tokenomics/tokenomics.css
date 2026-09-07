@@ -94,7 +94,10 @@
   .donut .center-label b{font-family:'Lilita One',cursive;font-size:1.1rem;line-height:1.15}
   .donut .center-label span{font-size:.7rem;font-weight:800;margin-top:4px}
   .donut.supply-donut{background:conic-gradient(var(--gold) 0 100%)}
-  .donut.fee-donut{background:conic-gradient(var(--gold) 0 30%,var(--choco) 30% 60%,var(--pink-soft) 60% 85%,var(--ink) 85% 100%)}
+  /* care 20 · ops 30 · treats 25 · bite 15 · art 10 — cumulative stops.
+     Keep in step with config.feeSplit; a donut that disagrees with the
+     numbers beside it is worse than no donut. */
+  .donut.fee-donut{background:conic-gradient(var(--pink-deep) 0 20%,var(--choco) 20% 50%,var(--pink-soft) 50% 75%,var(--ink) 75% 90%,var(--gold) 90% 100%)}
   .supply-notes{display:flex;flex-direction:column;gap:14px}
   .note-line{background:var(--cream);border:var(--border);border-radius:16px;box-shadow:var(--shadow-sm);padding:14px 18px;font-weight:700;font-size:.95rem;display:flex;gap:12px;align-items:center}
   .note-line .ic{font-size:1.3rem}

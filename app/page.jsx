@@ -1,7 +1,7 @@
 import { config } from "../lib/config";
 import { FundProvider } from "./components/FundContext";
 import { BuyProvider, BuyButton } from "./components/BuyModal";
-import LiveArtFund from "./components/LiveArtFund";
+import CareFund from "./components/CareFund";
 import CopyCA from "./components/CopyCA";
 import HeroMascot from "./components/HeroMascot";
 import NavBar from "./components/NavBar";
@@ -27,7 +27,8 @@ function TileGrid({ images, limit }) {
 }
 
 export default function Page() {
-  const { links, wallets, token, feeSplit, merch, art, communityArt, brand, venues, socials } = config;
+  const { links, wallets, token, feeSplit, care, merch, art, communityArt, brand, venues, socials } =
+    config;
   const social = socials
     .map((s) => ({ name: s.name, url: links[s.key] }))
     .filter((s) => isReal(s.url));
@@ -48,7 +49,8 @@ export default function Page() {
               </h1>
               <p className="lead">
                 The community coin of the tubby cats universe on Solana. No presale, no team
-                allocation, and {feeSplit.art}% of every creator fee flows straight back to the project.
+                allocation, and {feeSplit.care}% of every creator fee buys diapers, formula, medicine
+                and food for children&apos;s shelters in Rio de Janeiro.
               </p>
               <div className="hero-cta">
                 <BuyButton className="btn">Buy {token.ticker}</BuyButton>
@@ -118,18 +120,69 @@ export default function Page() {
 
           <Band text={brand.taglineSecondary} cls="band-b" />
 
-          {/* ============ PROJECT FUND, LIVE ============ */}
-          <section id="fund" className="sec brand">
+          {/* ============ TUBBY CARES ============ */}
+          <section id="cares" className="sec brand">
             <div className="wrap">
               <div className="sec-head">
-                <span className="super">On-chain, not on-trust</span>
-                <h2>The project fund, live</h2>
+                <span className="super">{feeSplit.care}% of every creator fee · {care.city}</span>
+                <h2>Tubby Cares 🧡</h2>
                 <p>
-                  {feeSplit.art}% of every creator fee flows back to the project. This counter reads that
-                  wallet straight from the Solana blockchain — the static site promised, this one proves.
+                  {feeSplit.care}% of every creator fee buys real supplies for {care.cause}. We have run
+                  drives like this before and gave plush toys; this time the coin funds the things a
+                  shelter actually runs out of. The counter below reads the wallet straight from the
+                  Solana blockchain — the promise is a protocol setting, not a paragraph.
                 </p>
               </div>
-              <LiveArtFund />
+
+              <CareFund />
+
+              <div className="basket">
+                {care.basket.map((b) => (
+                  <span className="basket-item" key={b.name}>
+                    <span className="b-ic">{b.emoji}</span>
+                    {b.name}
+                  </span>
+                ))}
+              </div>
+
+              <div className="steps" style={{ marginTop: "38px" }}>
+                <div className="step-card">
+                  <h3>The fees set the amount</h3>
+                  <p>
+                    {feeSplit.care}% of creator fees, routed by pump.fun itself. Playing the game or
+                    buying anything in it never raises it — the donation is arithmetic on a public fee
+                    stream, not a marketing lever.
+                  </p>
+                </div>
+                <div className="step-card">
+                  <h3>Goods, never cash</h3>
+                  <p>
+                    The fund is spent on items and delivered in person. Nothing is wired to anyone. A
+                    pallet of diapers can be photographed, counted and signed for; a transfer can only
+                    be believed.
+                  </p>
+                </div>
+                <div className="step-card">
+                  <h3>Every run has a receipt</h3>
+                  <p>
+                    Date, institution, CNPJ, the full item list, the transaction that paid for it, and
+                    photos of the goods. Published together or it did not happen.
+                  </p>
+                </div>
+                <div className="step-card">
+                  <h3>The town keeps the score</h3>
+                  <p>
+                    Tubby Town has a Care House that cannot be bought or rushed. It levels up only when
+                    a real delivery goes out — the one building in the game the real world builds.
+                  </p>
+                </div>
+              </div>
+
+              <p className="care-note">
+                We photograph the supplies, the delivery and the staff — never the children&apos;s
+                faces. Kids in institutional care are the most protected people in Brazilian law
+                (ECA arts. 17, 18 and 143), and that is exactly as it should be.
+              </p>
             </div>
           </section>
 
@@ -160,7 +213,7 @@ export default function Page() {
                 <h2>Official merch</h2>
                 <p>
                   Tees, hoodies, hats and more — dressed in hand-crafted tubby art. Funded by the
-                  project fund, CC0 forever.
+                  art fund, CC0 forever.
                 </p>
                 <a className="btn" href={links.shop} target="_blank" rel="noopener">Go to shop</a>
               </div>
@@ -243,11 +296,12 @@ export default function Page() {
 
                 <div className="receipt">
                   <span className="stamp">verify it</span>
-                  <h3>{feeSplit.art}/{feeSplit.ops}/{feeSplit.treats}/{feeSplit.bite} fee split, enforced on-chain</h3>
+                  <h3>Five wallets, one protocol setting</h3>
                   <p>The creator-fee split is configured in pump.fun&apos;s fee sharing — not a promise,
-                    a setting anyone can inspect. All 4 wallets are configured at launch.</p>
-                  {isRealWallet(wallets.art) && (
-                    <div className="wallet"><b>🎨 Project fund ({feeSplit.art}%):</b> {wallets.art}</div>
+                    a setting anyone can inspect. All 5 wallets are configured at launch, and the
+                    donation slice is routed by the protocol before we ever touch it.</p>
+                  {isRealWallet(wallets.care) && (
+                    <div className="wallet"><b>🧡 Tubby Cares ({feeSplit.care}%):</b> {wallets.care}</div>
                   )}
                   {isRealWallet(wallets.ops) && (
                     <div className="wallet"><b>⚙️ Operations ({feeSplit.ops}%):</b> {wallets.ops}</div>
@@ -257,6 +311,9 @@ export default function Page() {
                   )}
                   {isRealWallet(wallets.bite) && (
                     <div className="wallet"><b>🔥 The Bite ({feeSplit.bite}%):</b> {wallets.bite}</div>
+                  )}
+                  {isRealWallet(wallets.art) && (
+                    <div className="wallet"><b>🎨 Art fund ({feeSplit.art}%):</b> {wallets.art}</div>
                   )}
                   <div className="links">
                     {isReal(links.feeConfig) && (
@@ -278,11 +335,16 @@ export default function Page() {
 
                 <div className="receipt">
                   <span className="stamp">recurring</span>
-                  <h3>Project-fund transparency</h3>
-                  <p>The project-fund wallet is public and on-chain, so anyone can see what came in and
-                    what went out at any time. It&apos;s reinvested into the project — no fixed promises,
-                    just an open wallet you can always check.</p>
+                  <h3>Every delivery, logged</h3>
+                  <p>Each Tubby Cares run is published with the date, the institution and its CNPJ, the
+                    full list of what was bought, the transaction that funded it, and photos of the
+                    supplies. The wallet is public too, so the money is checkable on the way in and the
+                    goods are checkable on the way out. No fixed amount is ever promised — the fees
+                    decide, and the fees are on-chain.</p>
                   <div className="links">
+                    {isReal(links.deliveryLog) && (
+                      <a className="chip" href={links.deliveryLog} target="_blank" rel="noopener">Delivery log</a>
+                    )}
                     {isReal(links.reports) && (
                       <a className="chip" href={links.reports} target="_blank" rel="noopener">Updates</a>
                     )}
@@ -323,7 +385,7 @@ export default function Page() {
               </div>
               <div className="buy-cta">
                 <BuyButton className="btn">Buy {token.ticker} now</BuyButton>
-                <a className="btn ghost" href="#fund">See the project fund</a>
+                <a className="btn ghost" href="#cares">See Tubby Cares</a>
               </div>
             </div>
           </section>
@@ -350,14 +412,40 @@ export default function Page() {
                 </details>
                 <details>
                   <summary>How are the creator fees split?</summary>
-                  <div className="a">{feeSplit.art}/{feeSplit.ops}/{feeSplit.treats}/{feeSplit.bite}, enforced on-chain by pump.fun&apos;s fee
-                    sharing into 4 distinct wallets: {feeSplit.art}% goes back to the project creator to fund the universe itself,
-                    {feeSplit.ops}% funds the team running the coin, {feeSplit.treats}% is for community rewards, and {feeSplit.bite}% is dedicated to Buyback & Burn. All wallets are public.</div>
+                  <div className="a">Into 5 distinct wallets, enforced on-chain by pump.fun&apos;s fee sharing:
+                    {" "}{feeSplit.care}% to Tubby Cares (supplies for children&apos;s shelters in Rio),
+                    {" "}{feeSplit.ops}% to the team running the coin and the game,
+                    {" "}{feeSplit.treats}% to the game&apos;s reward pool,
+                    {" "}{feeSplit.bite}% to Buyback &amp; Burn, and
+                    {" "}{feeSplit.art}% to the tubby art fund. All five wallets are public.
+                    The donation slice was cut out of our own: the art fund went from 30% to {feeSplit.art}% to
+                    open it up. Nobody else&apos;s share moved.</div>
                 </details>
                 <details>
-                  <summary>What does the project fund pay for?</summary>
-                  <div className="a">It&apos;s reinvested into the project — products, art, and whatever the
-                    tubby universe builds next. No fixed roadmap and no promised drops or airdrops; the wallet
+                  <summary>Who actually gets the donations, and in what form?</summary>
+                  <div className="a">Children&apos;s shelters in Rio de Janeiro, in goods — diapers, formula,
+                    medicine, food, hygiene supplies. Never cash, never a transfer. We buy the items, deliver
+                    them, and publish the signed donation receipt, the institution&apos;s CNPJ, the funding
+                    transaction and photos of the supplies. Faces of children are never published.</div>
+                </details>
+                <details>
+                  <summary>Does playing the game donate more?</summary>
+                  <div className="a">No, and that is deliberate. The amount is {feeSplit.care}% of creator fees
+                    and nothing else — no purchase in the game changes it. What the game does change is where a
+                    run goes and whose name is on the delivery card. If spending could raise the donation, every
+                    sale would become a charity pitch, and nobody could tell the two apart. Buy things in the
+                    game because you want them; the donation happens either way.</div>
+                </details>
+                <details>
+                  <summary>Is any of this tax-deductible?</summary>
+                  <div className="a">No. Buying {token.ticker} is not a charitable donation and gives you no
+                    deduction anywhere — you are buying a memecoin. The donations are made by the project from
+                    its own fee income. Anyone telling you otherwise is wrong.</div>
+                </details>
+                <details>
+                  <summary>What does the art fund pay for?</summary>
+                  <div className="a">{feeSplit.art}% goes to the tubby cats brand — art, products, and whatever
+                    the universe builds next. No fixed roadmap and no promised drops or airdrops; the wallet
                     is public, so you can always check what came in and where it went.</div>
                 </details>
                 <details>

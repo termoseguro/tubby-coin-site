@@ -4,10 +4,11 @@ Past, present and future in one place. **Keep this file current** — when a
 phase moves, update it in the same commit as the work. It is the file a new
 session (or a new machine) reads first.
 
-Last updated: 2026-09-06
+Last updated: 2026-09-07
 
 Related: `tubby-town.md` (overview) · `game-design.md` (the design) ·
-`monetization.md` (revenue, VIP, rewards, ranking) · `security.md` (threat model)
+`monetization.md` (revenue, VIP, rewards, ranking) · `tubby-cares.md` (the
+donation engine) · `security.md` (threat model)
 
 
 ## The three rules
@@ -27,6 +28,14 @@ here says "do not do X" despite X looking profitable, it is because X breaks
 rule 2 or rule 3 and therefore stops paying under rule 1. The reasoning is
 always written down next to it — argue with the reasoning, not the rule.
 
+**Tubby Cares does not sit outside these rules, it sits inside rule 3.** 20% of
+creator fees buys supplies for children's shelters in Rio (`tubby-cares.md`),
+and it was cut out of the art fund's own slice — ops, treats and bite were not
+touched. A memecoin that visibly does something real is a memecoin people stay
+attached to, which is what keeps rule 1 paying. The moment it stops being real
+it becomes the project's biggest liability, which is why that document is
+mostly rules about proof.
+
 ---
 
 ## Where things stand
@@ -34,6 +43,7 @@ always written down next to it — argue with the reasoning, not the rule.
 | | |
 |---|---|
 | **Coin** | Not launched. `live: false`, CA is `TBA` in `lib/config.js` |
+| **Fee split** | care 20 / ops 30 / treats 25 / bite 15 / art 10 — five wallets |
 | **Site** | Live at tubbycatscoin.com (Vercel, deploys from `main`) |
 | **Game** | Prototype at `/game`, browser-only, on branch `feat/tubby-town-prototype` |
 | **Repo** | github.com/termoseguro/tubby-coin-site |
@@ -56,6 +66,20 @@ always written down next to it — argue with the reasoning, not the rule.
   burn counter (RPC), live wallet balances, the "9 Lives" quest
 - Economy set to a **4-way creator-fee split**: art 30 / ops 30 / treats 25 /
   bite 15. The `treats` bucket is the game's reward budget.
+
+### Phase 0.6 · Tubby Cares ✅ *(the split became 5-way)*
+- **20% of creator fees** now buys supplies — diapers, formula, medicine, food —
+  for children's shelters in Rio de Janeiro. **Goods, never cash.**
+- Funded by cutting the art fund from **30% to 10%**. No other bucket moved,
+  which is the whole reason the split survives a hostile thread.
+- Full design, rules and threat model in `tubby-cares.md`. The load-bearing one:
+  **the donation amount never depends on how much anyone plays or spends** — the
+  game decides where a run goes and whose name is on it, never how much.
+- Site rebuilt around it: the home page's live counter is now the Cares basket,
+  milestones are named deliveries written in items rather than SOL, the receipts
+  section carries the delivery log, and `/tokenomics` shows five slices.
+- Still to do before launch: real quotes behind every `milestones[].items`
+  string, the shelter partnerships, and the `/cares` delivery-log page.
 
 ### Phase 1 · Game prototype ✅
 - Idle production, gacha, collection, $TUBBY hold multiplier, season board
@@ -171,12 +195,26 @@ and the real building art (see the blocker below).
 - Rotating gacha banners
 - **Deliverable:** the reason to come back at a specific hour
 
+### Phase 10 · The Care House and mutirões
+Gated on phase 3 like everything else — a building whose level is authoritative
+about a real-world fact cannot live in client state.
+
+- **Care House**: in every town, un-buyable and un-rushable, levels up only when
+  a real delivery goes out
+- **Mutirões**: seasonal community goals written in items, with a participation
+  badge that is never sold
+- Delivery card carrying the season's player names into the real photos
+- **Deliverable:** the donation stops being a banner and becomes part of the town
+
 ---
 
 ## Decisions already locked
 
 Do not relitigate these without a reason:
 
+- Tubby Cares is 20% of creator fees, taken out of the art fund's old 30.
+  Fees only, never a token allocation. Goods only, never cash.
+- Nothing anyone plays or buys ever changes the donation amount.
 - No PvP with wagering. Not building it.
 - Gacha is pay-to-win with **fully published odds**. Never changed silently.
 - Never any investment language. Cosmetics stay cosmetic.
