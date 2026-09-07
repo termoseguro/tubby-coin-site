@@ -1,0 +1,197 @@
+// npm run check:server — proves the economy can run on the server.
+//
+// The whole security model rests on one claim: "the game rules are pure, so the
+// server can compute them and the client can be treated as a liar." That claim
+// is worthless as a comment. This runs the economy in plain Node — no React, no
+// DOM, no localStorage, no window — and fails the moment somebody reaches for
+// a browser global inside the rules.
+//
+// Run it before every commit that touches lib/. If it fails, the fix is never
+// "add a guard for window" — it is to move whatever needed the browser back
+// into the React layer where it belongs.
+
+import assert from "node:assert/strict";
+
+// If any rules module touches these, importing it here throws rather than
+// silently working in dev and breaking in a route handler.
+for (const bad of ["window", "document", "localStorage", "navigator"]) {
+  Object.defineProperty(globalThis, bad, {
+    configurable: true,
+    get() {
+      throw new Error(
+        `A rules module reached for \`${bad}\`. The economy must run on the ` +
+          `server — see docs/backend-setup.md §6.`
+      );
+    },
+  });
+}
+
+const economy = await import("../lib/townEconomy.js");
+const furniture = await import("../lib/townFurniture.js");
+const raids = await import("../lib/townRaids.js");
+const config = await import("../lib/townConfig.js");
+const quests = await import("../lib/townQuests.js");
+
+const {
+  addCapped, canAfford, effectiveRate, goldPerHour, isUnlocked, maxLevelFor,
+  producedOver, ratePerHour, shortfall, startLevel, storeCap, unmetRequirements,
+  upgradeCostFor, villagerCap,
+} = economy;
+
+let checks = 0;
+const ok = (label, fn) => {
+  fn();
+  checks++;
+};
+
+// ---------------------------------------------------------------------------
+//  A day-one town, built the way the server would build one.
+// ---------------------------------------------------------------------------
+const levelsOf = (s) =>
+  Object.fromEntries(config.BUILDINGS.map((b) => [b.id, s.buildings[b.id] ?? startLevel(b.id)]));
+
+const fresh = () => ({
+  res: { fish: 400, wood: 400, stone: 60, catnip: 0, treats: 200, coin: 250, gold: 30 },
+  buildings: {},
+  furniture: {},
+  cats: {},
+  assign: {},
+  raidStage: 0,
+});
+
+ok("a new town starts with two villagers", () => {
+  const s = fresh();
+  assert.equal(villagerCap(levelsOf(s), s), 2);
+});
+
+ok("only the opening buildings exist", () => {
+  const s = fresh();
+  const L = levelsOf(s);
+  assert.equal(L.hall, 1);
+  assert.equal(L.kitchen, 1);
+  assert.equal(L.storehouse, 0, "the Storehouse is an unbuilt plot on day one");
+  assert.equal(L.clinic, 0);
+});
+
+ok("the Cat Hall gates every unlock", () => {
+  assert.equal(isUnlocked("storehouse", 1), false);
+  assert.equal(isUnlocked("storehouse", 2), true);
+  assert.equal(isUnlocked("forge", 19), false);
+  assert.equal(isUnlocked("forge", 20), true);
+});
+
+ok("nothing may outgrow the Cat Hall", () => {
+  assert.equal(maxLevelFor("kitchen", 3), 3);
+  assert.equal(maxLevelFor("hall", 3), 30);
+});
+
+// ---------------------------------------------------------------------------
+//  The two exploits the client would try first.
+// ---------------------------------------------------------------------------
+ok("an unbuilt producer produces nothing", () => {
+  assert.equal(ratePerHour("garden", 0), 0);
+  assert.equal(effectiveRate("garden", 0, { power: 99 }), 0);
+});
+
+ok("time cannot be conjured — production is a rate times real seconds", () => {
+  const perHour = 1000;
+  assert.equal(producedOver(perHour, 3600), 1000);
+  assert.equal(producedOver(perHour, 0), 0);
+  // The server passes its OWN elapsed seconds. A negative or absurd value from
+  // a client would be caught here, but it never gets to ask.
+  assert.equal(producedOver(perHour, -99999), 0);
+});
+
+ok("the Storehouse cap is a hard ceiling and overflow is reported", () => {
+  const cap = storeCap(1, "fish");
+  const { res, wasted } = addCapped({ fish: cap - 10 }, { fish: 500 }, 1);
+  assert.equal(res.fish, cap);
+  assert.equal(wasted, 490);
+});
+
+ok("float noise is not overflow", () => {
+  // The bug this used to have: production runs four times a second, so gains
+  // are fractions, and (after - before) drifted by ~1e-14 which read as loss.
+  let res = { fish: 123.456 };
+  let total = 0;
+  for (let i = 0; i < 500; i++) {
+    const out = addCapped(res, { fish: 0.0413 }, 9);
+    res = out.res;
+    total += out.wasted;
+  }
+  assert.equal(total, 0, "a town nowhere near its cap must never report waste");
+});
+
+// ---------------------------------------------------------------------------
+//  Costs, gates and the dependency web.
+// ---------------------------------------------------------------------------
+ok("building a plot is never free", () => {
+  const c = upgradeCostFor("storehouse", 0);
+  assert.ok(c.wood > 0 && c.fish > 0, "level 0 must be priced like level 1");
+});
+
+ok("shortfall names exactly what is missing", () => {
+  const missing = shortfall({ wood: 500, fish: 100 }, { wood: 200, fish: 999 });
+  assert.deepEqual(missing, { wood: 300 });
+  assert.equal(canAfford({ wood: 500 }, { wood: 500 }), true);
+});
+
+ok("the Cat Hall waits for the town, and never deadlocks at level 1", () => {
+  const s = fresh();
+  assert.deepEqual(unmetRequirements("hall", 1, levelsOf(s)), [],
+    "hall 1 to 2 must be reachable on a brand new save");
+  const mid = { ...levelsOf(s), hall: 3, storehouse: 1, cottage1: 1 };
+  assert.ok(unmetRequirements("hall", 3, mid).length > 0,
+    "hall 3 to 4 must wait for the buildings behind it");
+});
+
+ok("furniture gates its building", () => {
+  const s = fresh();
+  const gate = furniture.furnitureGate(s, "kitchen", 1);
+  assert.ok(gate.length > 0, "an empty Kitchen cannot be raised");
+  s.furniture.kitchen = { toolA: 1 };
+  assert.equal(furniture.furnitureGate(s, "kitchen", 1).length, 0);
+});
+
+ok("furniture raises output, beds and Gold", () => {
+  const s = fresh();
+  assert.equal(goldPerHour(s, levelsOf(s)), 0, "no bowls, no Gold");
+  s.furniture.cottage1 = { bowl: 1, bed: 1 };
+  assert.ok(goldPerHour(s, levelsOf(s)) > 0);
+  assert.equal(villagerCap(levelsOf(s), s), 3, "a fitted bed houses one more cat");
+});
+
+ok("an item cannot outgrow the building holding it", () => {
+  const it = furniture.itemsFor("kitchen")[0];
+  assert.equal(furniture.itemCap(it, 1), 1);
+  assert.equal(furniture.itemCap(it, 5), 5);
+  assert.equal(furniture.itemCap(it, 99), it.max);
+});
+
+// ---------------------------------------------------------------------------
+//  Raids — the odds must never be a certainty in either direction.
+// ---------------------------------------------------------------------------
+ok("no raid is ever a sure thing, or hopeless", () => {
+  assert.ok(raids.winChance(1, 1_000_000) >= 0.05);
+  assert.ok(raids.winChance(1_000_000, 1) <= 0.95);
+  assert.ok(Math.abs(raids.winChance(100, 100) - 0.5) < 0.01, "parity is a coin flip");
+});
+
+ok("clearing a stage raises idle Gold permanently", () => {
+  assert.equal(raids.raidGoldMultiplier(0), 1);
+  assert.ok(raids.raidGoldMultiplier(10) > raids.raidGoldMultiplier(9));
+});
+
+// ---------------------------------------------------------------------------
+//  The Town Book must stay winnable — a task nobody can finish is a dead end.
+// ---------------------------------------------------------------------------
+ok("every quest task points at something reachable", () => {
+  for (const ch of quests.CHAPTERS) {
+    for (const t of ch.tasks) {
+      assert.ok(t.goal > 0, `${t.id} has no goal`);
+      assert.equal(typeof t.at(fresh()), "number", `${t.id} does not read the save`);
+    }
+  }
+});
+
+console.log(`✓ ${checks} checks — the economy runs with no browser present`);

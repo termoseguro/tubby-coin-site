@@ -486,7 +486,8 @@
       "WebFetch(domain:centurygames.helpshift.com)",
       "WebFetch(domain:comiccone.com)",
       "Bash(node -e \"import\\('./lib/townRaids.js'\\).then\\(\\(\\)=>console.log\\('no cycle'\\)\\)\")",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(node scripts/check-server-safe.mjs)"
     ]
   }
 }
