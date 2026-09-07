@@ -79,18 +79,22 @@ problem instead of a generic delay.
 | Resource | What it is for |
 |---|---|
 | **Fish** | Feeds every cat on shift, every hour · wakes a tired cat instantly · part of most upgrades |
-| **Wood** | The backbone of every construction · extra worker spots |
+| **Wood** | The backbone of every construction · raising the Nap House, which earns worker spots |
 | **Stone** | Construction from level 2 up · training a cat to the next level |
 | **Catnip** | **Boost** a building to double output for 15 minutes · upgrades from level 4 up |
 | **Treats** | Adoption Center pulls · training cats · speeding small jobs |
-| **Golden Fish** | Finish any timer · extra builders · extra worker spots · premium pulls |
+| **Golden Fish** | Finish any timer · hire a builder (500) · buy a worker spot (120, +90 each) · top up a missing resource · premium pulls |
 
 This table is shown to the player verbatim: tapping any resource in the top bar
 opens it. A number with no stated purpose is a number that gets ignored.
 
 **Cats are assigned by the player, not by a rota.** Up to three per building,
 and the crew size sets that building's output (×0.45 empty → ×1.2 full). Total
-worker spots come from the Nap House, with extra spots buyable for Golden Fish.
+worker spots come from the Nap House (two per level, free), and a spot can also
+be bought outright for **Golden Fish** — 120, rising 90 each time, which at our
+pricing is about a dollar. That is the "small convenience charge every game
+makes" tier, and it is deliberately kept apart from the bigger gateway purchase
+(builder #3 at 500).
 Without a lever attached to them, resources are just numbers going up.
 
 ## 2. Currencies
