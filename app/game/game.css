@@ -2336,3 +2336,41 @@
   color: #a4809a;
   max-width: 52ch;
 }
+
+
+/* ---- Palis's mess (docs: lib/palis.js) ----
+   A card, not a warning banner, because clearing it pays. An obstacle you are
+   rewarded for removing is a reason to open the game; one that only costs you
+   is a reason to stop. */
+.ttown .tt-mess {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fff1f4, #ffe6ec);
+  border: 2px solid #ffc4d2;
+}
+.ttown .tt-mess-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ttown .tt-mess-head b { font-size: 14px; color: #b03a55; }
+.ttown .tt-mess-head span { font-size: 11px; color: #c08a9c; }
+.ttown .tt-mess p { margin: 5px 0 0; font-size: 12.5px; color: #8a5a6c; line-height: 1.45; }
+.ttown .tt-mess-effect { font-weight: 700; color: #b03a55 !important; }
+.ttown .tt-mess .tt-btn { margin-top: 10px; }
+
+.ttown .tt-cap.mess { background: #fff1f4; border-color: #ffc4d2; }
+.ttown .tt-cap.mess .tt-cap-n b { color: #b03a55; }
+
+.ttown .tt-palis-card {
+  margin-top: 12px;
+  padding: 11px 13px;
+  border-radius: 14px;
+  background: #fff1f4;
+  border: 2px solid #ffc4d2;
+  text-align: left;
+}
+.ttown .tt-palis-card b { display: block; font-size: 13px; color: #b03a55; margin-bottom: 4px; }
+.ttown .tt-palis-card small { display: block; font-size: 11.5px; color: #8a5a6c; line-height: 1.45; }

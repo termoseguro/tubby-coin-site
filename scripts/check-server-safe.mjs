@@ -28,7 +28,6 @@ for (const bad of ["window", "document", "localStorage", "navigator"]) {
 
 const economy = await import("../lib/townEconomy.js");
 const furniture = await import("../lib/townFurniture.js");
-const raids = await import("../lib/townRaids.js");
 const config = await import("../lib/townConfig.js");
 const quests = await import("../lib/townQuests.js");
 
@@ -120,6 +119,16 @@ ok("the Storehouse cap is a hard ceiling and overflow is reported", () => {
   assert.equal(wasted, 490);
 });
 
+ok("a stockpile already over the cap is frozen, never reduced", () => {
+  // The bug: Math.min(cap, before + v) deleted everything above the cap the
+  // instant anything was added, so a save that was over the line for any reason
+  // lost the excess on the next tick. Gaining should never subtract.
+  const cap = storeCap(1, "coin");
+  const { res, wasted } = addCapped({ coin: cap + 3600 }, { coin: 420 }, 1);
+  assert.equal(res.coin, cap + 3600, "the excess must survive");
+  assert.equal(wasted, 420, "and the gain is what was wasted");
+});
+
 ok("float noise is not overflow", () => {
   // The bug this used to have: production runs four times a second, so gains
   // are fractions, and (after - before) drifted by ~1e-14 which read as loss.
@@ -180,17 +189,55 @@ ok("an item cannot outgrow the building holding it", () => {
 });
 
 // ---------------------------------------------------------------------------
-//  Raids — the odds must never be a certainty in either direction.
+//  Palis — the thing that goes wrong while you are away. The one rule this
+//  system must not break is that he never takes PROGRESS.
 // ---------------------------------------------------------------------------
-ok("no raid is ever a sure thing, or hopeless", () => {
-  assert.ok(raids.winChance(1, 1_000_000) >= 0.05);
-  assert.ok(raids.winChance(1_000_000, 1) <= 0.95);
-  assert.ok(Math.abs(raids.winChance(100, 100) - 0.5) < 0.01, "parity is a coin flip");
+const palis = await import("../lib/palis.js");
+
+ok("Palis stays away until the town is worth bothering", () => {
+  const out = palis.generateVisits(
+    { levels: { hall: 3, lumber: 2 }, lastVisitAt: Date.now() - 99 * 3_600_000 },
+    Date.now()
+  );
+  assert.equal(out.length, 0, "nobody meets the antagonist during the tutorial");
 });
 
-ok("clearing a stage raises idle Gold permanently", () => {
-  assert.equal(raids.raidGoldMultiplier(0), 1);
-  assert.ok(raids.raidGoldMultiplier(10) > raids.raidGoldMultiplier(9));
+ok("a fortnight away is still only a morning's work", () => {
+  const levels = { hall: 9, lumber: 5, kitchen: 5, quarry: 5, garden: 4, treats: 4, clinic: 2 };
+  const out = palis.generateVisits(
+    { levels, lastVisitAt: Date.now() - 24 * 14 * 3_600_000 },
+    Date.now(),
+    () => 0.99 // defence never triggers, so this is the worst case
+  );
+  assert.ok(out.length <= palis.MAX_PROBLEMS, "absence must stop accumulating");
+});
+
+ok("defences remove problems rather than softening them", () => {
+  const bare = palis.defence({ gatehouse: 0, watchtower: 0 });
+  const walled = palis.defence({ gatehouse: 8, watchtower: 6 });
+  assert.equal(bare, 0);
+  assert.ok(walled > bare && walled <= 0.75, "and it is capped, so he never stops coming");
+});
+
+ok("a ransacked building stops; a spooked one only slows", () => {
+  assert.equal(palis.outputMultiplier([{ kind: "ransacked", building: "kitchen" }], "kitchen"), 0);
+  assert.equal(palis.outputMultiplier([{ kind: "spooked", building: "kitchen" }], "kitchen"), 0.5);
+  assert.equal(palis.outputMultiplier([{ kind: "ransacked", building: "kitchen" }], "lumber"), 1,
+    "and it never touches a building he did not visit");
+});
+
+ok("tidying up always pays more than it costs", () => {
+  for (const kind of Object.keys(palis.PROBLEMS)) {
+    for (const level of [1, 5, 10]) {
+      const cost = palis.fixCost({ kind }, level);
+      const reward = palis.fixReward({ kind }, level);
+      assert.ok(reward.coin > 0, `${kind} must pay something`);
+      // A problem you are rewarded for clearing is a reason to open the game;
+      // one that only costs you is a reason to stop.
+      const spent = Object.values(cost).reduce((a, b) => a + b, 0);
+      assert.ok(reward.coin >= spent * 0.8, `${kind} at ${level} costs more than it gives`);
+    }
+  }
 });
 
 // ---------------------------------------------------------------------------

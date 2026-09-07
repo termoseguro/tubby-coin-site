@@ -41,7 +41,6 @@ import TownCanvas from "./town/TownCanvas";
 import BuildingSheet from "./town/BuildingSheet";
 import QuestBook from "./town/QuestBook";
 import BuyModal from "./town/BuyModal";
-import RaidPanel from "./town/RaidPanel";
 import LuckyLitter from "./town/LuckyLitter";
 import HeroesTab from "./town/HeroesTab";
 import SpinReel from "./town/SpinReel";
@@ -56,6 +55,19 @@ import {
 import catPool from "../../lib/catPool.json";
 import { HERO_BY_ID } from "../../lib/heroes";
 import { pickVillager } from "../../lib/villagers";
+import {
+  HELPS_TO_CLEAR,
+  PROBLEMS,
+  STEAL_CAP_HOURS,
+  STEAL_SHARE,
+  buildMultiplier,
+  defence as palisDefence,
+  fixCost as palisFixCost,
+  fixReward as palisFixReward,
+  generateVisits,
+  outputMultiplier,
+  summarise as palisSummary,
+} from "../../lib/palis";
 import {
   MILESTONES,
   WHEELS,
@@ -84,20 +96,6 @@ import {
   helpsLeft,
   randomNeighbour,
 } from "../../lib/townAlliance";
-import {
-  HURT_MULTIPLIER,
-  healCost,
-  healSeconds,
-  nextRaidIn,
-  oddsLabel,
-  RAID_EVERY_HOURS,
-  palisPower,
-  raidGoldMultiplier,
-  raidsReady,
-  resolveRaid,
-  townPower,
-  winChance,
-} from "../../lib/townRaids";
 import {
   bonusesAt,
   furnitureGate,
@@ -201,15 +199,12 @@ function freshSave() {
     keys: { silver: 3, gold: 1 },
     litter: { startedAt: Date.now(), spins: 0, pity: { silver: 0, gold: 0 }, claimed: {}, lastFreeAt: 0 },
 
-    // ---- Palis raids ----
-    // The deepest stage cleared. Never goes down, and it permanently raises the
-    // town's idle Gold — that is what makes the ladder an economic decision
-    // rather than a combat one (lib/townRaids.js).
-    raidStage: 0,
-    lastRaidAt: Date.now(),
-    // cats that came back hurt: they work at half speed until the Clinic sees
-    // them. This is the only thing a lost raid costs, and it costs TIME.
-    hurt: {},
+    // ---- PALIS ----
+    // Not a boss you attack: what goes wrong while you are away. `problems` is
+    // the mess waiting to be sorted; `lastVisitAt` is when he was last through.
+    problems: [],
+    lastVisitAt: Date.now(),
+
     cats: { [catKey(starter)]: starter },
     slotted: [catKey(starter)],
     slots: game.startSlots,
@@ -275,11 +270,7 @@ function catsPerBuilding(s) {
   for (const [key, id] of Object.entries(s.assign || {})) {
     const cat = s.cats[key];
     if (!cat) continue;
-    // A cat that came back from Palis hurt pulls half its weight until the
-    // Cat Clinic sees it. That is the whole cost of losing a raid, and it is
-    // the whole reason the Clinic exists.
-    const hurt = s.hurt?.[key] ? HURT_MULTIPLIER : 1;
-    out[id] = (out[id] || 0) + catPower(cat.rarity, cat.level) * hurt;
+    out[id] = (out[id] || 0) + catPower(cat.rarity, cat.level);
   }
   return out;
 }
@@ -331,12 +322,18 @@ function rateAt(s, id, now = Date.now(), cats = null) {
   const roster = rosterBonuses(s);
   const res = PRODUCERS[id].res;
   const fromHeroes = (roster.produce[res] || 0) + roster.allProduce;
+  // Whatever Palis left behind. A ransacked building makes nothing at all; a
+  // spooked one works at half speed. It is never permanent and it never takes
+  // anything already banked — see lib/palis.js.
+  const mess = outputMultiplier(s.problems, id);
   return (
     effectiveRate(id, level, {
       power: here,
       starving: isStarving(s),
       furniture: bonusesAt(s, id, level).produce + fromHeroes,
-    }) * boosted
+    }) *
+    boosted *
+    mess
   );
 }
 
@@ -402,6 +399,54 @@ function applyProduction(s, now = Date.now()) {
   return { ...s, res: capped.res, lastProd: now, overflow: capped.wasted > 0 };
 }
 
+/** Work out what Palis did while nobody was watching, and apply it.
+ *
+ *  Kept pure-ish and separate so the server can run the same thing: it takes a
+ *  save and hands back a new one plus what changed, rather than reaching into
+ *  React. The one destructive kind — "pilfered" — is capped twice over, by a
+ *  share AND by an absolute number of hours of production, because losing a
+ *  percentage of a stockpile is how an idle game turns a holiday into a
+ *  betrayal. */
+function runPalis(s, now = Date.now()) {
+  const levels = levelsOf(s);
+  const fresh = generateVisits(
+    {
+      levels,
+      existing: s.problems || [],
+      lastVisitAt: s.lastVisitAt,
+      defenceLevel: palisDefence(levels, rosterBonuses(s)),
+    },
+    now
+  );
+  if (!fresh.length) {
+    return { save: { ...s, lastVisitAt: now }, fresh, stolen: null };
+  }
+
+  let res = { ...s.res };
+  let stolen = null;
+  for (const p of fresh) {
+    if (!PROBLEMS[p.kind]?.steals) continue;
+    // One resource, the one there is most of, capped at a couple of hours of
+    // what the town actually makes.
+    const rates = townRates(s, now);
+    const pick = RESOURCE_ORDER.filter((r) => (res[r] || 0) > 0).sort(
+      (a, b) => (res[b] || 0) - (res[a] || 0)
+    )[0];
+    if (!pick) continue;
+    const cap = Math.max(50, (rates[pick] || 0) * STEAL_CAP_HOURS);
+    const take = Math.floor(Math.min((res[pick] || 0) * STEAL_SHARE, cap));
+    if (take <= 0) continue;
+    res[pick] -= take;
+    stolen = { res: pick, amount: take };
+  }
+
+  return {
+    save: { ...s, res, problems: [...(s.problems || []), ...fresh], lastVisitAt: now },
+    fresh,
+    stolen,
+  };
+}
+
 /** Cats eat. This is why Fish is not just another number, and why the Kitchen
  *  is not optional — run out and the whole town drops to a quarter speed. */
 function applyUpkeep(s, now = Date.now()) {
@@ -453,9 +498,11 @@ function migrate(s) {
     s.res = { ...s.res, treats: Math.max(s.res.treats || 0, Math.floor(s.treats)) };
   }
   if (!s.furniture) s.furniture = {};
-  if (s.raidStage == null) s.raidStage = 0;
-  if (!s.lastRaidAt) s.lastRaidAt = Date.now();
-  if (!s.hurt) s.hurt = {};
+  // Retired: Palis stopped being a raid you launch and became the thing that
+  // goes wrong while you are away (lib/palis.js). Old saves keep the fields
+  // harmlessly; nothing reads them.
+  if (!s.problems) s.problems = [];
+  if (!s.lastVisitAt) s.lastVisitAt = Date.now();
   if (s.tokens == null) s.tokens = 0;
   if (!s.heroes) s.heroes = {};
   if (!s.pendingShards) s.pendingShards = {};
@@ -517,8 +564,6 @@ export default function TubbyTown() {
   const [book, setBook] = useState(false);
   const [buying, setBuying] = useState(null);
   const [welcomeBack, setWelcomeBack] = useState(null);
-  const [raidResult, setRaidResult] = useState(null);
-  const [raidOpen, setRaidOpen] = useState(false);
   const [litterOpen, setLitterOpen] = useState(false);
   const [alleyOpen, setAlleyOpen] = useState(false);
   const [spinResult, setSpinResult] = useState(null);
@@ -545,6 +590,9 @@ export default function TubbyTown() {
     // idle game that pays silently feels like it paid nothing.
     const away = Math.max(0, (Date.now() - (s.lastSeen || Date.now())) / 1000);
     const before = { ...s.res };
+    // Palis first: what he took, he took BEFORE the town produced it back.
+    const visit = runPalis(s);
+    s = visit.save;
     s = applyUpkeep(s);
     s = applyProduction(s);
     if (away > 120) {
@@ -552,7 +600,15 @@ export default function TubbyTown() {
         (a, [k, v]) => a + Math.max(0, v - (before[k] || 0)),
         0
       );
-      if (gained > 0) setWelcomeBack({ gained, away, overflow: s.overflow });
+      if (gained > 0 || visit.fresh.length) {
+        setWelcomeBack({
+          gained,
+          away,
+          overflow: s.overflow,
+          palis: visit.fresh.length ? palisSummary(visit.fresh) : null,
+          stolen: visit.stolen,
+        });
+      }
     }
     s.lastSeen = Date.now();
     setSave(s);
@@ -924,6 +980,63 @@ export default function TubbyTown() {
     [flash]
   );
 
+  /** Sort out one of Palis's messes.
+   *
+   *  It PAYS. That is the Hay Day insight and the whole reason this system is
+   *  worth having: an obstacle you are rewarded for clearing is a reason to
+   *  open the game, while an obstacle that only costs you is a reason to stop.
+   *  Some cost a little to fix and all of them give back more. */
+  const fixProblem = useCallback(
+    (problemId) => {
+      setSave((s) => {
+        const p = (s.problems || []).find((x) => x.id === problemId);
+        if (!p) return s;
+        const level = levelOf(s, p.building);
+        const cost = palisFixCost(p, level);
+        if (!canAfford(cost, s.res)) {
+          const short = Object.keys(shortfall(cost, s.res))
+            .map((k) => RESOURCES[k].short)
+            .join(", ");
+          flash(`Short on ${short}.`);
+          return s;
+        }
+        const reward = palisFixReward(p, level);
+        let res = { ...s.res };
+        for (const [k, v] of Object.entries(cost)) res[k] -= v;
+        const out = addCapped(res, reward, levelOf(s, "storehouse"));
+        flash(`Sorted — +${Math.floor(reward.coin || 0)} Gold`);
+        return {
+          ...s,
+          res: out.res,
+          problems: s.problems.filter((x) => x.id !== problemId),
+        };
+      });
+    },
+    [flash]
+  );
+
+  /** A neighbour lends a hand. Hay Day revives a wilting tree when a FRIEND
+   *  taps it; enough taps here and the mess clears itself, free. Until the
+   *  clowder is real the neighbours do it themselves, and the panel says so. */
+  const helpProblem = useCallback(
+    (problemId, who) => {
+      setSave((s) => {
+        const p = (s.problems || []).find((x) => x.id === problemId);
+        if (!p) return s;
+        const helps = (p.helps || 0) + 1;
+        if (helps >= HELPS_TO_CLEAR) {
+          flash(`${who} finished clearing it.`);
+          return { ...s, problems: s.problems.filter((x) => x.id !== problemId) };
+        }
+        return {
+          ...s,
+          problems: s.problems.map((x) => (x.id === problemId ? { ...x, helps } : x)),
+        };
+      });
+    },
+    [flash]
+  );
+
   // ---- HERO CATS ------------------------------------------------------------
 
   /** Spin a wheel. `how` is free, key or fish — three doors onto the same
@@ -1176,75 +1289,6 @@ export default function TubbyTown() {
     },
     [flash]
   );
-
-  /** Send the town against Palis.
-   *
-   *  Everything about this is deliberately reversible except the ladder. A win
-   *  banks the stage forever and raises idle Gold forever; a loss costs some
-   *  cats a shift at half speed and still pays a small purse, because a run
-   *  that pays nothing is a run the player resents. Nothing is ever destroyed
-   *  and the stage never falls — a raid that can undo a week of building is a
-   *  raid people quit over. */
-  const doRaid = useCallback(() => {
-    // Same reason as doSpin: rolling dice inside a setSave updater rolls them
-    // twice under StrictMode.
-    const s = saveRef.current;
-    {
-      if (!s) return;
-      const levels = levelsOf(s);
-      if (raidsReady(s.lastRaidAt) < 1) {
-        flash("Palis is not back yet.");
-        return;
-      }
-      if (assignedCount(s) < 1) {
-        flash("Put a cat on shift first — nobody is defending.");
-        return;
-      }
-      const stage = (s.raidStage || 0) + 1;
-      // The patrol is what actually fights. Villagers on shift still defend,
-      // but a roster of ascended heroes is the difference between stage 5 and
-      // stage 40 — which is the whole reason to pull.
-      const out = resolveRaid(s, levels, stage, {
-        heroPower: rosterPower(s),
-        bonuses: rosterBonuses(s),
-      });
-      const { res } = addCapped(s.res, out.loot, levelOf(s, "storehouse"));
-      const hurt = { ...s.hurt };
-      for (const k of out.hurt) hurt[k] = Date.now();
-      setSave({
-        ...s,
-        res,
-        hurt,
-        raidStage: out.won ? stage : s.raidStage || 0,
-        // The bank is consumed one run at a time: push the clock forward by a
-        // single cooldown rather than resetting it, or banking three runs would
-        // be worth exactly one.
-        lastRaidAt: Math.min(Date.now(), (s.lastRaidAt || Date.now()) + RAID_EVERY_HOURS * 3_600_000),
-      });
-      setRaidResult({ ...out, stage });
-    }
-  }, [flash]);
-
-  /** Patch the hurt cats up at the Cat Clinic. Costs Gold, which is what Gold
-   *  is for — and what the raid just paid you in. */
-  const healCats = useCallback(() => {
-    setSave((s) => {
-      if (!s) return s;
-      const hurtKeys = Object.keys(s.hurt || {});
-      if (!hurtKeys.length) return s;
-      if (levelOf(s, "clinic") < 1) {
-        flash("Build the Cat Clinic first.");
-        return s;
-      }
-      const cost = healCost(levelOf(s, "clinic"), hurtKeys.length);
-      if (!canAfford(cost, s.res)) {
-        flash(`Needs ${cost.coin} Gold.`);
-        return s;
-      }
-      flash(`${hurtKeys.length} cat${hurtKeys.length === 1 ? "" : "s"} patched up.`);
-      return { ...s, res: { ...s.res, coin: s.res.coin - cost.coin }, hurt: {} };
-    });
-  }, [flash]);
 
   /** Fit or upgrade one piece of furniture inside a building.
    *
@@ -1570,10 +1614,18 @@ export default function TubbyTown() {
       const asked = Object.entries(s.jobs || {}).find(
         ([, j]) => j.asked && (j.helps || 0) < MAX_HELPS_PER_JOB && j.finishesAt > Date.now()
       );
-      if (asked) helpOnce(asked[0], randomNeighbour());
+      if (asked) {
+        helpOnce(asked[0], randomNeighbour());
+        return;
+      }
+      // Nothing building? Then a neighbour helps with the mess instead —
+      // Hay Day's friend-taps-your-wilting-tree, which is what makes a problem
+      // feel social rather than like a chore list.
+      const mess = (s.problems || [])[0];
+      if (mess) helpProblem(mess.id, randomNeighbour());
     }, NEIGHBOUR_EVERY_MS);
     return () => clearInterval(id);
-  }, [helpOnce]);
+  }, [helpOnce, helpProblem]);
 
   if (!save) {
     return (
@@ -1680,8 +1732,7 @@ export default function TubbyTown() {
     return from ? isUnlocked(from, levelsTop.hall) : false;
   });
 
-  const raidsWaiting = levelsTop.watchtower >= 1 ? raidsReady(save.lastRaidAt) : 0;
-  const hurtCount = Object.keys(save.hurt || {}).length;
+  const problemCount = (save.problems || []).length;
   // The cottage worth growing next: the cheapest route to one more villager is
   // always the lowest-level cottage that is actually unlocked.
   const growCottage =
@@ -1782,26 +1833,21 @@ export default function TubbyTown() {
             </span>
           </button>
 
-          {/* Palis. Kept on the map beside the other two caps because a raid
-              the player has to go looking for is a raid they never run — and
-              the raid ladder is what raises the town's Gold forever. */}
-          {levelsTop.watchtower >= 1 && (
-            <button
-              className={"tt-cap" + (raidsWaiting > 0 ? " ready" : "")}
-              type="button"
-              onClick={() => setRaidOpen(true)}
-            >
+          {/* Palis. Not a button that starts a fight any more — a count of what
+              he left behind, which is a thing the player wants gone rather than
+              a thing they have to remember to press. */}
+          {problemCount > 0 && (
+            <div className="tt-cap mess">
               <span className="tt-cap-i">
                 <IconPaw size={18} />
               </span>
               <span className="tt-cap-n">
-                <small>Palis</small>
+                <small>Palis was here</small>
                 <b className="mono">
-                  {raidsWaiting > 0 ? `${raidsWaiting} raid${raidsWaiting === 1 ? "" : "s"} ready` : "quiet"}
-                  <em> stage {(save.raidStage || 0) + 1}</em>
+                  {problemCount} to tidy <em>· pays Gold</em>
                 </b>
               </span>
-            </button>
+            </div>
           )}
 
           {/* The next thing the Cat Hall opens. Kingshot never lets a player
@@ -1852,6 +1898,7 @@ export default function TubbyTown() {
             onRushProduction={rushProduction}
             onUpgradeItem={upgradeItem}
             onAskHelp={askForHelp}
+            onFixProblem={fixProblem}
             moving={moving}
             onStartMove={(id) => {
               setMoving(id);
@@ -1955,6 +2002,21 @@ export default function TubbyTown() {
                 The Storehouse filled up and the rest was lost. Raise it.
               </p>
             )}
+            {welcomeBack.palis && (
+              <div className="tt-palis-card">
+                <b>{welcomeBack.palis}</b>
+                {welcomeBack.stolen && (
+                  <small>
+                    He made off with {Math.floor(welcomeBack.stolen.amount)}{" "}
+                    {RESOURCES[welcomeBack.stolen.res].short}.
+                  </small>
+                )}
+                <small>
+                  Nothing is broken and nothing is gone for good — tap the buildings
+                  with a mark on them and you are paid for tidying up.
+                </small>
+              </div>
+            )}
           </div>
           <button className="tt-btn" type="button" onClick={() => setWelcomeBack(null)}>
             Good
@@ -1992,61 +2054,6 @@ export default function TubbyTown() {
             pool={catPool.cats}
             onDone={() => setSpinResult(null)}
           />
-        </Modal>
-      )}
-
-      {raidOpen && (
-        <RaidPanel
-          save={save}
-          levels={levelsTop}
-          hurtCount={hurtCount}
-          clinicLevel={levelsTop.clinic || 0}
-          healPrice={healCost(levelsTop.clinic || 0, hurtCount).coin}
-          onRaid={doRaid}
-          onHeal={healCats}
-          onClose={() => setRaidOpen(false)}
-        />
-      )}
-
-      {raidResult && (
-        <Modal
-          onClose={() => setRaidResult(null)}
-          title={raidResult.won ? `Stage ${raidResult.stage} cleared` : "Palis got through"}
-        >
-          <div className="tt-wb">
-            <div className={"tt-raid-verdict" + (raidResult.won ? " win" : " loss")}>
-              {raidResult.won ? "The town held" : "Driven back"}
-            </div>
-            <p className="tt-p">
-              {raidResult.won ? (
-                <>
-                  Your Gold is now <b>×{raidGoldMultiplier(raidResult.stage).toFixed(2)}</b> — and
-                  it stays that way.
-                </>
-              ) : (
-                <>
-                  Stage {raidResult.stage} needs <b>{Math.round(raidResult.palis)}</b> power and the
-                  town brought <b>{Math.round(raidResult.town)}</b>. Nothing was lost but time.
-                </>
-              )}
-            </p>
-            <ul className="tt-raid-gains">
-              {Object.entries(raidResult.loot).map(([k, v]) => (
-                <li key={k}>
-                  <b className="mono">+{Math.floor(v)}</b> {RESOURCES[k]?.name || k}
-                </li>
-              ))}
-            </ul>
-            {raidResult.hurt.length > 0 && (
-              <p className="tt-p warn">
-                {raidResult.hurt.length} cat{raidResult.hurt.length === 1 ? " came" : "s came"} back
-                hurt — half speed until the Clinic sees them.
-              </p>
-            )}
-          </div>
-          <button className="tt-btn" type="button" onClick={() => setRaidResult(null)}>
-            Good
-          </button>
         </Modal>
       )}
 
@@ -2129,6 +2136,7 @@ function TownTab({
   onRushProduction,
   onUpgradeItem,
   onAskHelp,
+  onFixProblem,
   moving,
   onStartMove,
   onMoved,
@@ -2153,6 +2161,7 @@ function TownTab({
         level,
         rate,
         gate,
+        problem: (save.problems || []).find((p) => p.building === b.id) || null,
         cats: heads[b.id] || 0,
         power: cats,
         // The three states the scene paints differently: a locked silhouette,
@@ -2244,6 +2253,8 @@ function TownTab({
           job={buildingState[picked]?.job}
           rate={buildingState[picked]?.rate || 0}
           gate={buildingState[picked]?.gate || []}
+          problem={buildingState[picked]?.problem || null}
+          onFixProblem={() => onFixProblem(buildingState[picked].problem.id)}
           items={itemsFor(picked)}
           itemLevels={save.furniture?.[picked] || {}}
           bonuses={bonusesAt(save, picked, levelOf(save, picked))}

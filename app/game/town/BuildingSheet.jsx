@@ -13,6 +13,7 @@
 import { BUILDINGS, BUILDING_INFO } from "../../../lib/townConfig";
 import { EFFECTS, itemCap, itemCost, itemSeconds } from "../../../lib/townFurniture";
 import { MAX_HELPS_PER_JOB, helpReduction, helpsLeft } from "../../../lib/townAlliance";
+import { HELPS_TO_CLEAR, PROBLEMS, fixCost as palisFixCost, fixReward as palisFixReward } from "../../../lib/palis";
 import {
   PRODUCERS,
   REFINERS,
@@ -86,6 +87,7 @@ export default function BuildingSheet({
   itemLevels = {},
   bonuses = null,
   rushHours = 4,
+  problem = null,
   res,
   hallLevel,
   storehouseLevel,
@@ -115,6 +117,7 @@ export default function BuildingSheet({
   onRushProduction,
   onUpgradeItem,
   onAskHelp,
+  onFixProblem,
   buildersTotal = 2,
   builderPrice = 500,
   locked = false,
@@ -169,6 +172,34 @@ export default function BuildingSheet({
         </header>
 
         <p className="tt-sheet-desc">{info.desc}</p>
+
+        {/* Palis's mess sits above everything: it is the only thing on this
+            panel actively costing the player something right now, and clearing
+            it PAYS — which is the whole reason it is a card and not a warning. */}
+        {problem && !locked && (
+          <div className="tt-mess">
+            <div className="tt-mess-head">
+              <b>{PROBLEMS[problem.kind].name}</b>
+              <span className="mono">
+                {(problem.helps || 0)} of {HELPS_TO_CLEAR} neighbours helped
+              </span>
+            </div>
+            <p>{PROBLEMS[problem.kind].what}</p>
+            <p className="tt-mess-effect">{PROBLEMS[problem.kind].effect}</p>
+            <button className="tt-btn" type="button" onClick={onFixProblem}>
+              {(() => {
+                const c = palisFixCost(problem, level);
+                const r = palisFixReward(problem, level);
+                const costText = Object.entries(c)
+                  .map(([k, v]) => `${fmt(v)} ${RESOURCES[k].short}`)
+                  .join(" · ");
+                return costText
+                  ? `Tidy up · ${costText} → +${fmt(r.coin)} Gold`
+                  : `Tidy up · free → +${fmt(r.coin)} Gold`;
+              })()}
+            </button>
+          </div>
+        )}
 
         {/* LOCKED — the only screen in the game with nothing to do on it, so it
             has to at least name the one thing that opens it. This is the line
