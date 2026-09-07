@@ -45,7 +45,19 @@ function Reward({ reward }) {
 }
 
 export default function QuestBook({ save, onClaimTask, onClaimChapter, onClose }) {
-  const [open, setOpen] = useState(currentChapter(save).id);
+  const states = CHAPTERS.map((ch) => [ch, chapterState(ch, save)]);
+  const readyCount = (st) =>
+    st.tasks.filter((t) => t.done && !t.claimed).length + (st.canClaimChapter ? 1 : 0);
+
+  // Open on the first chapter that has something to take, not merely the first
+  // unfinished one — the reason anyone opens this book is to collect.
+  const firstReady = states.find(([, st]) => readyCount(st) > 0);
+  const [open, setOpen] = useState((firstReady?.[0] ?? currentChapter(save)).id);
+
+  const allReady = states.flatMap(([ch, st]) => [
+    ...st.tasks.filter((t) => t.done && !t.claimed).map((t) => ({ id: t.id, reward: t.reward })),
+    ...(st.canClaimChapter ? [{ id: ch.id, reward: ch.reward }] : []),
+  ]);
 
   return (
     <div className="tt-sheet-wrap" onClick={onClose}>
@@ -61,18 +73,34 @@ export default function QuestBook({ save, onClaimTask, onClaimChapter, onClose }
           </div>
         </header>
 
+        {allReady.length > 0 && (
+          <button
+            className="tt-btn tt-claimall"
+            type="button"
+            onClick={() => allReady.forEach((r) => onClaimTask(r.id, r.reward))}
+          >
+            Claim all {allReady.length} ready
+          </button>
+        )}
+
         <div className="tt-chapters">
-          {CHAPTERS.map((ch) => {
-            const st = chapterState(ch, save);
+          {states.map(([ch, st]) => {
             const isOpen = open === ch.id;
+            const ready = readyCount(st);
             return (
-              <div key={ch.id} className={"tt-chapter" + (st.rewardClaimed ? " done" : "")}>
+              <div
+                key={ch.id}
+                className={
+                  "tt-chapter" + (st.rewardClaimed ? " done" : "") + (ready ? " ready" : "")
+                }
+              >
                 <button
                   className="tt-chapter-head"
                   type="button"
                   onClick={() => setOpen(isOpen ? null : ch.id)}
                 >
                   <span className="tt-chapter-n">{ch.name}</span>
+                  {ready > 0 && <span className="tt-chapter-badge">{ready} ready</span>}
                   <span className="tt-chapter-p mono">
                     {st.done}/{st.total}
                   </span>
@@ -83,8 +111,21 @@ export default function QuestBook({ save, onClaimTask, onClaimChapter, onClose }
                   <div className="tt-chapter-body">
                     <p className="tt-chapter-blurb">{ch.blurb}</p>
 
-                    {st.tasks.map((t) => (
-                      <div key={t.id} className={"tt-task" + (t.claimed ? " claimed" : "")}>
+                    {[...st.tasks]
+                      .sort(
+                        (a, b) =>
+                          Number(b.done && !b.claimed) - Number(a.done && !a.claimed) ||
+                          Number(a.claimed) - Number(b.claimed)
+                      )
+                      .map((t) => (
+                      <div
+                        key={t.id}
+                        className={
+                          "tt-task" +
+                          (t.claimed ? " claimed" : "") +
+                          (t.done && !t.claimed ? " ready" : "")
+                        }
+                      >
                         <div className="tt-task-main">
                           <span className="tt-task-text">{t.text}</span>
                           <div className="tt-task-bar">

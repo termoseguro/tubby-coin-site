@@ -1886,11 +1886,17 @@
    The bottleneck the player hits most often, so it lives where they are
    looking. It changes colour the moment every builder is busy, because that
    is the moment the offer means something. */
-.tt-builders {
+.tt-caps {
   position: absolute;
   left: 16px;
   top: 14px;
   z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.tt-cap {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -1900,11 +1906,11 @@
   border: 2.5px solid var(--line);
   box-shadow: inset 0 2px 0 #fff, 0 4px 0 var(--line-2);
 }
-.tt-builders.busy {
+.tt-cap.busy {
   border-color: var(--g2);
   box-shadow: inset 0 2px 0 #fff, 0 4px 0 var(--g3), 0 0 18px rgba(255, 195, 39, 0.55);
 }
-.tt-builders-i {
+.tt-cap-i {
   display: grid;
   place-items: center;
   width: 32px;
@@ -1914,18 +1920,18 @@
   background: var(--card-2);
   border: 2px solid var(--line);
 }
-.tt-builders.busy .tt-builders-i { border-color: var(--g2); background: #fff8e2; }
-.tt-builders-n { display: flex; flex-direction: column; line-height: 1.1; }
-.tt-builders-n b { font-size: 0.95rem; font-weight: 800; color: var(--ink); }
-.tt-builders-n small {
+.tt-builders.busy .tt-cap-i { border-color: var(--g2); background: #fff8e2; }
+.tt-cap-n { display: flex; flex-direction: column; line-height: 1.1; }
+.tt-cap-n b { font-size: 0.95rem; font-weight: 800; color: var(--ink); }
+.tt-cap-n small {
   font-size: 0.6rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--ink-soft);
 }
-.tt-builders.busy .tt-builders-n small { color: var(--g3); }
-.tt-builders button {
+.tt-builders.busy .tt-cap-n small { color: var(--g3); }
+.tt-cap button {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -1938,13 +1944,13 @@
   cursor: pointer;
   box-shadow: 0 3px 0 var(--g3);
 }
-.tt-builders button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--g3); }
+.tt-cap button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--g3); }
 
 @media (max-width: 760px) {
   .tt-builders { padding: 5px 7px 5px 5px; gap: 6px; }
-  .tt-builders-i { width: 26px; height: 26px; flex: 0 0 26px; }
-  .tt-builders-n small { display: none; }
-  .tt-builders button { font-size: 0.7rem; padding: 6px 8px; }
+  .tt-cap-i { width: 26px; height: 26px; flex: 0 0 26px; }
+  .tt-cap-n small { display: none; }
+  .tt-cap button { font-size: 0.7rem; padding: 6px 8px; }
 }
 .tt-crew-note { margin-top: 6px; font-size: 0.74rem; }
 
@@ -1983,4 +1989,42 @@
   padding: 4px 8px;
   white-space: nowrap;
   box-shadow: 0 2px 0 var(--g3);
+}
+
+/* label first, number second — an unlabelled "2/2" reads as whichever thing
+   the player was last thinking about, which is worse than showing nothing */
+.tt-cap { padding: 6px 9px 6px 6px; border-radius: 15px;
+  background: linear-gradient(180deg, #fff, var(--card-2));
+  border: 2.5px solid var(--line);
+  box-shadow: inset 0 2px 0 #fff, 0 4px 0 var(--line-2); }
+.tt-cap-n { display: flex; flex-direction: column; line-height: 1.15; }
+.tt-cap-n small {
+  font-size: 0.58rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--ink-soft);
+}
+.tt-cap-n b { font-size: 0.82rem; font-weight: 800; color: var(--ink); }
+.tt-cap.busy .tt-cap-n small { color: var(--g3); }
+
+/* ---------- finding what is claimable ----------
+   The only reason anyone opens the book is to collect, so anything ready has
+   to be impossible to miss: a claim-all at the top, a badge on the chapter,
+   ready tasks sorted first, and a gold edge on the row itself. */
+.tt-claimall { width: 100%; margin-bottom: 12px; }
+.tt-chapter.ready { border-color: var(--g2); box-shadow: 0 0 0 2px rgba(255, 195, 39, 0.28); }
+.tt-chapter-badge {
+  font: 900 0.62rem/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6a4300;
+  background: linear-gradient(180deg, var(--g1), var(--g2));
+  border: 2px solid #fff;
+  border-radius: 8px;
+  padding: 4px 7px;
+  box-shadow: 0 2px 0 var(--g3);
+  white-space: nowrap;
+}
+.tt-task.ready {
+  border-color: var(--g2);
+  background: #fffaeb;
+  box-shadow: 0 3px 0 var(--g3);
 }

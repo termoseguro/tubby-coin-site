@@ -921,6 +921,7 @@ export default function TubbyTown() {
   const starving = isStarving(save);
   const claims = claimableCount(save);
   const buildersFree = save.builders - Object.keys(save.jobs || {}).length;
+  const workersFree = totalSlots(save) - assignedCount(save);
   const levelsTop = levelsOf(save);
   const buildingStateTop = Object.fromEntries(
     BUILDINGS.map((b) => {
@@ -976,24 +977,42 @@ export default function TubbyTown() {
 
 
       <div className="tt-stage">
-        {/* The builder bottleneck, kept ON THE MAP. A wall the player cannot
-            see is a wall that never converts — and this is the one they hit
-            most, so it is the one that has to be visible. */}
-        <div className={"tt-builders" + (buildersFree === 0 ? " busy" : "")}>
-          <span className="tt-builders-i">
-            <IconHammer size={20} />
-          </span>
-          <span className="tt-builders-n">
-            <b className="mono">
-              {buildersFree}/{save.builders}
-            </b>
-            <small>{buildersFree === 0 ? "all busy" : "free"}</small>
-          </span>
-          {save.builders < MAX_BUILDERS && (
-            <button type="button" onClick={buyBuilder} title={`Hire builder #${save.builders + 1}`}>
-              + ${builderPriceUsd(save.builders)?.toFixed(2)}
+        {/* The two capacity bottlenecks, kept ON THE MAP and LABELLED. A wall
+            the player cannot see never converts — and an unlabelled "2/2" is
+            worse than nothing, because it reads as whichever thing they were
+            last thinking about. */}
+        <div className="tt-caps">
+          <div className={"tt-cap" + (buildersFree === 0 ? " busy" : "")}>
+            <span className="tt-cap-i">
+              <IconHammer size={18} />
+            </span>
+            <span className="tt-cap-n">
+              <small>Builders</small>
+              <b className="mono">
+                {buildersFree}/{save.builders} free
+              </b>
+            </span>
+            {save.builders < MAX_BUILDERS && (
+              <button type="button" onClick={buyBuilder} title={`Hire builder #${save.builders + 1}`}>
+                + ${builderPriceUsd(save.builders)?.toFixed(2)}
+              </button>
+            )}
+          </div>
+
+          <div className={"tt-cap" + (workersFree === 0 ? " busy" : "")}>
+            <span className="tt-cap-i">
+              <IconPaw size={18} />
+            </span>
+            <span className="tt-cap-n">
+              <small>Workers</small>
+              <b className="mono">
+                {assignedCount(save)}/{totalSlots(save)} on shift
+              </b>
+            </span>
+            <button type="button" onClick={buyWorkerSlot} title="Buy a worker spot">
+              + ${workerSlotPriceUsd(save.extraSlots || 0).toFixed(2)}
             </button>
-          )}
+          </div>
         </div>
 
         <button
@@ -1250,6 +1269,11 @@ function TownTab({
 
   // Rough head-count per building, so the panel can say who is there.
   const workingAt = useMemo(() => catsPerBuilding(save), [save]);
+
+  // Derived here as well as in the parent: the sheet lives inside this
+  // component, so it needs its own reference rather than one from an outer
+  // scope it cannot see.
+  const buildersFree = save.builders - Object.keys(save.jobs || {}).length;
 
   /** The cats actually working at a building, with their art. */
   const crewAt = (id) =>
