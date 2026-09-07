@@ -88,6 +88,24 @@ database, you add a new migration file; you never edit an applied one.
    npm run db:push
    ```
 
+### Proving it worked
+
+```bash
+npm run check:rls
+```
+
+This runs the attacker: it reads every table with the **public** anon key (must
+return nothing) and tries six specific thefts with it (all must be refused) —
+granting itself a billion Gold, creating an unpaid order, marking a payment
+verified with no transaction, claiming a wallet it never signed for, writing
+itself to the top of the leaderboard, and setting every price to a cent.
+
+Run it after every migration. RLS is one `alter table` away from being off, and
+nothing about the app would look different if it were.
+
+The read test is sharper than it looks: `shop_items` has six seeded rows, so an
+empty result there is proof RLS is denying rather than proof the table is empty.
+
 ### Day to day
 
 | Command | What it does |
@@ -270,6 +288,7 @@ The general principle, worth remembering when adding any reward:
 
 ## 8. Before launch
 
+- [ ] `npm run check:rls` passes (it reads and writes with the public key)
 - [ ] Every table shows *RLS enabled* in the Table Editor
 - [ ] No `NEXT_PUBLIC_` variable holds anything secret
 - [ ] `service_role` appears in exactly one place: Vercel server env
