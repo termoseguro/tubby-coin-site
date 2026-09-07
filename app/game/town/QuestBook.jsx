@@ -12,6 +12,7 @@ import {
   IconBiscuit,
   IconCatnip,
   IconFish,
+  IconGold,
   IconGoldFish,
   IconStone,
   IconTreat,
@@ -24,6 +25,7 @@ const ICON = {
   stone: IconStone,
   catnip: IconCatnip,
   treats: IconBiscuit,
+  coin: IconGold,
   gold: IconGoldFish,
 };
 
@@ -34,9 +36,12 @@ function Reward({ reward }) {
     <span className="tt-q-reward">
       {Object.entries(reward).map(([k, v]) => {
         const Icon = ICON[k];
+        // A reward naming a resource with no icon used to take the whole book
+        // down with "Element type is invalid". A missing icon is a cosmetic
+        // gap; it should never be a crash.
         return (
           <span key={k} style={{ color: RESOURCES[k]?.color }}>
-            <Icon size={15} /> {fmt(v)}
+            {Icon ? <Icon size={15} /> : null} {fmt(v)}
           </span>
         );
       })}
@@ -128,6 +133,13 @@ export default function QuestBook({ save, onClaimTask, onClaimChapter, onClose }
                       >
                         <div className="tt-task-main">
                           <span className="tt-task-text">{t.text}</span>
+                          {/* The WHY, not just the what. A tutorial that only
+                              says which button to press teaches nothing, and
+                              the player is left doing the right thing for no
+                              reason they could repeat. */}
+                          {t.hint && !t.claimed && (
+                            <span className="tt-task-hint">{t.hint}</span>
+                          )}
                           <div className="tt-task-bar">
                             <i style={{ width: `${t.pct * 100}%` }} />
                             <span className="mono">

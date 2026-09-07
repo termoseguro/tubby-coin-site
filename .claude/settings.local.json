@@ -500,7 +500,17 @@
       "Bash(node scripts/pull-cats.mjs 24)",
       "Bash(node scripts/pull-cats.mjs 340)",
       "WebFetch(domain:kingshothandbook.com)",
-      "WebFetch(domain:kingshotdata.com)"
+      "WebFetch(domain:kingshotdata.com)",
+      "Bash(curl -s -m 25 -o /dev/null -w \"pinata metadata: %{http_code}\\\\n\" \"https://gateway.pinata.cloud/ipfs/QmeN7ZdrTGpbGoo8URqzvyiDtcgJxwoxULbQowaTGhTeZc/777.json\")",
+      "Bash(curl -sL -m 30 -o /tmp/i.png -w '%{http_code} %{size_download}' https://ipfs.raribleuserdata.com/ipfs/QmXAYm2pZ7onGmpCjkCqKFLD4d1qaTdJcKqBMTrD63Ew11/777.png)",
+      "Bash(node scripts/index-cats.mjs)",
+      "WebFetch(domain:www.kingshotapp.com)",
+      "WebFetch(domain:www.lootbar.com)",
+      "WebFetch(domain:gamenavigators.net)",
+      "WebFetch(domain:kingshot.net)",
+      "WebFetch(domain:buffhub.com)",
+      "Bash(node scripts/check-progress.mjs 12)",
+      "Bash(node scripts/check-progress.mjs 14)"
     ]
   }
 }

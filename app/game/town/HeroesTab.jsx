@@ -24,6 +24,7 @@ import {
   patrolSlots,
   starsFor,
 } from "../../../lib/heroProgress.js";
+import { HERO_BLURB, VILLAGER_BLURB } from "../../../lib/villagers.js";
 import { IconGold, IconPaw } from "../icons";
 
 const RARITY_RANK = { common: 0, rare: 1, epic: 2, legendary: 3, mythic: 4 };
@@ -42,6 +43,7 @@ export default function HeroesTab({
   onLevel,
   onPatrol,
   onOpenLitter,
+  onOpenAlley,
   litterLive,
 }) {
   const owned = save.heroes || {};
@@ -66,20 +68,23 @@ export default function HeroesTab({
       <div className="tt-heroes-head">
         <div>
           <h2>Hero cats</h2>
-          <p className="tt-p">
-            Named cats with stars and skills. They never work inside a building —
-            that is what villagers are for. Heroes go on patrol and their skills
-            pay the whole town.
+          <p className="tt-p">{HERO_BLURB}</p>
+          <p className="tt-p tt-vs-villager">
+            Not to be confused with your <b>villagers</b> — {VILLAGER_BLURB.toLowerCase()}
           </p>
         </div>
-        <button
-          className={"tt-btn" + (litterLive ? "" : " alt")}
-          type="button"
-          onClick={onOpenLitter}
-        >
-          <IconPaw size={17} />
-          {litterLive ? "Lucky Litter is live" : "Lucky Litter"}
-        </button>
+        <div className="tt-heroes-btns">
+          <button className="tt-btn" type="button" onClick={onOpenAlley}>
+            <IconPaw size={17} /> The Long Alley
+          </button>
+          <button
+            className={"tt-btn" + (litterLive ? "" : " alt")}
+            type="button"
+            onClick={onOpenLitter}
+          >
+            {litterLive ? "Lucky Litter is live" : "Lucky Litter"}
+          </button>
+        </div>
       </div>
 
       <div className="tt-patrol">

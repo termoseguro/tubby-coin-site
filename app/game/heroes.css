@@ -283,3 +283,360 @@
 .ttown .tt-spin.r-epic .tt-spin-tier { color: #8e4fd0; }
 .ttown .tt-spin.r-legendary .tt-spin-tier { color: #c98900; }
 .ttown .tt-spin.r-mythic .tt-spin-tier { color: #d4485f; }
+
+/* ===========================================================================
+   THE REEL  (docs: app/game/town/SpinReel.jsx)
+
+   A case-opening strip. The deceleration is the drama: the easing spends most
+   of its time in the last fifth of the distance, so the strip crawls past two
+   or three cards at the end and a near-miss is visible before it settles.
+   =========================================================================== */
+
+.ttown .tt-reel-wrap { position: relative; }
+
+.ttown .tt-reel {
+  position: relative;
+  overflow: hidden;
+  padding: 14px 0;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #2a1830, #3d2144);
+  border: 3px solid #fff;
+  box-shadow: inset 0 0 34px rgba(0, 0, 0, 0.45);
+}
+
+.ttown .tt-reel-track {
+  display: flex;
+  gap: 10px;
+  will-change: transform;
+}
+
+.ttown .tt-reel-card {
+  flex: 0 0 108px;
+  margin: 0;
+  border-radius: 13px;
+  overflow: hidden;
+  background: #4a2b52;
+  border: 3px solid #6b4573;
+  text-align: center;
+}
+.ttown .tt-reel-card img {
+  display: block;
+  width: 100%;
+  height: 102px;
+  object-fit: cover;
+}
+.ttown .tt-reel-blank { display: block; width: 100%; height: 102px; background: #5c3665; }
+.ttown .tt-reel-card figcaption {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 4px 2px;
+  color: #f4e6f2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Rarity is the reason to watch, so it is loud in here even though it is quiet
+   everywhere else in the game. */
+.ttown .tt-reel-card.r-rare { border-color: #6cc2f7; }
+.ttown .tt-reel-card.r-epic { border-color: #c489ff; box-shadow: 0 0 14px rgba(196, 137, 255, 0.5); }
+.ttown .tt-reel-card.r-legendary { border-color: #ffbe2e; box-shadow: 0 0 18px rgba(255, 190, 46, 0.6); }
+.ttown .tt-reel-card.r-mythic { border-color: #ff7a9c; box-shadow: 0 0 22px rgba(255, 122, 156, 0.75); }
+
+/* The marker the strip stops under. */
+.ttown .tt-reel-mark {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  margin-left: -1.5px;
+  background: #ffd23f;
+  box-shadow: 0 0 12px #ffd23f;
+  z-index: 3;
+}
+.ttown .tt-reel-mark::before,
+.ttown .tt-reel-mark::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  border: 7.5px solid transparent;
+}
+.ttown .tt-reel-mark::before { top: -2px; border-top-color: #ffd23f; }
+.ttown .tt-reel-mark::after { bottom: -2px; border-bottom-color: #ffd23f; }
+
+/* Edges fade out, so cards enter and leave rather than popping. */
+.ttown .tt-reel-fade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 74px;
+  z-index: 2;
+  pointer-events: none;
+}
+.ttown .tt-reel-fade.left { left: 0; background: linear-gradient(90deg, #2a1830, transparent); }
+.ttown .tt-reel-fade.right { right: 0; background: linear-gradient(270deg, #2a1830, transparent); }
+
+.ttown .tt-reel.landed { animation: tt-reel-thud 0.4s ease; }
+@keyframes tt-reel-thud {
+  30% { transform: scale(1.015); }
+}
+
+.ttown .tt-reel-skip {
+  position: absolute;
+  right: 8px;
+  bottom: -34px;
+  background: #f2e6ee;
+  box-shadow: 0 2.5px 0 #d3c1cc;
+  color: #8d7484;
+}
+
+.ttown .tt-reel-out { text-align: center; padding-top: 16px; }
+.ttown .tt-reel-out b {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.ttown .tt-reel-out h4 { margin: 3px 0 6px; font-size: 1.2rem; color: var(--ink); }
+.ttown .tt-reel-out p { margin: 0 0 12px; font-size: 12.5px; color: #7a5a70; line-height: 1.5; }
+.ttown .tt-reel-out.r-rare b { color: #2f8fc4; }
+.ttown .tt-reel-out.r-epic b { color: #8e4fd0; }
+.ttown .tt-reel-out.r-legendary b { color: #c98900; }
+.ttown .tt-reel-out.r-mythic b { color: #d4485f; }
+.ttown .tt-reel-pity { color: #d4485f !important; font-weight: 700; }
+
+/* ===========================================================================
+   THE LONG ALLEY  (docs: lib/conquest.js)
+
+   Two ranks facing each other. The player never acts during a fight — the
+   decision is the team and the order, which is Kingshot's design and the right
+   one for a game that is mostly a town.
+   =========================================================================== */
+
+.ttown .tt-heroes-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.ttown .tt-heroes-btns .tt-btn { width: auto; }
+.ttown .tt-vs-villager { margin-top: 6px !important; font-size: 12px; opacity: 0.85; }
+
+.ttown .tt-cq-why {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 12px 0;
+  padding: 11px 13px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff8e4, #fff1cf);
+  border: 2px solid #f2d894;
+}
+.ttown .tt-cq-why b { display: block; font-size: 13.5px; color: #6a4300; }
+.ttown .tt-cq-why small { font-size: 12px; color: #a07f2e; }
+
+.ttown .tt-cq-board {
+  border-radius: 18px;
+  padding: 14px 10px;
+  background: linear-gradient(180deg, #34203c, #452a4d);
+  border: 3px solid #fff;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.4);
+}
+.ttown .tt-cq-side {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ttown .tt-cq-vs {
+  text-align: center;
+  margin: 10px 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #c9a5d4;
+}
+
+.ttown .tt-cq-unit { width: 76px; text-align: center; }
+.ttown .tt-cq-face {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 4px;
+  border-radius: 13px;
+  overflow: hidden;
+  border: 2.5px solid #6b4573;
+  background: #56335f;
+}
+.ttown .tt-cq-face img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ttown .tt-cq-face.r-rare { border-color: #6cc2f7; }
+.ttown .tt-cq-face.r-epic { border-color: #c489ff; }
+.ttown .tt-cq-face.r-legendary { border-color: #ffbe2e; }
+.ttown .tt-cq-face.r-mythic { border-color: #ff7a9c; }
+
+/* Enemies have no art yet, so they get a silhouette rather than a hole. */
+.ttown .tt-cq-mob {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 32% 40%, #2a1830 5px, transparent 6px),
+    radial-gradient(circle at 68% 40%, #2a1830 5px, transparent 6px),
+    linear-gradient(180deg, #7c5285, #56335f);
+}
+
+.ttown .tt-cq-unit.boss .tt-cq-face {
+  width: 76px;
+  height: 76px;
+  border-color: #ff5f7a;
+  box-shadow: 0 0 18px rgba(255, 95, 122, 0.7);
+}
+.ttown .tt-cq-unit.down { opacity: 0.3; filter: grayscale(1); }
+
+/* The damage number. Short, sharp, and gone — a number that lingers stops
+   reading as an impact. */
+.ttown .tt-cq-dmg {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 0 #b0304a, 0 0 10px #ff5f7a;
+  animation: tt-cq-pop 0.42s ease-out;
+}
+@keyframes tt-cq-pop {
+  0% { transform: translateY(6px) scale(0.7); opacity: 0; }
+  35% { transform: translateY(-2px) scale(1.12); opacity: 1; }
+  100% { transform: translateY(-12px) scale(1); opacity: 0; }
+}
+.ttown .tt-cq-unit.hurt .tt-cq-face { animation: tt-cq-shake 0.22s ease; }
+@keyframes tt-cq-shake {
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+.ttown .tt-cq-name {
+  display: block;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #efdff0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ttown .tt-cq-bar {
+  display: block;
+  height: 5px;
+  margin-top: 3px;
+  border-radius: 999px;
+  background: #2a1830;
+  overflow: hidden;
+}
+.ttown .tt-cq-bar i {
+  display: block;
+  height: 100%;
+  background: #57c89a;
+  transition: width 0.35s ease;
+}
+.ttown .tt-cq-side.foes .tt-cq-bar i { background: #ff7a9c; }
+
+.ttown .tt-cq-slot,
+.ttown .tt-cq-empty {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  position: relative;
+}
+.ttown .tt-cq-empty {
+  width: 76px;
+  height: 88px;
+  border-radius: 13px;
+  border: 2.5px dashed #6b4573;
+  display: grid;
+  place-items: center;
+  color: #a07fac;
+  gap: 2px;
+}
+.ttown .tt-cq-empty em {
+  font-style: normal;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ttown .tt-cq-empty.front { border-color: #b487c4; color: #d3b7dc; }
+.ttown .tt-cq-pos {
+  display: block;
+  font-style: normal;
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a07fac;
+  margin-top: 2px;
+}
+
+.ttown .tt-cq-advice {
+  margin: 10px 0;
+  font-size: 12px;
+  color: #a4809a;
+  text-align: center;
+}
+
+.ttown .tt-cq-out { text-align: center; padding-top: 12px; }
+.ttown .tt-cq-out b { font-size: 17px; }
+.ttown .tt-cq-out.win b { color: #3f9d7d; }
+.ttown .tt-cq-out.loss b { color: #c2506c; }
+.ttown .tt-cq-out p { margin: 5px 0 12px; font-size: 12.5px; color: #7a5a70; }
+
+/* ---- picking a hero for a slot ---- */
+.ttown .tt-cq-pick {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  background: rgba(120, 40, 85, 0.4);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.ttown .tt-cq-pick-in {
+  width: min(460px, 100%);
+  max-height: 80dvh;
+  overflow-y: auto;
+  padding: 18px;
+  border-radius: 22px;
+  background: var(--card);
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 3px var(--line-2);
+}
+.ttown .tt-cq-pick-in h4 { margin: 0 0 2px; font-size: 1rem; color: var(--ink); }
+.ttown .tt-cq-pick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.ttown .tt-cq-pick-cat,
+.ttown .tt-cq-pick-none {
+  padding: 6px;
+  border-radius: 13px;
+  border: 2px solid var(--line);
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+}
+.ttown .tt-cq-pick-cat img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 9px;
+  display: block;
+}
+.ttown .tt-cq-pick-cat b { display: block; font-size: 11px; margin-top: 3px; color: var(--ink); }
+.ttown .tt-cq-pick-cat small { font-size: 9px; color: #a4809a; }
+.ttown .tt-cq-pick-cat.used { opacity: 0.45; }
+.ttown .tt-cq-pick-cat.r-rare { border-color: #b7e0f8; }
+.ttown .tt-cq-pick-cat.r-epic { border-color: #dcc0ff; }
+.ttown .tt-cq-pick-cat.r-legendary { border-color: #ffdf9a; }
+.ttown .tt-cq-pick-cat.r-mythic { border-color: #ffc0d0; }
+.ttown .tt-cq-pick-none { display: grid; place-items: center; font-size: 11px; color: #a4809a; }

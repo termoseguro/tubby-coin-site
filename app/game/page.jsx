@@ -44,8 +44,18 @@ import BuyModal from "./town/BuyModal";
 import RaidPanel from "./town/RaidPanel";
 import LuckyLitter from "./town/LuckyLitter";
 import HeroesTab from "./town/HeroesTab";
+import SpinReel from "./town/SpinReel";
+import Conquest from "./town/Conquest";
+import {
+  LINEUP_SIZE,
+  idleGoldMultiplier,
+  isBoss,
+  simulate as simulateStage,
+  stageReward,
+} from "../../lib/conquest";
 import catPool from "../../lib/catPool.json";
 import { HERO_BY_ID } from "../../lib/heroes";
+import { pickVillager } from "../../lib/villagers";
 import {
   MILESTONES,
   WHEELS,
@@ -163,7 +173,12 @@ function freshSave() {
     v: 3,
     // Kingshot-shaped economy: five gathered resources plus the premium one,
     // each produced by its own building and capped by the Storehouse.
-    res: { fish: 400, wood: 400, stone: 60, catnip: 0, treats: 200, coin: 250, gold: 30 },
+    // Kingshot opens you with almost nothing and the Sawmill. Ours matches:
+    // enough Wood to make the first move, enough Fish that the one cat does not
+    // starve before the Kitchen exists at Cat Hall 2, and no Stone, Catnip or
+    // Treats at all — those resources have not been introduced yet, and a
+    // counter for a thing the player has never seen is noise.
+    res: { fish: 250, wood: 350, stone: 0, catnip: 0, treats: 0, coin: 120, gold: 20 },
     // when production was last paid out into the stockpile
     lastProd: Date.now(),
     // furniture levels: { kitchen: { stove: 3, ... } }
@@ -177,6 +192,12 @@ function freshSave() {
     pendingShards: {},
     // hero ids currently on patrol — only these count for anything
     patrol: [],
+    // ---- THE LONG ALLEY (Kingshot's Conquest) ----
+    // The stage ladder the heroes climb. `cleared` is the deepest stage beaten
+    // and it permanently multiplies the town's idle Gold — which is where that
+    // mechanic belongs, and why it is no longer bolted onto the Palis raid.
+    // `bossHp` remembers a wounded boss between attempts.
+    conquest: { stage: 1, cleared: 0, bossHp: null, lineup: [] },
     keys: { silver: 3, gold: 1 },
     litter: { startedAt: Date.now(), spins: 0, pity: { silver: 0, gold: 0 }, claimed: {}, lastFreeAt: 0 },
 
@@ -439,6 +460,7 @@ function migrate(s) {
   if (!s.heroes) s.heroes = {};
   if (!s.pendingShards) s.pendingShards = {};
   if (!s.patrol) s.patrol = [];
+  if (!s.conquest) s.conquest = { stage: 1, cleared: 0, bossHp: null, lineup: [] };
   if (!s.keys) s.keys = { silver: 3, gold: 1 };
   if (!s.litter) {
     s.litter = { startedAt: Date.now(), spins: 0, pity: { silver: 0, gold: 0 }, claimed: {}, lastFreeAt: 0 };
@@ -498,6 +520,7 @@ export default function TubbyTown() {
   const [raidResult, setRaidResult] = useState(null);
   const [raidOpen, setRaidOpen] = useState(false);
   const [litterOpen, setLitterOpen] = useState(false);
+  const [alleyOpen, setAlleyOpen] = useState(false);
   const [spinResult, setSpinResult] = useState(null);
   const [toast, setToast] = useState(null);
   // A once-a-second clock. Production accrues against wall time now, so the
@@ -952,20 +975,106 @@ export default function TubbyTown() {
 
       let next = { ...s, res, keys, litter };
       let recruited = false;
+      let villager = null;
+      let dupe = false;
       if (out.hero) {
         const g = grantShards(next, out.hero.id, out.shards);
         recruited = g.recruited;
         next = { ...next, heroes: g.heroes, pendingShards: g.pendingShards };
       } else {
-        // An "ordinary cat" is not nothing — it pays Gold, so the common slot
-        // still moves a bar somewhere.
+        // A villager, with a name and a face, who moves into the town. Not a
+        // consolation prize: population is what gates every building, so this
+        // is often the more useful half of the wheel early on.
+        villager = pickVillager(catPool.cats, "common");
+        if (villager) {
+          const key = catKey(villager);
+          const had = next.cats[key];
+          next = {
+            ...next,
+            cats: {
+              ...next.cats,
+              // A duplicate villager levels the one you have, the way duplicate
+              // heroes become shards. Nothing from a wheel is ever wasted.
+              [key]: had ? { ...had, level: had.level + 1 } : villager,
+            },
+          };
+          dupe = !!had;
+        }
         next = { ...next, res: { ...next.res, coin: (next.res.coin || 0) + out.shards * 25 } };
       }
       setSave(next);
-      setSpinResult({ ...out, recruited });
+      setSpinResult({ ...out, recruited, wheelId, villager, dupe });
     },
     [flash]
   );
+
+  /** Fight the current stage of the Long Alley.
+   *
+   *  Returns the simulated battle so the screen can replay it — the result is
+   *  already decided and banked here. Same discipline as the gacha: the
+   *  animation reveals, it never resolves. */
+  const fightStage = useCallback(
+    (lineup) => {
+      const s = saveRef.current;
+      if (!s) return null;
+      const cq = s.conquest;
+      const out = simulateStage(lineup, s, cq.stage, { bossHp: cq.bossHp });
+      if (out.empty) {
+        flash("Put someone in the line-up first.");
+        return null;
+      }
+
+      let next = { ...s };
+      if (out.won) {
+        const r = stageReward(cq.stage);
+        const keys = { ...s.keys };
+        for (const [k, n] of Object.entries(r.keys || {})) keys[k] = (keys[k] || 0) + n;
+        const { res } = addCapped(s.res, { coin: r.coin }, levelOf(s, "storehouse"));
+        next = {
+          ...next,
+          res,
+          keys,
+          conquest: {
+            ...cq,
+            stage: cq.stage + 1,
+            cleared: Math.max(cq.cleared, cq.stage),
+            // A new stage means a fresh boss.
+            bossHp: null,
+            lineup,
+          },
+        };
+        if (r.shards) {
+          const target = Object.keys(next.heroes)[0];
+          if (target) {
+            const g = grantShards(next, target, r.shards);
+            next = { ...next, heroes: g.heroes, pendingShards: g.pendingShards };
+          }
+        }
+      } else {
+        // Kingshot makes boss damage permanent between attempts, so a wall is
+        // something you chip rather than something you bounce off.
+        next = {
+          ...next,
+          conquest: { ...cq, bossHp: isBoss(cq.stage) ? out.bossHp : null, lineup },
+        };
+      }
+      setSave(next);
+      return out;
+    },
+    [flash]
+  );
+
+  /** Put a hero in a line-up slot, or clear it. */
+  const setLineupSlot = useCallback((slot, heroId) => {
+    setSave((s) => {
+      const lineup = Array.from({ length: LINEUP_SIZE }, (_, i) => s.conquest.lineup?.[i] || null);
+      // A hero can only stand in one place at a time.
+      const already = lineup.indexOf(heroId);
+      if (heroId && already >= 0) lineup[already] = null;
+      lineup[slot] = heroId;
+      return { ...s, conquest: { ...s.conquest, lineup } };
+    });
+  }, []);
 
   /** Take a milestone reward. */
   const claimMilestone = useCallback(
@@ -1546,12 +1655,6 @@ export default function TubbyTown() {
 
   // Resources appear as their producer comes online — six counters on day one
   // is how you lose a player on day one.
-  const unlockedResources = RESOURCE_ORDER.filter(
-    (r) =>
-      r === "fish" || r === "wood" || r === "treats" || r === "coin" ||
-      (save.res[r] || 0) > 0 || levelOf(save, "hall") >= 2
-  );
-
   // How much is sitting in every producer right now — drives the collect badges
   // and the one-tap collect button.
   // Plain computation, not a hook: this sits after the early return above, and
@@ -1565,6 +1668,18 @@ export default function TubbyTown() {
   const workersFree = totalSlots(save) - assignedCount(save);
   const levelsTop = levelsOf(save);
   const coming = nextUnlock(levelsTop.hall);
+
+  // A resource appears when its building does, not before. Six counters on day
+  // one is how you lose a player on day one, and a counter for a resource the
+  // game has not introduced is worse than no counter at all.
+  const RESOURCE_SOURCE = { fish: "kitchen", stone: "quarry", catnip: "garden", treats: "treats" };
+  const unlockedResources = RESOURCE_ORDER.filter((r) => {
+    if (r === "wood" || r === "coin") return true;
+    if ((save.res[r] || 0) > 0) return true;
+    const from = RESOURCE_SOURCE[r];
+    return from ? isUnlocked(from, levelsTop.hall) : false;
+  });
+
   const raidsWaiting = levelsTop.watchtower >= 1 ? raidsReady(save.lastRaidAt) : 0;
   const hurtCount = Object.keys(save.hurt || {}).length;
   // The cottage worth growing next: the cheapest route to one more villager is
@@ -1766,6 +1881,7 @@ export default function TubbyTown() {
                 onLevel={levelHero}
                 onPatrol={togglePatrol}
                 onOpenLitter={() => setLitterOpen(true)}
+                onOpenAlley={() => setAlleyOpen(true)}
               />
             )}
             {tab === "shop" && <ShopTab onBuy={mockBuy} onReset={hardReset} />}
@@ -1846,6 +1962,16 @@ export default function TubbyTown() {
         </Modal>
       )}
 
+      {alleyOpen && (
+        <Conquest
+          save={save}
+          pool={catPool.cats}
+          onFight={fightStage}
+          onSetSlot={setLineupSlot}
+          onClose={() => setAlleyOpen(false)}
+        />
+      )}
+
       {litterOpen && (
         <LuckyLitter
           litter={save.litter}
@@ -1859,30 +1985,13 @@ export default function TubbyTown() {
       )}
 
       {spinResult && (
-        <Modal
-          onClose={() => setSpinResult(null)}
-          title={spinResult.recruited ? "Recruited!" : spinResult.hero ? spinResult.hero.name : "An ordinary cat"}
-        >
-          <div className={"tt-spin r-" + spinResult.rarity}>
-            <div className="tt-spin-tier">{spinResult.rarity}</div>
-            {spinResult.hero ? (
-              <>
-                <p className="tt-p">{spinResult.hero.blurb}</p>
-                <p className="tt-p">
-                  <b>+{spinResult.shards}</b> shards
-                  {spinResult.recruited && " — and that was enough to recruit them."}
-                </p>
-              </>
-            ) : (
-              <p className="tt-p">
-                Not a hero, but not nothing: <b>+{spinResult.shards * 25} Gold</b>.
-              </p>
-            )}
-            {spinResult.pity && <p className="tt-p warn">The counter came through.</p>}
-          </div>
-          <button className="tt-btn" type="button" onClick={() => setSpinResult(null)}>
-            Good
-          </button>
+        <Modal onClose={() => setSpinResult(null)} title="Lucky Litter" wide>
+          <SpinReel
+            wheelId={spinResult.wheelId}
+            result={spinResult}
+            pool={catPool.cats}
+            onDone={() => setSpinResult(null)}
+          />
         </Modal>
       )}
 

@@ -14,14 +14,16 @@
     "check": "node scripts/check.mjs",
     "check:layout": "node scripts/check-layout.mjs",
     "check:server": "node scripts/check-server-safe.mjs",
-    "check:all": "npm run check:server && npm run check:layout && npm run check",
+    "check:all": "npm run check:server && npm run check:progress && npm run check:layout && npm run check",
     "db:link": "node scripts/db.mjs link",
     "db:push": "node scripts/db.mjs push",
     "db:diff": "node scripts/db.mjs diff",
     "db:pull": "node scripts/db.mjs pull",
     "db:status": "node scripts/db.mjs status",
     "check:rls": "node scripts/check-rls.mjs",
-    "cats:pull": "node scripts/pull-cats.mjs"
+    "cats:pull": "node scripts/pull-cats.mjs",
+    "cats:index": "node scripts/index-cats.mjs",
+    "check:progress": "node scripts/check-progress.mjs"
   },
   "dependencies": {
     "next": "^14.2.35",

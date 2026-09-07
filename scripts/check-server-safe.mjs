@@ -59,25 +59,36 @@ const fresh = () => ({
   raidStage: 0,
 });
 
-ok("a new town starts with two villagers", () => {
+ok("a new town starts with ONE villager", () => {
+  // Kingshot opens with almost nothing and that is the point. One cottage,
+  // one cat.
   const s = fresh();
-  assert.equal(villagerCap(levelsOf(s), s), 2);
+  assert.equal(villagerCap(levelsOf(s), s), 1);
 });
 
-ok("only the opening buildings exist", () => {
+ok("a new town has a Cat Hall, a Lumber Yard and one cottage — and nothing else", () => {
   const s = fresh();
   const L = levelsOf(s);
   assert.equal(L.hall, 1);
-  assert.equal(L.kitchen, 1);
-  assert.equal(L.storehouse, 0, "the Storehouse is an unbuilt plot on day one");
-  assert.equal(L.clinic, 0);
+  assert.equal(L.lumber, 1, "the Sawmill is Kingshot's first production building");
+  assert.equal(L.cottage1, 1);
+  assert.equal(L.kitchen, 0, "the Mill arrives at TC2, not on day one");
+  assert.equal(L.quarry, 0, "the Quarry arrives at TC3");
+  assert.equal(L.adoption, 0, "the Hero Hall arrives at TC4");
+  assert.equal(L.garden, 0, "the Iron Mine arrives at TC5");
 });
 
-ok("the Cat Hall gates every unlock", () => {
-  assert.equal(isUnlocked("storehouse", 1), false);
-  assert.equal(isUnlocked("storehouse", 2), true);
-  assert.equal(isUnlocked("forge", 19), false);
-  assert.equal(isUnlocked("forge", 20), true);
+ok("the unlock ladder is Kingshot's, level for level", () => {
+  const at = (id, lvl) => isUnlocked(id, lvl) && !isUnlocked(id, lvl - 1);
+  assert.ok(at("kitchen", 2), "Mill at TC2");
+  assert.ok(at("quarry", 3), "Quarry at TC3");
+  assert.ok(at("adoption", 4), "Hero Hall at TC4");
+  assert.ok(at("garden", 5), "Iron Mine at TC5");
+  assert.ok(at("training", 7), "Barracks at TC7");
+  assert.ok(at("range", 8), "Range at TC8");
+  assert.ok(at("study", 9), "Academy at TC9");
+  assert.ok(at("warroom", 10), "Command Center at TC10");
+  assert.ok(at("forge", 20), "Mastery Forging at TC20");
 });
 
 ok("nothing may outgrow the Cat Hall", () => {
@@ -139,18 +150,18 @@ ok("shortfall names exactly what is missing", () => {
 ok("the Cat Hall waits for the town, and never deadlocks at level 1", () => {
   const s = fresh();
   assert.deepEqual(unmetRequirements("hall", 1, levelsOf(s)), [],
-    "hall 1 to 2 must be reachable on a brand new save");
-  const mid = { ...levelsOf(s), hall: 3, storehouse: 1, cottage1: 1 };
+    "hall 1 to 2 must be reachable on a brand new save — the Lumber Yard is already at 1");
+  const mid = { ...levelsOf(s), hall: 3, lumber: 3 };
   assert.ok(unmetRequirements("hall", 3, mid).length > 0,
     "hall 3 to 4 must wait for the buildings behind it");
 });
 
 ok("furniture gates its building", () => {
   const s = fresh();
-  const gate = furniture.furnitureGate(s, "kitchen", 1);
-  assert.ok(gate.length > 0, "an empty Kitchen cannot be raised");
-  s.furniture.kitchen = { toolA: 1 };
-  assert.equal(furniture.furnitureGate(s, "kitchen", 1).length, 0);
+  const gate = furniture.furnitureGate(s, "lumber", 1);
+  assert.ok(gate.length > 0, "an empty Lumber Yard cannot be raised");
+  s.furniture.lumber = { toolA: 1 };
+  assert.equal(furniture.furnitureGate(s, "lumber", 1).length, 0);
 });
 
 ok("furniture raises output, beds and Gold", () => {
@@ -158,11 +169,11 @@ ok("furniture raises output, beds and Gold", () => {
   assert.equal(goldPerHour(s, levelsOf(s)), 0, "no bowls, no Gold");
   s.furniture.cottage1 = { bowl: 1, bed: 1 };
   assert.ok(goldPerHour(s, levelsOf(s)) > 0);
-  assert.equal(villagerCap(levelsOf(s), s), 3, "a fitted bed houses one more cat");
+  assert.equal(villagerCap(levelsOf(s), s), 2, "a fitted bed houses one more cat");
 });
 
 ok("an item cannot outgrow the building holding it", () => {
-  const it = furniture.itemsFor("kitchen")[0];
+  const it = furniture.itemsFor("lumber")[0];
   assert.equal(furniture.itemCap(it, 1), 1);
   assert.equal(furniture.itemCap(it, 5), 5);
   assert.equal(furniture.itemCap(it, 99), it.max);

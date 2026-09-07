@@ -2325,3 +2325,14 @@
   overflow: hidden;
 }
 .ttown .tt-help-bar i { display: block; height: 100%; background: #3f9d7d; }
+
+/* The explanation under a quest task. Shown until the task is claimed, then it
+   gets out of the way — a hint that outlives its usefulness becomes clutter. */
+.ttown .tt-task-hint {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #a4809a;
+  max-width: 52ch;
+}
