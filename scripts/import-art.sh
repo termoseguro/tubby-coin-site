@@ -13,7 +13,7 @@
 # actually connected to the edge.
 
 set -u
-IDS="hall adoption nap kitchen treats lumber quarry garden storehouse watchtower"
+IDS="hall adoption nap kitchen treats lumber quarry garden storehouse watchtower cottage clinic study gatehouse guildhall training range stable warroom forge palis icy scaffold"
 SRC="${1:-$HOME/Downloads}"
 OUT="$(cd "$(dirname "$0")/.." && pwd)/public/town"
 mkdir -p "$OUT"

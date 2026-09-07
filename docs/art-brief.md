@@ -100,6 +100,106 @@ ten buildings matters far more than any single one being pretty:
 
 ---
 
+---
+
+# ROUND 2 — the new buildings
+
+Same spec, same style line, same conversation in ChatGPT so the style carries.
+Save each as the filename shown, into Downloads, then `npm run art:import`.
+
+Priorities come from `kingshot-teardown.md`: P1 is needed for the next build,
+P2 once raids and alliances exist.
+
+### `cottage.png` — Cat Cottage · **P1**
+> A small cosy cat cottage where the town's cats live. Round windows with
+> curtains, a chimney with a little smoke curl, a cat flap in the door, two
+> tiny beds visible through a window, flower boxes. Warm cream walls, soft
+> coral roof.
+
+### `clinic.png` — Cat Clinic · **P1**
+> A small friendly clinic for cats. White walls with a soft mint trim, a big
+> red cross made of two cat-treat shapes above the door, a round window, a
+> bench outside, a lantern. Clean, calm, reassuring.
+
+### `study.png` — The Study · **P1**
+> A cosy little library where cats do research. Tall narrow building, arched
+> window with warm light inside, stacked books visible, a telescope poking out
+> of the roof, ivy climbing one wall. Deep teal walls, warm brown roof.
+
+### `gatehouse.png` — Gatehouse · **P1**
+> A sturdy little guard post at the town gate. Stone base, wooden upper floor,
+> a small bell, a shield with a paw print on it, a banner, a torch either side
+> of the arch. Warm grey stone, deep red roof.
+
+### `guildhall.png` — Guild Hall · P2
+> A welcoming meeting hall for allied cats. Wide low building, double doors
+> propped open, bunting strung across the front, a noticeboard with pinned
+> papers, benches outside. Honey-coloured wood, blue-grey roof.
+
+### `training.png` — Training Yard · P2
+> An open training yard for cats. Wooden fence, straw dummies with paw marks,
+> a rack of soft toy weapons, a small covered shelter at the back. Sandy
+> ground, warm timber, olive-green roof.
+
+### `range.png` — Slingshot Range · P2
+> A long narrow shooting range for cats. Wooden shooting line under a canopy,
+> round targets with a bullseye at the far end, a barrel of yarn balls.
+> Butter-yellow canopy, warm wood.
+
+### `stable.png` — Runner's Stable · P2
+> A stable for fast cats. Open-fronted wooden stable with three stalls, hay
+> bales, a water trough, a weather vane shaped like a running cat on the roof.
+> Warm brown wood, forest-green roof.
+
+### `warroom.png` — War Room · P2
+> A small command post. Round tower with a wide flat top, a table with a map
+> and little flags visible under an awning, a spyglass on a stand, banners.
+> Slate blue walls, deep navy roof.
+
+### `forge.png` — Golden Forge · P3
+> A small golden forge. Stone furnace glowing warm orange inside, an anvil
+> outside, tongs and hammers on a rack, gold ingots stacked beside it, sparks.
+> Warm stone, gold trim, dark iron roof.
+
+---
+
+# ROUND 3 — characters and states
+
+These are **not** buildings, so drop the "no characters" clause from the style
+line for these three and keep everything else.
+
+### `palis.png` — Palis, the antagonist
+> A mischievous cat villain, standing, full body, arms crossed, smirking. A
+> tiny dark cape and a crooked crown. Not scary — the kind of villain a child
+> would find funny. Same cute pastel style as the town, thick clean outlines,
+> on a plain flat white background.
+
+### `icy.png` — Icy, the helper
+> A kind cat helper, standing, full body, waving, warm friendly smile. A pale
+> blue scarf and a small satchel. Same cute pastel style as the town, thick
+> clean outlines, on a plain flat white background.
+
+### `scaffold.png` — construction overlay
+> Wooden scaffolding and planks forming an open frame, with a small ladder and
+> a bucket hanging from a rope. Nothing inside the frame — it must sit OVER a
+> building. Warm timber, on a plain flat white background.
+
+---
+
+# ROUND 4 — building level variants (later)
+
+Each P1 building eventually wants **three looks**: level 1–4, 5–9, 10+. Reuse
+the same prompt with one clause appended, so the building is recognisably the
+same place that grew:
+
+- level 5–9: *"…a larger, more established version of the same building: an
+  extra storey, more decoration, a bigger sign."*
+- level 10+: *"…the grandest version of the same building: taller, ornate trim,
+  gold detailing, banners, a well-kept garden around it."*
+
+Do not do this round until the P1 buildings are in and the loop is proven —
+it triples the art count for a purely cosmetic gain.
+
 ## Also useful, lower priority
 
 | File | What |
