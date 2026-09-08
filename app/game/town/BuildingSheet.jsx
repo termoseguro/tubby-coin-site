@@ -10,6 +10,7 @@
 // produce at the next level, the full multi-resource cost with have/need on
 // every line, the build time, and whether a builder is free.
 
+import VillagerFace from "../VillagerFace";
 import { BUILDINGS, BUILDING_INFO } from "../../../lib/townConfig";
 import { EFFECTS, itemCap, itemCost, itemSeconds } from "../../../lib/townFurniture";
 import { MAX_HELPS_PER_JOB, helpReduction, helpsLeft } from "../../../lib/townAlliance";
@@ -308,10 +309,9 @@ export default function BuildingSheet({
                       type="button"
                       className={"tt-crew-cat r-" + c.rarity}
                       onClick={() => onUnassign(c.key)}
-                      title="Take this cat off the job"
+                      title={`${c.name || "This cat"} — tap to send home`}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={c.art} alt="" />
+                      <VillagerFace id={c.id} rarity={c.rarity} size={44} />
                       <span>×</span>
                       <em>{catPower(c.rarity, c.level).toFixed(1)}</em>
                     </button>

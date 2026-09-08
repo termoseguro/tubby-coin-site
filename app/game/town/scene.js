@@ -16,6 +16,7 @@
 import { Application, Assets, Container, Graphics, Rectangle, Sprite, Text } from "pixi.js";
 import { BUILDINGS, FOCUS, HORIZON, PLAZA, RING_ROADS, WORLD, workSpot } from "../../../lib/townConfig";
 import { RARITIES } from "../../../lib/gameConfig";
+import { villagerArt } from "../../../lib/villagers";
 
 const RARITY_HEX = {
   common: 0xb3a3c4,
@@ -226,8 +227,15 @@ function namePlate(b) {
 // ---------------------------------------------------------------------------
 
 /** A townsfolk cat: the real portrait, in a white ring tinted by rarity, with
- *  a shadow that squashes as it bobs. */
-function makeCat(texture, rarity) {
+ *  a shadow that squashes as it bobs.
+ *
+ *  These were briefly generated vector cats, to stop villagers and heroes
+ *  looking alike. They were ugly and — worse — they had nothing to do with
+ *  Tubby Cats: a game about a cat collection whose streets are full of
+ *  clip-art has thrown away the only art it owns. The line between the two
+ *  systems is drawn by SHAPE instead: a villager is a round chip with a job,
+ *  a hero is a portrait card with stars and skills. Nobody confuses those. */
+function makeCat(cat, texture) {
   const c = new Container();
   const R = 23;
 
@@ -239,20 +247,32 @@ function makeCat(texture, rarity) {
 
   const ring = new Graphics();
   ring.circle(0, -R, R + 4).fill(0xffffff);
-  ring.circle(0, -R, R + 4).stroke({ width: 3.5, color: RARITY_HEX[rarity] || 0xb3a3c4, alignment: 0 });
+  ring
+    .circle(0, -R, R + 4)
+    .stroke({ width: 3.5, color: RARITY_HEX[cat.rarity] || 0xb3a3c4, alignment: 0 });
   body.addChild(ring);
 
-  const sprite = new Sprite(texture);
-  const size = R * 2;
-  sprite.width = size;
-  sprite.height = size;
-  sprite.anchor.set(0.5);
-  sprite.y = -R;
-
-  const mask = new Graphics();
-  mask.circle(0, -R, R).fill(0xffffff);
-  sprite.mask = mask;
-  body.addChild(mask, sprite);
+  if (texture) {
+    const sprite = new Sprite(texture);
+    sprite.width = R * 2;
+    sprite.height = R * 2;
+    sprite.anchor.set(0.5);
+    sprite.y = -R;
+    const mask = new Graphics();
+    mask.circle(0, -R, R).fill(0xffffff);
+    sprite.mask = mask;
+    body.addChild(mask, sprite);
+  } else {
+    // NO PICTURE IS NOT NO CAT. A missing file used to make the villager vanish
+    // from the town entirely — invisible, unexplained, and indistinguishable
+    // from a bug in the assignment code. It gets a plain disc instead and
+    // carries on working.
+    const blank = new Graphics();
+    blank.circle(0, -R, R).fill(RARITY_HEX[cat.rarity] || 0xb3a3c4);
+    blank.circle(-7, -R - 5, 3.4).fill(0x2a2230);
+    blank.circle(7, -R - 5, 3.4).fill(0x2a2230);
+    body.addChild(blank);
+  }
 
   // sleep bubble, hidden until napping
   const zzz = new Text({
@@ -712,25 +732,39 @@ export async function createTown(host, cats, opts = {}) {
   fence(decoBack, LX + LW - 200, LY + 150, 4);
   root.addChild(decoBack);
 
-  // in front of the buildings: a few big trees and lampposts that OVERLAP the
-  // buildings — occlusion is what turns a flat row into a scene
-  // Trees and lampposts that OVERLAP the buildings — occlusion is the cheapest
-  // depth cue there is. Placed around the plaza and along the ring gaps rather
-  // than at fixed pixels, so they still land correctly now the world is larger.
-  const frontProps = [
-    { fn: lamppost, x: PLAZA.x - 250, y: PLAZA.y + 110 },
-    { fn: lamppost, x: PLAZA.x + 250, y: PLAZA.y + 110 },
-    { fn: lamppost, x: PLAZA.x - 250, y: PLAZA.y - 120 },
-    { fn: lamppost, x: PLAZA.x + 250, y: PLAZA.y - 120 },
-    { fn: tree, x: PLAZA.x - 830, y: PLAZA.y + 480, s: 1.5 },
-    { fn: tree, x: PLAZA.x + 830, y: PLAZA.y + 480, s: 1.5 },
-    { fn: tree, x: PLAZA.x - 1120, y: PLAZA.y + 60, s: 1.45 },
-    { fn: tree, x: PLAZA.x + 1120, y: PLAZA.y + 60, s: 1.45 },
-    { fn: bush, x: PLAZA.x - 330, y: PLAZA.y + 330, s: 1.4 },
-    { fn: bush, x: PLAZA.x + 330, y: PLAZA.y + 330, s: 1.4 },
-    { fn: bush, x: PLAZA.x - 620, y: PLAZA.y - 300, s: 1.3 },
-    { fn: bush, x: PLAZA.x + 620, y: PLAZA.y - 300, s: 1.3 },
+  // ---- greenery that is NOT standing inside a wall -------------------------
+  //
+  // These used to be hand-placed at plaza-relative offsets, and the moment the
+  // layout changed they ended up inside buildings — trees growing out of roofs.
+  // Hand-placed decoration on a layout that moves is decoration that will be
+  // wrong again next week, so these are now CHOSEN: candidate spots are laid
+  // out on rings and every one that lands on a building is dropped.
+  const KEEP_CLEAR = 150;
+  const occupied = BUILDINGS.map((b) => ({ x: b.x, y: b.y }));
+  const clearOf = (x, y) =>
+    occupied.every((o) => Math.abs(o.x - x) > KEEP_CLEAR || Math.abs(o.y - y) > KEEP_CLEAR);
+
+  const frontProps = [];
+  const wantProps = [
+    { fn: lamppost, ring: 300, count: 4, from: 45, s: 1 },
+    { fn: tree, ring: 620, count: 7, from: 12, s: 1.45 },
+    { fn: bush, ring: 470, count: 8, from: 26, s: 1.3 },
+    { fn: tree, ring: 980, count: 9, from: 20, s: 1.5 },
+    { fn: bush, ring: 1240, count: 8, from: 8, s: 1.25 },
   ];
+  for (const w of wantProps) {
+    for (let i = 0; i < w.count; i++) {
+      const a = ((w.from + (360 / w.count) * i) * Math.PI) / 180;
+      const x = Math.round(PLAZA.x + Math.cos(a) * w.ring);
+      const y = Math.round(PLAZA.y + Math.sin(a) * w.ring * 0.6);
+      if (y < HORIZON + 140 || y > WORLD.h - 60) continue;
+      if (x < 60 || x > WORLD.w - 60) continue;
+      if (!clearOf(x, y)) continue;
+      frontProps.push({ fn: w.fn, x, y, s: w.s });
+      // A tree is scenery too — nothing else should be planted on top of it.
+      occupied.push({ x, y });
+    }
+  }
 
   // ---- world layer (buildings + cats, depth-sorted) ------------------------
   const world = new Container();
@@ -938,6 +972,7 @@ export async function createTown(host, cats, opts = {}) {
 
   /** Paint per-building state: { hall: { level, job: {pct} , ready } } */
   function setBuildingState(states = {}, selectedId = null) {
+    lastStates = states;
     for (const b of BUILDINGS) {
       const node = buildingNodes[b.id];
       if (!node) continue;
@@ -1045,11 +1080,65 @@ export async function createTown(host, cats, opts = {}) {
     }
   }
 
+  // ---- AMBIENT LIFE --------------------------------------------------------
+  //
+  // A town where only the cats move is a diorama with cats in it. Everything
+  // here is cheap — a sine on a rotation, a few drifting sprites — and together
+  // they are the difference between a picture and a place.
+  //
+  // Every prop is drawn around its own base so it can SWAY from the root rather
+  // than slide sideways, which is what makes it read as a breeze and not a
+  // glitch.
+  const swayers = [];
   for (const pr of frontProps) {
     const g = new Graphics();
-    pr.fn(g, pr.x, pr.y, pr.s);
+    pr.fn(g, 0, 0, pr.s);
+    g.x = pr.x;
+    g.y = pr.y;
     g.zIndex = pr.y + 2;
+    g.pivot.set(0, 0);
     world.addChild(g);
+    // Trees sway more than bushes, and lampposts do not sway at all.
+    const amp = pr.fn === tree ? 0.022 : pr.fn === bush ? 0.012 : 0;
+    if (amp > 0) swayers.push({ g, amp, phase: Math.random() * Math.PI * 2, speed: rand(0.5, 0.9) });
+  }
+
+  // Chimney smoke, from producers that are actually producing. It is the one
+  // ambient cue that carries information: a smoking building is a working one.
+  const smoke = [];
+  const smokeFor = (b) => ({ x: b.x + b.w * 0.22, y: b.y - b.h * 1.55 });
+  function puff(x, y) {
+    const g = new Graphics();
+    const r = rand(7, 12);
+    g.circle(0, 0, r).fill({ color: 0xffffff, alpha: 0.55 });
+    g.circle(-r * 0.5, r * 0.2, r * 0.7).fill({ color: 0xffffff, alpha: 0.45 });
+    g.x = x;
+    g.y = y;
+    g.zIndex = 90000;
+    world.addChild(g);
+    smoke.push({ g, life: 0, ttl: rand(2.6, 4), drift: rand(-9, 9) });
+  }
+
+  // Butterflies. Pure decoration, and the cheapest thing on this list that
+  // anybody actually notices.
+  const flutter = [];
+  for (let i = 0; i < 7; i++) {
+    const g = new Graphics();
+    const c = [0xfff0a8, 0xffd6ec, 0xd9c6ff, 0xbdeeff][i % 4];
+    g.ellipse(-4, 0, 4.5, 3).fill(c);
+    g.ellipse(4, 0, 4.5, 3).fill(c);
+    g.circle(0, 0, 1.6).fill(0x6b4a2f);
+    g.zIndex = 90001;
+    world.addChild(g);
+    flutter.push({
+      g,
+      x: rand(200, WORLD.w - 200),
+      y: rand(HORIZON + 200, WORLD.h - 200),
+      a: rand(0, Math.PI * 2),
+      speed: rand(22, 42),
+      turn: rand(-0.9, 0.9),
+      phase: rand(0, 10),
+    });
   }
 
   const fx = new Container();
@@ -1085,6 +1174,67 @@ export async function createTown(host, cats, opts = {}) {
     a.state = "walk";
   }
 
+  // ---- where a cat with no job goes ---------------------------------------
+  //
+  // Cats at home are not employed, so they have nowhere to BE — and a cat with
+  // nowhere to be is the thing that makes a town look inhabited rather than
+  // staffed. They loaf: a slow walk to somewhere on the road, a long sit, then
+  // somewhere else.
+  //
+  // The spots are sampled off the ring roads the scene already draws and then
+  // filtered against the buildings, so nobody ends up sitting inside a wall —
+  // the same mistake the trees used to make.
+  const LOAF_SPOTS = (() => {
+    const out = [];
+    const clear = (x, y) =>
+      BUILDINGS.every((b) => Math.abs(b.x - x) > 170 || Math.abs(b.y - y) > 140);
+    // The drawn roads, plus two rings between them: sampling only the three
+    // real roads left 10 usable spots for 10 cats, and they stood on top of
+    // each other. The grass between rings is walkable too.
+    const rings = [...RING_ROADS, { rx: 980, ry: 490, dy: 45 }, { rx: 640, ry: 340, dy: 20 }];
+    for (const r of rings) {
+      for (let i = 0; i < 40; i++) {
+        const t = (i / 40) * Math.PI * 2;
+        const x = PLAZA.x + Math.cos(t) * r.rx;
+        const y = PLAZA.y + r.dy + Math.sin(t) * r.ry;
+        const inside =
+          x > 200 && x < WORLD.w - 200 && y > HORIZON + 160 && y < WORLD.h - 160;
+        if (inside && clear(x, y)) out.push({ x, y });
+      }
+    }
+    // The plaza is always walkable and always the middle of the frame, so it
+    // gets its own ring — this is where the town reads as busy.
+    for (let i = 0; i < 9; i++) {
+      const t = (i / 9) * Math.PI * 2;
+      out.push({ x: PLAZA.x + Math.cos(t) * 190, y: PLAZA.y + Math.sin(t) * 105 });
+    }
+    return out;
+  })();
+
+  /** Send a loafer somewhere else. */
+  function loafSomewhere(a) {
+    // Mostly a short hop, occasionally the long way across town. All short
+    // hops looks like pacing in a cage; all long ones looks like a commute.
+    const near = Math.random() < 0.68;
+    const pool = near
+      ? LOAF_SPOTS.filter((p) => Math.hypot(p.x - a.node.x, p.y - a.node.y) < 560)
+      : LOAF_SPOTS;
+    const to = pick(pool.length ? pool : LOAF_SPOTS);
+    a.target = null;
+    a.route = [{ x: to.x + rand(-46, 46), y: to.y + rand(-26, 26) }];
+    a.leg = 0;
+    a.state = "stroll";
+  }
+
+  /** Stop and be a cat for a while. */
+  function sitDown(a) {
+    a.state = "sit";
+    a.timer = rand(3.5, 11);
+    // Every so often one of them dozes off in the sun. It costs a boolean.
+    a.dozing = Math.random() < 0.28;
+    a.node.__zzz.visible = a.dozing;
+  }
+
   function spawnCoin(x, y) {
     const g = new Graphics();
     g.circle(0, 0, 7).fill(0xffd23f);
@@ -1103,13 +1253,45 @@ export async function createTown(host, cats, opts = {}) {
     // Slot index WITHIN a building, so two cats at the same building stand
     // side by side instead of on top of each other.
     const seat = {};
-    list.forEach((cat, i) => {
-      const node = makeCat(cat.texture, cat.rarity);
-      const home =
-        BUILDINGS.find((b) => b.id === cat.building && PRODUCERS_ONLY.includes(b.id)) || pick(WORKABLE);
+    list.forEach((cat) => {
+      const node = makeCat(cat, cat.texture);
+      const home = cat.building
+        ? BUILDINGS.find((b) => b.id === cat.building && PRODUCERS_ONLY.includes(b.id))
+        : null;
+
+      // A cat with no building is a cat at home — it loafs instead of working.
+      // Note the difference from the old code, which handed an unassigned cat a
+      // random workable building: that made idle cats look employed, which is
+      // exactly the confusion between workers and residents we spent a session
+      // untangling in the UI.
+      if (!home) {
+        const spot = pick(LOAF_SPOTS);
+        node.x = spot.x + rand(-46, 46);
+        node.y = spot.y + rand(-26, 26);
+        node.zIndex = node.y + 1;
+        world.addChild(node);
+        const a = {
+          key: cat.key,
+          node,
+          home: null,
+          slot: 0,
+          state: "sit",
+          target: null,
+          // Staggered, so they do not all stand up on the same frame.
+          timer: rand(0.4, 9),
+          bob: rand(0, Math.PI * 2),
+          // Loafers amble. Workers have somewhere to be.
+          speed: rand(20, 32),
+          route: [],
+          leg: 0,
+          dozing: false,
+        };
+        agents.push(a);
+        return;
+      }
+
       const slot = (seat[home.id] = (seat[home.id] || 0) + 1) - 1;
-      const start = home;
-      const spot = workSpot(start, slot);
+      const spot = workSpot(home, slot);
       node.x = spot.x;
       node.y = spot.y;
       node.zIndex = spot.y + 1;
@@ -1120,7 +1302,7 @@ export async function createTown(host, cats, opts = {}) {
         home,
         slot,
         state: "work",
-        target: start,
+        target: home,
         timer: rand(2, 7),
         bob: rand(0, Math.PI * 2),
         speed: rand(34, 52),
@@ -1131,18 +1313,22 @@ export async function createTown(host, cats, opts = {}) {
     });
   }
 
+  // One texture per distinct cat, cached. A failed load is NOT a dropped cat
+  // any more — makeCat falls back to a plain disc, so a villager you own is
+  // always somewhere in the town even when its file is missing.
   const textures = {};
   async function setCats(list) {
     const resolved = [];
     for (const c of list) {
-      if (!textures[c.art]) {
+      const url = villagerArt(c.id);
+      if (textures[url] === undefined) {
         try {
-          textures[c.art] = await Assets.load(c.art);
+          textures[url] = await Assets.load(url);
         } catch {
-          continue;
+          textures[url] = null;
         }
       }
-      resolved.push({ ...c, texture: textures[c.art] });
+      resolved.push({ ...c, texture: textures[url] });
     }
     buildAgents(resolved);
   }
@@ -1150,9 +1336,24 @@ export async function createTown(host, cats, opts = {}) {
   await setCats(cats);
 
   // ---- the loop ------------------------------------------------------------
+  // REDUCED MOTION MEANS LESS MOTION, NOT A FROZEN TOWN.
+  //
+  // This used to return out of the whole ticker, which stopped the cats dead —
+  // and a cat walking to the Kitchen is INFORMATION, not decoration. On a
+  // machine with Windows animation effects switched off (very common, it is the
+  // default on anything tuned for performance) the entire town simply never
+  // moved, which reads as a broken game rather than as an accessibility
+  // setting being respected.
+  //
+  // So the split is by MEANING: things that tell the player something keep
+  // moving, gently. Things that exist to be pretty stop.
   const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
 
   let bounceT = 0;
+  let clock = 0;
+  let smokeTimer = 0;
+  let lastStates = {};
+
   app.ticker.add((ticker) => {
     const dt = Math.min(ticker.deltaMS, 60) / 1000;
 
@@ -1161,33 +1362,91 @@ export async function createTown(host, cats, opts = {}) {
       if (c.g.x > WORLD.w + 120) c.g.x = -120;
     }
 
-    if (reduced) return;
+    // ---- the town breathing -------------------------------------------------
+    clock += dt;
+
+    // A breeze. One sine per prop, offset so they do not move as one object.
+    // Pure decoration, so it is the first thing reduced motion switches off.
+    if (!reduced) {
+      for (const w of swayers) {
+        w.g.rotation = Math.sin(clock * w.speed + w.phase) * w.amp;
+      }
+    }
+
+    // Smoke, only from buildings that are actually producing — the one piece of
+    // decoration here that also tells you something.
+    // Smoke is decoration that happens to carry information, so it stays on a
+    // reduced-motion machine but drifts more slowly.
+    smokeTimer -= dt;
+    if (smokeTimer <= 0) {
+      smokeTimer = rand(0.5, 1.1);
+      const working = BUILDINGS.filter(
+        (b) => PRODUCERS_ONLY.includes(b.id) && (lastStates[b.id]?.rate || 0) > 0
+      );
+      if (working.length) {
+        const b = working[Math.floor(Math.random() * working.length)];
+        const at = smokeFor(b);
+        puff(at.x + rand(-4, 4), at.y);
+      }
+    }
+    for (let i = smoke.length - 1; i >= 0; i--) {
+      const s2 = smoke[i];
+      s2.life += dt;
+      const t = s2.life / s2.ttl;
+      s2.g.y -= dt * (reduced ? 12 : 26);
+      s2.g.x += s2.drift * dt * (reduced ? 0.4 : 1);
+      s2.g.alpha = Math.max(0, 0.55 * (1 - t));
+      s2.g.scale.set(1 + t * 1.4);
+      if (t >= 1) {
+        s2.g.destroy();
+        smoke.splice(i, 1);
+      }
+    }
+
+    // Butterflies are decoration and nothing else. Off.
+    for (const f of reduced ? [] : flutter) {
+      f.a += f.turn * dt;
+      f.x += Math.cos(f.a) * f.speed * dt;
+      f.y += Math.sin(f.a) * f.speed * 0.5 * dt;
+      if (f.x < 120 || f.x > WORLD.w - 120) f.a = Math.PI - f.a;
+      if (f.y < HORIZON + 160 || f.y > WORLD.h - 120) f.a = -f.a;
+      f.g.x = f.x;
+      f.g.y = f.y + Math.sin(clock * 6 + f.phase) * 5;
+      // The wing flap is a scale, not a sprite swap — one line, reads fine.
+      f.g.scale.x = 0.55 + Math.abs(Math.sin(clock * 9 + f.phase)) * 0.6;
+    }
 
     for (const a of agents) {
-      a.bob += dt * (a.state === "walk" ? 9 : 3.2);
+      // The bob is the decorative half of a cat. Walking is not.
+      const strolling = a.state === "stroll";
+      a.bob +=
+        reduced ? 0 : dt * (a.state === "walk" ? 9 : strolling ? 5.6 : 3.2);
       const body = a.node.__body;
       const shadow = a.node.__shadow;
 
-      if (a.state === "walk") {
+      // Walking and strolling are the same movement; only the ending differs —
+      // a worker arrives at a shift, a loafer arrives at nothing in particular.
+      if (a.state === "walk" || strolling) {
+        const arrive = () => {
+          if (strolling) sitDown(a);
+          else if (a.target.cottage) {
+            a.state = "entering";
+            a.t = 0;
+          } else {
+            a.state = "work";
+            a.timer = rand(6, 14);
+          }
+        };
         const leg = a.route[a.leg];
         if (!leg) {
-          a.state = "work";
-          a.timer = rand(5, 12);
+          arrive();
         } else {
           const dx = leg.x - a.node.x;
           const dy = leg.y - a.node.y;
           const dist = Math.hypot(dx, dy);
           if (dist < 2) {
             a.leg += 1;
-            if (a.leg >= a.route.length) {
-              if (a.target.cottage) {
-                a.state = "entering";
-                a.t = 0;
-              } else {
-                a.state = "work";
-                a.timer = rand(6, 14);
-              }
-            }
+            if (a.leg >= a.route.length) arrive();
           } else {
             const step = Math.min(a.speed * dt, dist);
             a.node.x += (dx / dist) * step;
@@ -1195,11 +1454,22 @@ export async function createTown(host, cats, opts = {}) {
             if (Math.abs(dx) > 1) body.scale.x = dx < 0 ? -1 : 1;
           }
         }
-        // walk bounce
-        const bounce = Math.abs(Math.sin(a.bob)) * 5;
+        // walk bounce — smaller on a stroll, because an amble is not a march
+        const bounce = Math.abs(Math.sin(a.bob)) * (strolling ? 3.2 : 5);
         body.y = -bounce;
+        body.rotation = 0;
         shadow.scale.set(1 - bounce / 26, 1 - bounce / 20);
         a.node.__zzz.visible = false;
+      } else if (a.state === "sit") {
+        // A cat at rest. Breathing and a slow lean, nothing more — and no coin,
+        // because a cat at home earns nothing and the scene must not imply it
+        // does. Dozing shows the zzz the nappers use.
+        body.y = Math.sin(a.bob * 0.9) * 1.5;
+        body.rotation = Math.sin(a.bob * 0.4) * 0.05;
+        shadow.scale.set(1, 1);
+        a.node.__zzz.visible = !!a.dozing;
+        a.timer -= dt;
+        if (a.timer <= 0) loafSomewhere(a);
       } else if (a.state === "work") {
         // working bob, slower and smaller — plus coins
         const bob = Math.sin(a.bob) * 2.6;
@@ -1311,6 +1581,13 @@ export async function createTown(host, cats, opts = {}) {
       }
     }
   });
+
+  // Dev-only handle on the scene. Verifying that a town is actually MOVING is
+  // impossible from screenshots — two frames of a cat mid-stride look the same
+  // — and this is the difference between checking and guessing.
+  if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
+    window.__TOWN__ = { app, root, world, buildingNodes, agents, reduced };
+  }
 
   return {
     setCats,

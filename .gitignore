@@ -11,3 +11,10 @@
 
 # npm run check builds here so it never disturbs the dev server
 .next-check
+
+# The full-collection pull: 20,000 cats is ~340MB of WebP plus a traits cache.
+# Kept out of git deliberately — `npm run cats:all` rebuilds it from IPFS and
+# `npm run cats:index` rebuilds the manifest from whatever is on disk. The
+# manifest itself (lib/catPool.json) IS committed; it is the part the game reads.
+/public/cats/
+/data/

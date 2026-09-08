@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "private": true,
-  "description": "$TUBBY \u2014 community coin of the tubby cats universe on Solana",
+  "description": "$TUBBY — community coin of the tubby cats universe on Solana",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -23,7 +23,8 @@
     "check:rls": "node scripts/check-rls.mjs",
     "cats:pull": "node scripts/pull-cats.mjs",
     "cats:index": "node scripts/index-cats.mjs",
-    "check:progress": "node scripts/check-progress.mjs"
+    "check:progress": "node scripts/check-progress.mjs",
+    "cats:all": "node scripts/pull-all-cats.mjs"
   },
   "dependencies": {
     "next": "^14.2.35",

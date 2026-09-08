@@ -510,7 +510,23 @@
       "WebFetch(domain:kingshot.net)",
       "WebFetch(domain:buffhub.com)",
       "Bash(node scripts/check-progress.mjs 12)",
-      "Bash(node scripts/check-progress.mjs 14)"
+      "Bash(node scripts/check-progress.mjs 14)",
+      "Bash(node scripts/pull-cats.mjs 1200)",
+      "Bash(magick ~/Downloads/scaffold.png -alpha set -fuzz 18% -transparent white -trim +repage -resize 768x768\\\\> -quality 92 public/town/scaffold.webp)",
+      "Bash(magick public/town/scaffold.webp -format \"centre alpha: %[pixel:p{384,300}]\\\\ncorner alpha: %[pixel:p{5,5}]\\\\n\" info:)",
+      "Bash(node --input-type=module -e \"import p from './lib/catPool.json' with {type:'json'}; const b={}; p.cats.forEach\\(c=>b[c.rarity]=\\(b[c.rarity]||0\\)+1\\); console.log\\(p.pulled, JSON.stringify\\(b\\)\\);\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\); p.scripts['cats:all']='node scripts/pull-all-cats.mjs'; require\\('fs'\\).writeFileSync\\('package.json', JSON.stringify\\(p,null,2\\)+'\\\\n'\\); console.log\\(JSON.stringify\\(p.scripts,null,2\\)\\);\")",
+      "Bash(node scripts/pull-all-cats.mjs --limit 24 --conc 8)",
+      "Bash(node scripts/pull-all-cats.mjs --conc 6)",
+      "Bash(awk 'NR>=2842 && NR<=2912' app/game/page.jsx)",
+      "Bash(sed -i 's|import { villagerShapes } from \"../../../lib/villagerLook\";|import { villagerArt } from \"../../../lib/villagers\";|' app/game/town/scene.js)",
+      "Bash(sed -i 's|const node = makeCat\\(cat\\);|const node = makeCat\\(cat, cat.texture\\);|' app/game/town/scene.js)",
+      "Bash(sed -i 's|^  setCats\\(cats\\);|  await setCats\\(cats\\);|' app/game/town/scene.js)",
+      "Bash(rm -f lib/villagerLook.js)",
+      "Bash(node -e \"const p=require\\('./lib/catPool.json'\\); console.log\\(p.pulled, JSON.stringify\\(p.cats[0]\\)\\)\")",
+      "Bash(SP=C:/Users/Rafa/AppData/Local/Temp/claude/C--Users-Rafa-tubby-coin-site/72c6d889-dd40-4521-a842-e38fa8ba689c/scratchpad node -e ' *)",
+      "Bash(echo \"progress exit: $?\")",
+      "Bash(echo \"layout exit: $?\")"
     ]
   }
 }

@@ -1552,35 +1552,44 @@
 /* ---------- the next-action button ----------
    The hook every Century Games title is built around: always knows what is
    next, so the player never opens the game and wonders what to touch. */
+/* WHAT TO DO NEXT — a chip, not a banner.
+   A gold slab across the middle of the town reads as an advert for the game's
+   own UI, and it sat there pulsing whether or not it had anything worth saying.
+   Quiet, small, off to the side, and absent entirely when there is no move
+   worth naming. */
 .tt-next {
   position: absolute;
   left: 50%;
-  bottom: 78px;
+  /* Above the tab bar, not on it. */
+  bottom: 76px;
   transform: translateX(-50%);
   z-index: 40;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  max-width: calc(100% - 32px);
-  padding: 13px 22px;
-  font: 800 0.98rem/1 var(--font-body);
-  color: #6a4300;
-  background: linear-gradient(180deg, var(--g1), var(--g2));
-  border: 3px solid #fff;
-  border-radius: 20px;
+  gap: 8px;
+  max-width: calc(100% - 220px);
+  padding: 8px 15px;
+  font: 800 0.8rem/1 var(--font-body);
+  color: #7a5a70;
+  background: rgba(255, 255, 255, 0.92);
+  border: 2px solid var(--line);
+  border-radius: 999px;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.8), 0 5px 0 var(--g3), 0 12px 24px var(--drop);
-  animation: tt-nextpulse 2.4s ease-in-out infinite;
+  box-shadow: 0 3px 0 var(--line-2);
+  backdrop-filter: blur(3px);
 }
-.tt-next svg { flex: 0 0 auto; }
-.tt-next:active { transform: translateX(-50%) translateY(4px); box-shadow: inset 0 2px 0 rgba(255,255,255,.7), 0 1px 0 var(--g3); }
-@keyframes tt-nextpulse {
-  0%, 100% { box-shadow: inset 0 2px 0 rgba(255,255,255,.8), 0 5px 0 var(--g3), 0 12px 24px var(--drop); }
-  50% { box-shadow: inset 0 2px 0 rgba(255,255,255,.8), 0 5px 0 var(--g3), 0 12px 30px rgba(255, 195, 39, 0.6); }
+.tt-next::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ffc327;
+  flex: 0 0 auto;
 }
+.tt-next:active { transform: translateX(-50%) translateY(2px); box-shadow: 0 1px 0 var(--line-2); }
 
 /* ---------- auto-assign ---------- */
 .tt-auto {
@@ -2398,3 +2407,218 @@
 /* An empty seat with nobody to fill it still looks pressable, and pressing it
    explains itself. */
 .ttown .tt-crew-empty.waiting { opacity: 0.75; }
+
+/* ==========================================================================
+   VILLAGERS — the Adoption Center roster, the shift strip, and the Album
+   ==========================================================================
+   A villager is a ROUND CHIP. A hero is a portrait CARD. That difference is
+   the whole reason the two systems stopped being confusable, so it is held
+   here rather than left to whoever writes the next screen.
+   ========================================================================== */
+
+.tt-vface {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--rc, var(--r-common));
+  overflow: hidden;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
+}
+.tt-vface img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ---------- the population line ---------- */
+.tt-popbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border-radius: 18px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.tt-popbar b { color: var(--ink); font-size: 1rem; }
+.tt-popbar em { font-style: normal; margin-left: auto; }
+.tt-popbar .tt-mini { margin-left: auto; }
+
+/* ---------- segmented filter ---------- */
+.tt-seg {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--line);
+  margin-left: auto;
+}
+.tt-seg-wide { display: flex; margin: 0 0 14px; }
+.tt-seg button {
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tt-seg button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.tt-seg-wide button { flex: 1; }
+
+/* ---------- the roster ---------- */
+.tt-vgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+  margin-bottom: 22px;
+}
+.tt-vcard {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px;
+  border-radius: 18px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-left: 5px solid var(--rc, var(--r-common));
+}
+.tt-vcard.on { background: #fffdf3; border-color: var(--r-legendary); }
+.tt-vcard-b { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.tt-vcard-b b { font-size: 0.92rem; line-height: 1.1; }
+.tt-vcard-b small { font-size: 0.72rem; font-weight: 700; }
+.tt-vcard .tt-mini { align-self: flex-start; }
+.tt-vsel {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 6px;
+  border-radius: 10px;
+  border: 2px solid var(--line-2);
+  background: #fff;
+  color: var(--ink);
+  max-width: 100%;
+  cursor: pointer;
+}
+
+/* ---------- who is on shift, under the map ---------- */
+.tt-shift { margin: 14px 0 6px; }
+.tt-shift .tt-slots {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+.tt-shift-cat {
+  flex: none;
+  width: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 6px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-bottom: 4px solid var(--rc, var(--r-common));
+  font: inherit;
+  cursor: pointer;
+}
+.tt-shift-cat b { font-size: 0.76rem; line-height: 1; }
+.tt-shift-cat small { font-size: 0.66rem; color: var(--ink-soft); line-height: 1.1; text-align: center; }
+.tt-shift-cat:active { transform: translateY(2px); }
+
+.tt-empty {
+  padding: 18px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 2px dashed var(--line-2);
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  text-align: center;
+}
+.tt-empty.small { padding: 12px 14px; font-size: 0.8rem; }
+
+/* ---------- the album ---------- */
+.tt-albumbar {
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  margin-bottom: 14px;
+}
+.tt-albumbar-t {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.tt-albumbar-t b { font-size: 1.05rem; }
+.tt-albumbar-t span { color: var(--ink-soft); font-size: 0.8rem; }
+.tt-albumbar small { display: block; margin-top: 7px; font-size: 0.75rem; }
+
+.tt-acard {
+  margin: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-top: 5px solid var(--rc, var(--r-common));
+}
+.tt-acard img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+.tt-acard figcaption { padding: 7px 9px 9px; display: flex; flex-direction: column; gap: 2px; }
+.tt-acard figcaption b { font-size: 0.8rem; line-height: 1.1; }
+.tt-acard figcaption small { font-size: 0.68rem; color: var(--ink-soft); text-transform: capitalize; }
+/* a hero's frame is unmistakable: gold edge, and the caption says so */
+.tt-acard.as-hero { box-shadow: inset 0 0 0 2px var(--r-legendary); }
+
+/* An h3 that carries a filter on its right. Without this the segmented control
+   sat on top of the heading text — `margin-left:auto` needs a flex parent. */
+.tt-h3:has(.tt-seg) {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ---------- panel text colour ----------
+   `.tt-panel-over` paints its text white for the headings that sit on the pink.
+   Every CARD inside it is a light surface, so each one has to say so — the
+   Adoption roster and the Album shipped once with white names on white cards,
+   which is invisible rather than subtle. */
+.tt-popbar,
+.tt-vcard,
+.tt-shift-cat,
+.tt-albumbar,
+.tt-acard,
+.tt-empty,
+.tt-seg {
+  color: var(--ink);
+  text-shadow: none;
+}
+.tt-albumbar-t b,
+.tt-acard figcaption b,
+.tt-vcard-b b,
+.tt-shift-cat b { color: var(--ink); }
+.tt-albumbar small,
+.tt-albumbar-t span,
+.tt-acard figcaption small,
+.tt-shift-cat small,
+.tt-popbar em { color: var(--ink-soft); }
+
+/* The town caption is hidden because white on a white sky is unreadable, and
+   the city does not need a label saying it is the city. That rule sat on
+   `.tt-stage` and so also hid the heading of every TAB drawn over the stage —
+   including the one sentence explaining that villagers are not heroes. */
+.tt-stage .tt-panel-over .tt-shead { display: block; }

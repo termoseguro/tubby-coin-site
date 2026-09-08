@@ -24,13 +24,24 @@ for id in $IDS; do
     f="$SRC/$id.$ext"
     [ -f "$f" ] || continue
 
-    magick "$f" \
-      -alpha set -bordercolor white -border 1 \
-      -fuzz 14% -fill none -draw "alpha 0,0 floodfill" \
-      -shave 1x1 -trim +repage \
-      -resize 768x768\> \
-      -quality 92 \
-      "$OUT/$id.webp"
+    if [ "$id" = "scaffold" ]; then
+      # The scaffold is an OPEN FRAME, and that breaks the usual method: a
+      # corner floodfill only eats background CONNECTED to the edge, so the
+      # area enclosed by the frame stayed white and every building under
+      # construction wore a white box. Scaffolding is all timber with no white
+      # to lose, so a global white->transparent is safe here — and only here.
+      # Never do this to a building with cream walls; it punches holes in them.
+      magick "$f" -alpha set -fuzz 18% -transparent white \
+        -trim +repage -resize 768x768\> -quality 92 "$OUT/$id.webp"
+    else
+      magick "$f" \
+        -alpha set -bordercolor white -border 1 \
+        -fuzz 14% -fill none -draw "alpha 0,0 floodfill" \
+        -shave 1x1 -trim +repage \
+        -resize 768x768\> \
+        -quality 92 \
+        "$OUT/$id.webp"
+    fi
 
     size=$(du -h "$OUT/$id.webp" | cut -f1)
     echo "  ✓ $id  ($size)"

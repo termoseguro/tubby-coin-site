@@ -13,13 +13,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { config } from "../../lib/config";
 import {
-  POOLS,
   RARITIES,
   RARITY_ORDER,
   catRate,
   game,
   holdTier,
-  rollCat,
+  rollRarity,
   shardsToLevel,
 } from "../../lib/gameConfig";
 import {
@@ -76,8 +75,15 @@ import {
   stageReward,
 } from "../../lib/conquest";
 import catPool from "../../lib/catPool.json";
-import { HERO_BY_ID } from "../../lib/heroes";
-import { makeVillager, pickVillager } from "../../lib/villagers";
+import { HERO_BY_ID, heroArt } from "../../lib/heroes";
+import {
+  makeVillager,
+  pickVillager,
+  villagerArt,
+  villagerIdFromKey,
+  villagerName,
+} from "../../lib/villagers";
+import VillagerFace from "./VillagerFace";
 import {
   HELPS_TO_CLEAR,
   PROBLEMS,
@@ -131,7 +137,14 @@ import {
   unlockedItems,
   SEAT_LEVELS,
 } from "../../lib/townFurniture";
-import { BUILDINGS, BUILDING_INFO, COTTAGE_IDS, nextUnlock, unlockedAt } from "../../lib/townConfig";
+import {
+  BUILDINGS,
+  BUILDING_BY_ID,
+  BUILDING_INFO,
+  COTTAGE_IDS,
+  nextUnlock,
+  unlockedAt,
+} from "../../lib/townConfig";
 import ResourceBar from "./town/ResourceBar";
 import {
   PRODUCERS,
@@ -154,6 +167,7 @@ import {
   buildingSlotPriceUsd,
   slotsIn,
   villagerCap,
+  workersAllowed,
   goldPerHour,
   producedOver,
   cottageBeds,
@@ -187,12 +201,23 @@ const RARITY_AT_LEAST = (r, floor) =>
 const RUSH_HOURS = 4;
 const TICK_MS = 250;
 
-const catKey = (c) => `${c.rarity}|${c.art}`;
+// A villager is identified by its rarity and its id, NOT by a picture: the
+// picture is drawn from the id now (lib/villagerLook.js), and keying on an
+// image path is what let a villager and a hero share an identity.
+const catKey = (c) => `${c.rarity}|${c.id ?? villagerIdFromKey(c.art || "")}`;
 
 function freshSave() {
-  const starter = { rarity: "common", art: rollCat("common").art, level: 1, shards: 0 };
+  // The first villager. A real cat with a real name from the first minute —
+  // the town is never staffed by an anonymous placeholder.
+  const starter = pickVillager(catPool.cats, "common") || {
+    rarity: "common",
+    id: 0,
+    name: villagerName(0),
+    level: 1,
+    shards: 0,
+  };
   return {
-    v: 3,
+    v: 4,
     // Kingshot-shaped economy: five gathered resources plus the premium one,
     // each produced by its own building and capped by the Storehouse.
     // Kingshot opens you with almost nothing and the Sawmill. Ours matches:
@@ -240,7 +265,6 @@ function freshSave() {
     lastVisitAt: Date.now(),
 
     cats: { [catKey(starter)]: starter },
-    slotted: [catKey(starter)],
     slots: game.startSlots,
     bowlHours: game.startBowlHours,
     lastSeen: Date.now(),
@@ -356,8 +380,8 @@ function fillVillagers(s) {
   if (have >= beds) return s;
 
   const cats = { ...s.cats };
-  const taken = new Set(Object.values(cats).map((c) => c.art));
-  const free = catPool.cats.filter((c) => c.rarity === "common" && !taken.has(c.art));
+  const taken = new Set(Object.values(cats).map((c) => c.id));
+  const free = catPool.cats.filter((c) => c.rarity === "common" && !taken.has(c.id));
   let moved = 0;
   for (let i = have; i < beds && free.length; i++) {
     const v = makeVillager(free.splice(Math.floor(Math.random() * free.length), 1)[0]);
@@ -600,6 +624,27 @@ function migrate(s) {
     s = migrateToCottages(s);
     s.v = 3;
   }
+
+  // ---- v4: villagers stopped being pictures ---------------------------------
+  // Every villager now needs an id, because the id is both the name and the
+  // drawn face. Old saves keyed them by `rarity|art` with neither, so they are
+  // given one derived from that key — stable, so a cat the player already knows
+  // keeps its name across the change instead of being reshuffled.
+  if ((s.v || 0) < 4) {
+    const cats = {};
+    for (const [k, c] of Object.entries(s.cats || {})) {
+      const id = c.id ?? villagerIdFromKey(k);
+      const next = { ...c, id, name: c.name || villagerName(id) };
+      delete next.art;
+      cats[k] = next;
+    }
+    s.cats = cats;
+    // The old Album's "send to work" list. Assignment is per building now, and
+    // this array has driven nothing for a long time.
+    delete s.slotted;
+    s.v = 4;
+  }
+
   return clampCrew(s);
 }
 
@@ -791,26 +836,23 @@ export default function TubbyTown() {
   }, [save]);
 
   // ---- actions -------------------------------------------------------------
+  /** Fold adopted villagers into the town. A duplicate becomes a shard on the
+   *  cat you already have, so no adoption is ever wasted. */
   const addCats = useCallback((s, rolls) => {
     const cats = { ...s.cats };
     const results = [];
     for (const roll of rolls) {
+      if (!roll) continue;
       const k = catKey(roll);
       if (cats[k]) {
         cats[k] = { ...cats[k], shards: cats[k].shards + 1 };
         results.push({ ...roll, dupe: true });
       } else {
-        cats[k] = { rarity: roll.rarity, art: roll.art, level: 1, shards: 0 };
+        cats[k] = roll;
         results.push({ ...roll, dupe: false });
       }
     }
-    // auto-slot anything new while there is room
-    const slotted = [...s.slotted];
-    for (const r of results) {
-      const k = catKey(r);
-      if (!r.dupe && slotted.length < s.slots && !slotted.includes(k)) slotted.push(k);
-    }
-    return { next: { ...s, cats, slotted }, results };
+    return { next: { ...s, cats }, results };
   }, []);
 
   const doPull = useCallback(
@@ -835,9 +877,13 @@ export default function TubbyTown() {
               forceMin = game.pity.tenPullFloor;
             }
           }
-          const roll = rollCat(forceMin);
-          if (RARITY_ORDER.indexOf(roll.rarity) >= RARITY_ORDER.indexOf("legendary")) pity = 0;
-          rolls.push(roll);
+          // The wheel decides the RARITY; the collection decides who turns up.
+          // Adoption used to roll a picture out of the same 25-image set the
+          // heroes use, which is how a worker and a five-star hero ended up
+          // being the same cat.
+          const rarity = rollRarity(forceMin);
+          if (RARITY_ORDER.indexOf(rarity) >= RARITY_ORDER.indexOf("legendary")) pity = 0;
+          rolls.push(pickVillager(catPool.cats, rarity));
         }
         const { next, results } = addCats({ ...s, res: { ...s.res, treats: T(s) - cost }, pity }, rolls);
         setPullResult(results);
@@ -871,23 +917,6 @@ export default function TubbyTown() {
             [key]: { ...cat, level: cat.level + 1, shards: cat.shards - needShards },
           },
         };
-      });
-    },
-    [flash]
-  );
-
-  const toggleSlot = useCallback(
-    (key) => {
-      setSave((s) => {
-        if (!s) return s;
-        if (s.slotted.includes(key)) {
-          return { ...s, slotted: s.slotted.filter((k) => k !== key) };
-        }
-        if (s.slotted.length >= s.slots) {
-          flash("Town is full — free a slot or buy another.");
-          return s;
-        }
-        return { ...s, slotted: [...s.slotted, key] };
       });
     },
     [flash]
@@ -1582,6 +1611,11 @@ export default function TubbyTown() {
           );
           return s;
         }
+        const cap = workersAllowed(levelOf(s, "hall"));
+        if (assignedCount(s) >= cap) {
+          flash(`The Cat Hall only allows ${cap} cats at work. Raise it for more.`);
+          return s;
+        }
         const key = catKey || idleCats(s)[0];
         if (!key) {
           // Not "no villagers left" — the cats exist, they are all working.
@@ -1673,28 +1707,59 @@ export default function TubbyTown() {
   const autoAssign = useCallback(() => {
     setSave((s) => {
       if (!s) return s;
-      const slots = totalSlots(s);
+
+      // ONLY BUILDINGS THAT EXIST. This used to round-robin across every entry
+      // in PRODUCERS, built or not, and a cat sent to an empty plot produces
+      // exactly nothing — the button said "5 cats put to work" and the rates
+      // never moved. Seats are counted per building and a level-0 building has
+      // none of them (see slotsIn).
+      const open = Object.keys(PRODUCERS)
+        .map((id) => ({ id, seats: slotsAt(s, id) }))
+        .filter((b) => b.seats > 0);
+
+      if (!open.length) {
+        flash("Nothing is built yet for them to work in.");
+        return s;
+      }
+
+      // Both caps bind: the cottages say how many cats there are, the Cat Hall
+      // says how many of them may work, and the buildings say how many seats
+      // there are to sit in. Kingshot has the same three.
+      const seatTotal = open.reduce((a, b) => a + b.seats, 0);
+      const slots = Math.min(
+        seatTotal,
+        totalSlots(s),
+        workersAllowed(levelOf(s, "hall"))
+      );
+
       const ranked = Object.entries(s.cats)
         .map(([key, c]) => ({ key, ...c, p: catPower(c.rarity, c.level) }))
         .sort((a, b) => b.p - a.p)
         .slice(0, slots);
-      const producers = Object.keys(PRODUCERS);
+
       const assign = {};
       const per = {};
-      // round-robin the best cats across the buildings, so the strongest cat
-      // lands somewhere different each pass rather than stacking in one shed
+      // Round-robin so the buildings fill evenly and nothing is left empty —
+      // an idle Kitchen starves the town however good the Lumber Yard is.
       ranked.forEach((c, i) => {
-        for (let t = 0; t < producers.length; t++) {
-          const id = producers[(i + t) % producers.length];
-          if ((per[id] || 0) < slotsAt(s, id)) {
-            assign[c.key] = id;
-            per[id] = (per[id] || 0) + 1;
+        for (let t = 0; t < open.length; t++) {
+          const b = open[(i + t) % open.length];
+          if ((per[b.id] || 0) < b.seats) {
+            assign[c.key] = b.id;
+            per[b.id] = (per[b.id] || 0) + 1;
             return;
           }
         }
       });
+
       const n = Object.keys(assign).length;
-      flash(`${n} cat${n === 1 ? "" : "s"} put to work.`);
+      // The leftovers are the interesting half of the message: a player with
+      // twelve cats and four seats needs to know the seats are the wall.
+      const idle = Object.keys(s.cats).length - n;
+      flash(
+        `${n} cat${n === 1 ? "" : "s"} put to work` +
+          (idle > 0 ? ` · ${idle} still at home, no room` : ".")
+      );
       return { ...s, assign };
     });
   }, [flash]);
@@ -1897,9 +1962,22 @@ export default function TubbyTown() {
     if (isStarving(save)) {
       return { label: "Out of Fish — grow the Kitchen", run: () => { setTab("town"); setPicked("kitchen"); } };
     }
+    // Only offer this when there is somewhere to actually put them. Suggesting
+    // "put 18 idle cats to work" when every seat is full and the Cat Hall is at
+    // its cap is worse than saying nothing — the player taps it, nothing
+    // happens, and the button stops meaning anything.
     const idle = idleCats(save).length;
-    if (idle > 0 && assignedCount(save) < totalSlots(save)) {
-      return { label: `Put ${idle} idle cat${idle === 1 ? "" : "s"} to work`, run: autoAssign };
+    const room =
+      Math.min(atWorkCap, totalSlots(save)) - assignedCount(save) > 0 &&
+      BUILDINGS.some(
+        (b) =>
+          PRODUCERS[b.id] &&
+          levelOf(save, b.id) >= 1 &&
+          headsPerBuilding(save)[b.id] || 0 < slotsAt(save, b.id)
+      );
+    if (idle > 0 && room) {
+      const n = Math.min(idle, Math.min(atWorkCap, totalSlots(save)) - assignedCount(save));
+      return { label: `Put ${n} cat${n === 1 ? "" : "s"} to work`, run: autoAssign };
     }
     // Furniture before buildings: it is cheaper, it is faster, and it is what
     // the next building level is waiting on anyway.
@@ -1935,7 +2013,8 @@ export default function TubbyTown() {
     if (canPull) {
       return { label: "Adopt a new cat", run: () => setTab("litter") };
     }
-    return { label: "Nothing waiting — the town is working", run: () => setTab("town") };
+    // Nothing useful to say, so say nothing and give the map its middle back.
+    return null;
   }
 
   // Resources appear as their producer comes online — six counters on day one
@@ -1954,6 +2033,7 @@ export default function TubbyTown() {
   const idleCount = idleCats(save).length;
   const homesFree = Math.max(0, totalSlots(save) - villagerCount);
   const levelsTop = levelsOf(save);
+  const atWorkCap = workersAllowed(levelsTop.hall);
   const coming = nextUnlock(levelsTop.hall);
 
   // A resource appears when its building does, not before. Six counters on day
@@ -2071,7 +2151,7 @@ export default function TubbyTown() {
                   levels, so a healthy town always has more residents than jobs.
                   They are at home earning Gold. Say that instead. */}
               <b className="mono">
-                {assignedCount(save)} working <em>· {idleCount} at home</em>
+                {assignedCount(save)} of {atWorkCap} working <em>· {idleCount} at home</em>
               </b>
             </span>
           </button>
@@ -2124,7 +2204,6 @@ export default function TubbyTown() {
           <TownTab
             save={save}
             collection={collection}
-            onToggle={toggleSlot}
             onLevel={levelUp}
             picked={picked}
             onPick={setPicked}
@@ -2156,11 +2235,17 @@ export default function TubbyTown() {
         {tab !== "town" && (
           <div className="tt-panel-over">
             {tab === "litter" && (
-              <LitterTab save={save} canPull={canPull} pityLeft={pityLeft} onPull={doPull} />
+              <AdoptionTab
+                save={save}
+                canPull={canPull}
+                pityLeft={pityLeft}
+                onPull={doPull}
+                onAssign={assignCat}
+                onUnassign={unassignCat}
+                onAutoAssign={autoAssign}
+              />
             )}
-            {tab === "album" && (
-              <AlbumTab collection={collection} save={save} onToggle={toggleSlot} onLevel={levelUp} />
-            )}
+            {tab === "album" && <AlbumTab save={save} />}
             {tab === "board" && (
               <BoardTab save={save} onHold={(h) => setSave((s) => ({ ...s, hold: h }))} />
             )}
@@ -2201,11 +2286,15 @@ export default function TubbyTown() {
         />
       )}
 
+      {/* WHAT TO DO NEXT — a chip, not a banner.
+          A gold bar across the middle of the town reads as an advert for the
+          game's own UI, and when it has nothing useful to say it is just in the
+          way. It only appears when there is a real next move. */}
       {(() => {
         const a = nextAction();
+        if (!a) return null;
         return (
           <button className="tt-next" type="button" onClick={a.run}>
-            <IconTreat size={18} />
             {a.label}
           </button>
         );
@@ -2336,9 +2425,10 @@ export default function TubbyTown() {
                 <span className="tt-pull-rays" aria-hidden="true" />
                 <span className="tt-frame">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={r.art} alt="" loading="eager" />
+                  <img src={villagerArt(r.id)} alt="" loading="eager" />
                 </span>
                 <figcaption>
+                  <b>{r.name || villagerName(r.id)}</b>
                   {RARITIES[r.rarity].name}
                   {r.dupe && <span className="tt-dupe">+1 shard</span>}
                 </figcaption>
@@ -2372,7 +2462,10 @@ function Res({ icon, value, label, accent }) {
 function townRate(s) {
   const mult = holdTier(s.hold).mult;
   let total = 0;
-  for (const k of s.slotted) {
+  // Reads the REAL crew. It used to sum `s.slotted`, an array left over from
+  // before villagers were assigned per building — so this number stopped
+  // moving the day assignment changed and nobody noticed.
+  for (const k of Object.keys(s.assign || {})) {
     const c = s.cats[k];
     if (c) total += catRate(c.rarity, c.level);
   }
@@ -2386,7 +2479,6 @@ function townRate(s) {
 function TownTab({
   save,
   collection,
-  onToggle,
   onLevel,
   picked,
   onPick,
@@ -2469,27 +2561,57 @@ function TownTab({
   // scope it cannot see.
   const buildersFree = save.builders - Object.keys(save.jobs || {}).length;
 
-  /** The cats actually working at a building, with their art. */
+  /** The villagers actually working at a building. */
   const crewAt = (id) =>
     Object.entries(save.assign || {})
       .filter(([, b]) => b === id)
       .map(([k]) => ({ key: k, ...save.cats[k] }))
-      .filter((c) => c.art);
+      .filter((c) => c.rarity);
 
-  // Only cats on shift walk the town — the scene shows who is actually working.
-  const townCats = useMemo(
-    () =>
-      Object.entries(save.assign || {})
-        .map(([k, building]) => [save.cats[k], building])
-        .filter(([c]) => c)
-        .map(([c, building]) => ({
-          key: `${c.rarity}|${c.art}`,
-          art: c.art,
-          rarity: c.rarity,
-          building,
-        })),
-    [save.assign, save.cats]
-  );
+  const idleCount = idleCats(save).length;
+
+  // WHO WALKS THE TOWN.
+  //
+  // Cats on shift walk to their building and work there — the scene shows the
+  // player's own staffing decision back to them. But a town with three workers
+  // and eleven beds used to sit almost completely still, which reads as broken
+  // rather than as "you have not hired anyone yet".
+  //
+  // So the cats at home come out too. They have no building, they earn nothing,
+  // and they stroll: the "N at home" number in the villager chip becomes a
+  // thing you can actually see loafing around the plaza. It is the same trick
+  // Hay Day plays with its idle animals — the population IS the ambience.
+  //
+  // Capped, because the sprite count is the frame rate. Ten loafers is plenty
+  // to make a town look inhabited; the eleventh is only heat.
+  const MAX_LOAFERS = 10;
+  const townCats = useMemo(() => {
+    const assign = save.assign || {};
+    // The town draws villagers from their id (lib/villagerLook.js), so that is
+    // all it needs. Older saves predate ids, hence the fallback — a villager
+    // without one used to be dropped from the scene entirely.
+    const at = (k, c, building) => ({
+      key: k,
+      id: c.id ?? villagerIdFromKey(k),
+      rarity: c.rarity,
+      building,
+    });
+
+    const working = Object.entries(assign)
+      .map(([k, building]) => [k, save.cats[k], building])
+      .filter(([, c]) => c)
+      .map(([k, c, building]) => at(k, c, building));
+
+    // Rarest first, so the ones worth looking at are the ones on screen.
+    const order = { mythic: 0, legendary: 1, epic: 2, rare: 3, common: 4 };
+    const home = Object.entries(save.cats || {})
+      .filter(([k]) => !assign[k])
+      .sort((a, b) => (order[a[1].rarity] ?? 9) - (order[b[1].rarity] ?? 9))
+      .slice(0, MAX_LOAFERS)
+      .map(([k, c]) => at(k, c, null));
+
+    return [...working, ...home];
+  }, [save.assign, save.cats]);
 
   return (
     <>
@@ -2570,167 +2692,120 @@ function TownTab({
         />
       )}
 
-      {/* ---- the slot strip ----
-          Who is on shift, and the empty plots waiting to be filled. */}
-      <div className="tt-scene compact">
-        <div className="tt-slots">
-          {Array.from({ length: save.slots }).map((_, i) => {
-            const key = save.slotted[i];
-            const cat = key ? save.cats[key] : null;
-            if (!cat) {
-              return (
-                <div key={i} className="tt-slot empty" style={{ "--i": i }}>
-                  <span className="tt-plot">
-                    <IconPlus size={24} />
-                  </span>
-                  <span className="tt-shadow" aria-hidden="true" />
-                </div>
-              );
-            }
-            const r = catRate(cat.rarity, cat.level);
-            const cycle = cycleFor(r);
-            return (
-              <button
-                key={i}
-                type="button"
-                className={"tt-slot r-" + cat.rarity}
-                onClick={() => onToggle(key)}
-                title="Click to take out of town"
-                style={{ "--cycle": `${cycle}s`, "--i": i }}
-              >
-                <span className="tt-coin c1" aria-hidden="true">
-                  <IconCoin size={16} />
-                </span>
-                <span className="tt-coin c2" aria-hidden="true">
-                  <IconCoin size={12} />
-                </span>
-                <span className="tt-char">
-                  <span className="tt-slot-art">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={cat.art} alt="" loading="lazy" />
-                  </span>
-                  <span className="tt-lvl">{cat.level}</span>
-                  <span className="tt-sparkle s1" aria-hidden="true" />
-                  <span className="tt-sparkle s2" aria-hidden="true" />
-                </span>
-                <span className="tt-shadow" aria-hidden="true" />
-                <span className="tt-work" aria-hidden="true">
-                  <i />
-                </span>
-                <span className="tt-slot-rate mono">{fmtRate(r)}/s</span>
-              </button>
-            );
-          })}
-        </div>
+      {/* The roster used to be repeated here as a strip of cards. It could not
+          stay: everything TownTab renders that is not the canvas floats OVER
+          the map, so the strip sat on top of the town. The town already says
+          who is working — the cats are standing in the buildings, and the chip
+          counts them — and the Adoption Center owns the full roster now. */}
+
+      {idleCount > 0 && (
+        <button className="tt-auto" type="button" onClick={onAutoAssign}>
+          <IconPaw size={17} />
+          Auto-assign best cats
+        </button>
+      )}
+
+    </>
+  );
+}
+
+/** THE ADOPTION CENTER — your population, and where it comes from.
+ *
+ *  This screen used to be a bare gacha box with a drop table, and the villagers
+ *  it produced lived on a different screen that could not assign them. So the
+ *  player pulled cats and never saw what they were for.
+ *
+ *  Kingshot keeps the two halves together: you recruit survivors and you put
+ *  them to work in the same breath, because "how many do I have" and "where are
+ *  they" are one question. So the roster is here, under the box that fills it,
+ *  and every card can be sent to a building without leaving the page.
+ *
+ *  A VILLAGER IS NOT A HERO, and this page says so in as many words. Same
+ *  collection, two systems: a villager is a round chip with a job, a hero is a
+ *  portrait card with stars and skills. */
+function AdoptionTab({
+  save,
+  canPull,
+  pityLeft,
+  onPull,
+  onAssign,
+  onUnassign,
+  onAutoAssign,
+}) {
+  const [filter, setFilter] = useState("all");
+  const pityPct = Math.min(100, (save.pity / game.pity.hardAt) * 100);
+
+  const levels = levelsOf(save);
+  const atWorkCap = workersAllowed(levels.hall);
+
+  // Buildings that exist and have room. A level-0 building has no seats at all
+  // — see slotsIn — so an unbuilt plot never appears here.
+  const openBuildings = Object.keys(PRODUCERS)
+    .map((id) => {
+      const seats = slotsAt(save, id);
+      const taken = Object.values(save.assign || {}).filter((b) => b === id).length;
+      return { id, name: BUILDING_BY_ID[id]?.name || id, seats, taken };
+    })
+    .filter((b) => b.seats > 0);
+
+  const seatTotal = openBuildings.reduce((a, b) => a + b.seats, 0);
+  const working = Object.keys(save.assign || {}).length;
+  const roster = Object.entries(save.cats || {})
+    .map(([key, c]) => ({ key, ...c, at: save.assign?.[key] || null }))
+    .sort(
+      (a, b) =>
+        RARITY_ORDER.indexOf(b.rarity) - RARITY_ORDER.indexOf(a.rarity) ||
+        b.level - a.level ||
+        (a.name || "").localeCompare(b.name || "")
+    );
+  const shown = roster.filter((c) =>
+    filter === "all" ? true : filter === "working" ? c.at : !c.at
+  );
+
+  /** The first building with a free seat, so one tap works. The dropdown is
+   *  for when the player cares which; the button is for when they do not. */
+  const firstFree = openBuildings.find((b) => b.taken < b.seats);
+  const roomLeft = Math.min(seatTotal, atWorkCap) - working;
+
+  return (
+    <>
+      <SectionHead
+        title="Adoption Center"
+        hint="Villagers are your population: they live in the cottages and stand inside buildings doing the work. They are not heroes — heroes have stars and skills and never take a shift."
+      />
+
+      {/* WHERE THE POPULATION STANDS, in one line of real numbers. Every
+          complaint about this system has been the counters disagreeing with
+          each other, so they are all computed from the same three facts. */}
+      <div className="tt-popbar">
+        <span>
+          <b>{roster.length}</b> villagers
+        </span>
+        <span>
+          <b>
+            {working} of {Math.min(seatTotal, atWorkCap)}
+          </b>{" "}
+          working
+        </span>
+        <span>
+          <b>{roster.length - working}</b> at home
+        </span>
+        {roomLeft > 0 && firstFree ? (
+          <button type="button" className="tt-mini" onClick={onAutoAssign}>
+            Fill {roomLeft} {roomLeft === 1 ? "seat" : "seats"}
+          </button>
+        ) : (
+          <em className="quiet">
+            {seatTotal === 0
+              ? "No building is finished yet"
+              : working >= atWorkCap
+                ? `Cat Hall ${levels.hall} allows ${atWorkCap} at work`
+                : "Every seat is taken"}
+          </em>
+        )}
       </div>
 
-      <button className="tt-auto" type="button" onClick={onAutoAssign}>
-        <IconPaw size={17} />
-        Auto-assign best cats
-      </button>
-
-
-
-    </>
-  );
-}
-
-/** The Album — every cat in the game, the ones you have and the ones you do
- *  not. The gap is the product: a player who can see exactly which three Epics
- *  are missing has a reason to pull that no stat boost provides. Pairs with the
- *  Adoption Center — you adopt a cat, it joins the family album. */
-function AlbumTab({ collection, save, onToggle, onLevel }) {
-  const owned = new Set(collection.map((c) => `${c.rarity}|${c.art}`));
-  const total = RARITY_ORDER.reduce((a, r) => a + POOLS[r].length, 0);
-  const pct = Math.round((owned.size / total) * 100);
-
-  return (
-    <>
-      <SectionHead
-        title={`Family Album · ${owned.size}/${total}`}
-        hint={`${pct}% of the tubby cats have moved in. Empty frames are the ones still waiting at the Adoption Center.`}
-      />
-
-      {[...RARITY_ORDER].reverse().map((rarity) => {
-        const pool = POOLS[rarity];
-        const have = pool.filter((art) => owned.has(`${rarity}|${art}`)).length;
-        return (
-          <section key={rarity} className="tt-album-sec">
-            <h3 className="tt-album-h" style={{ color: RARITIES[rarity].color }}>
-              {RARITIES[rarity].name}
-              <span>
-                {have}/{pool.length}
-              </span>
-            </h3>
-            <div className="tt-album">
-              {pool.map((art) => {
-                const key = `${rarity}|${art}`;
-                const cat = save.cats[key];
-                if (!cat) {
-                  return (
-                    <div key={art} className={"tt-frame-empty r-" + rarity} title="Not adopted yet">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={art} alt="" loading="lazy" />
-                      <span>?</span>
-                    </div>
-                  );
-                }
-                const inTown = save.slotted.includes(key);
-                const needShards = shardsToLevel(cat.rarity, cat.level);
-                const needTreats = game.levelUpTreats(cat.level, RARITIES[cat.rarity].mult);
-                const ready = cat.shards >= needShards && T(save) >= needTreats;
-                return (
-                  <article key={art} className={"tt-card r-" + rarity + (inTown ? " in" : "")}>
-                    <span className="tt-frame">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={art} alt="" loading="lazy" />
-                      <span className="tt-lvl">{cat.level}</span>
-                    </span>
-                    <div className="tt-card-b">
-                      <div className="tt-shardbar" title={`${cat.shards} / ${needShards} shards`}>
-                        <i style={{ width: `${Math.min(100, (cat.shards / needShards) * 100)}%` }} />
-                        <span className="mono">
-                          {cat.shards}/{needShards}
-                        </span>
-                      </div>
-                      <div className="tt-card-actions">
-                        <button
-                          type="button"
-                          className={"tt-mini" + (inTown ? " on" : "")}
-                          onClick={() => onToggle(key)}
-                        >
-                          {inTown ? "Working" : "Send to work"}
-                        </button>
-                        <button
-                          type="button"
-                          className="tt-mini gold"
-                          onClick={() => onLevel(key)}
-                          disabled={!ready}
-                        >
-                          Level
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
-    </>
-  );
-}
-
-function LitterTab({ save, canPull, pityLeft, onPull }) {
-  const pityPct = Math.min(100, (save.pity / game.pity.hardAt) * 100);
-  return (
-    <>
-      <SectionHead
-        title="Litter Box"
-        hint="Every drop rate is published below and never changes silently."
-      />
-
+      {/* ---- the box that makes villagers ---- */}
       <div className="tt-pullbox">
         <div className="tt-pullbox-art" aria-hidden="true">
           <span className="tt-pullglow" />
@@ -2739,7 +2814,7 @@ function LitterTab({ save, canPull, pityLeft, onPull }) {
         <div className="tt-pullbox-b">
           <div className="tt-pullrow">
             <button className="tt-btn" type="button" disabled={!canPull} onClick={() => onPull(1)}>
-              Pull ×1 · {fmt(game.pullCostTreats)}
+              Adopt ×1 · {fmt(game.pullCostTreats)}
             </button>
             <button
               className="tt-btn alt"
@@ -2747,20 +2822,94 @@ function LitterTab({ save, canPull, pityLeft, onPull }) {
               disabled={T(save) < game.pullCostTreats * 10}
               onClick={() => onPull(10)}
             >
-              Pull ×10 · {fmt(game.pullCostTreats * 10)}
+              Adopt ×10 · {fmt(game.pullCostTreats * 10)}
             </button>
           </div>
           <div className="tt-pitybar" title="Progress to the guaranteed Legendary+">
             <i style={{ width: `${pityPct}%` }} />
           </div>
           <div className="tt-pity mono">
-            Guaranteed Legendary+ in {pityLeft} {pityLeft === 1 ? "pull" : "pulls"} · {save.pulls}{" "}
-            pulled all time
+            Guaranteed Legendary+ in {pityLeft} {pityLeft === 1 ? "adoption" : "adoptions"} ·{" "}
+            {save.pulls} adopted all time
           </div>
         </div>
       </div>
 
-      <h3 className="tt-h3">Drop rates</h3>
+      {/* ---- the roster ---- */}
+      <h3 className="tt-h3">
+        Your villagers
+        <span className="tt-seg">
+          {[
+            ["all", `All ${roster.length}`],
+            ["working", `Working ${working}`],
+            ["home", `At home ${roster.length - working}`],
+          ].map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              className={filter === k ? "on" : ""}
+              onClick={() => setFilter(k)}
+            >
+              {label}
+            </button>
+          ))}
+        </span>
+      </h3>
+
+      {shown.length === 0 ? (
+        <p className="tt-empty">
+          {filter === "working"
+            ? "Nobody is on shift. Send someone to a building and it starts producing."
+            : filter === "home"
+              ? "Everybody is working. Build another Cat Cottage to house more."
+              : "No villagers yet."}
+        </p>
+      ) : (
+        <div className="tt-vgrid">
+          {shown.map((c) => {
+            const rate = catPower(c.rarity, c.level);
+            return (
+              <article key={c.key} className={"tt-vcard r-" + c.rarity + (c.at ? " on" : "")}>
+                <VillagerFace id={c.id} rarity={c.rarity} size={54} name={c.name} />
+                <div className="tt-vcard-b">
+                  <b>{c.name || villagerName(c.id)}</b>
+                  <small style={{ color: RARITIES[c.rarity].color }}>
+                    {RARITIES[c.rarity].name}
+                    {c.level > 1 && ` · lv ${c.level}`} · ×{rate.toFixed(1)}
+                  </small>
+                  {c.at ? (
+                    <button
+                      type="button"
+                      className="tt-mini on"
+                      onClick={() => onUnassign(c.key)}
+                      title="Send this villager home"
+                    >
+                      {BUILDING_BY_ID[c.at]?.name || c.at}
+                    </button>
+                  ) : openBuildings.length ? (
+                    <select
+                      className="tt-vsel"
+                      value=""
+                      onChange={(e) => e.target.value && onAssign(e.target.value, c.key)}
+                    >
+                      <option value="">Send to work…</option>
+                      {openBuildings.map((b) => (
+                        <option key={b.id} value={b.id} disabled={b.taken >= b.seats}>
+                          {b.name} {b.taken}/{b.seats}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <em className="quiet">Nowhere to work yet</em>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      <h3 className="tt-h3">Adoption odds</h3>
       <div className="tt-odds">
         {[...RARITY_ORDER].reverse().map((k) => (
           <div key={k} className={"tt-odd r-" + k}>
@@ -2770,28 +2919,138 @@ function LitterTab({ save, canPull, pityLeft, onPull }) {
             </span>
             <span className="tt-odd-pct mono">{RARITIES[k].odds.toFixed(2)}%</span>
             <span className="tt-odd-mult mono">×{RARITIES[k].mult}</span>
-            <span className="tt-odd-pool mono">{POOL_SIZES[k]} art</span>
           </div>
         ))}
       </div>
 
       <ul className="tt-rules">
         <li>
-          <b>Hard guarantee</b> — {game.pity.hardAt} pulls without a Legendary or better and the
-          next pull is one.
+          <b>Rarity is production</b> — a Legendary villager produces {RARITIES.legendary.mult}×
+          what a Common does in the same seat. Where they work is your choice; how much they are
+          worth is theirs.
         </li>
         <li>
-          <b>10× floor</b> — every ten-pull contains at least one Epic or better.
+          <b>Hard guarantee</b> — {game.pity.hardAt} adoptions without a Legendary or better and
+          the next one is.
         </li>
         <li>
-          <b>No wasted pulls</b> — duplicates become shards that level the cat you already own.
+          <b>10× floor</b> — every ten-adopt contains at least one Epic or better.
+        </li>
+        <li>
+          <b>Nothing is wasted</b> — a cat you already have comes back as a shard and levels the
+          one at home.
         </li>
       </ul>
     </>
   );
 }
 
-const POOL_SIZES = Object.fromEntries(RARITY_ORDER.map((k) => [k, POOLS[k].length]));
+/** THE ALBUM — the Tubby Cats collection itself.
+ *
+ *  It used to be a grid of twenty-five placeholder images with "send to work"
+ *  buttons wired to an array nothing read any more: the wrong cats, the wrong
+ *  buttons, and a screen that lied about what it did.
+ *
+ *  Now it is the one place the COLLECTION is the subject. Every cat you meet —
+ *  adopted as a villager, recruited as a hero — turns its frame over and stays
+ *  there. That is the long tail of twenty thousand CC0 cats given a purpose,
+ *  and it is the only screen here with nothing to click, on purpose: a
+ *  collection you can spend is not a collection. */
+function AlbumTab({ save }) {
+  const [filter, setFilter] = useState("all");
+
+  // Every cat this player has ever met, and HOW they met it. The badge is what
+  // stops the album re-creating the villager/hero confusion: the same artwork
+  // can appear as both, and the frame says which one you are looking at.
+  const met = new Map();
+  for (const c of Object.values(save.cats || {})) {
+    if (c.id == null) continue;
+    met.set(c.id, { id: c.id, rarity: c.rarity, as: "villager", name: c.name || villagerName(c.id) });
+  }
+  for (const id of Object.keys(save.heroes || {})) {
+    const h = HERO_BY_ID[id];
+    if (!h) continue;
+    const art = heroArt(h.id, catPool.cats);
+    const tokenId = art ? Number(String(art).replace(/\D+/g, "")) : null;
+    if (tokenId == null || Number.isNaN(tokenId)) continue;
+    met.set(tokenId, { id: tokenId, rarity: h.rarity, as: "hero", name: h.name });
+  }
+
+  const all = [...met.values()].sort(
+    (a, b) => RARITY_ORDER.indexOf(b.rarity) - RARITY_ORDER.indexOf(a.rarity) || a.id - b.id
+  );
+  const shown = all.filter((c) => (filter === "all" ? true : c.as === filter));
+  const heroes = all.filter((c) => c.as === "hero").length;
+
+  // The collection is 20,000 cats. The honest denominator is the whole thing,
+  // not the sample that happens to be downloaded — a progress bar measured
+  // against a moving target is not a progress bar.
+  const TOTAL = 20000;
+  const pct = (all.length / TOTAL) * 100;
+
+  return (
+    <>
+      <SectionHead
+        title="Tubby Cats"
+        hint="Every cat you meet keeps its frame here. Adopt one and it moves in as a villager; recruit one and it joins the roster as a hero. The collection is 20,000 cats and it is CC0 — these are really yours to look at."
+      />
+
+      <div className="tt-albumbar">
+        <div className="tt-albumbar-t">
+          <b>
+            {all.length} of {TOTAL.toLocaleString("en-US")}
+          </b>
+          <span className="mono">{pct < 0.01 ? "<0.01" : pct.toFixed(2)}%</span>
+        </div>
+        <div className="tt-sheet-bar">
+          <i style={{ width: `${Math.max(0.6, Math.min(100, pct))}%` }} />
+        </div>
+        <small className="quiet">
+          {all.length - heroes} met as villagers · {heroes} as heroes
+        </small>
+      </div>
+
+      <div className="tt-seg tt-seg-wide">
+        {[
+          ["all", `All ${all.length}`],
+          ["villager", `Villagers ${all.length - heroes}`],
+          ["hero", `Heroes ${heroes}`],
+        ].map(([k, label]) => (
+          <button
+            key={k}
+            type="button"
+            className={filter === k ? "on" : ""}
+            onClick={() => setFilter(k)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {shown.length === 0 ? (
+        <p className="tt-empty">
+          Nothing here yet. Produce Treats, adopt a cat at the Adoption Center, and its frame turns
+          over.
+        </p>
+      ) : (
+        <div className="tt-album">
+          {shown.map((c) => (
+            <figure key={c.id} className={"tt-acard r-" + c.rarity + " as-" + c.as}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={villagerArt(c.id)} alt={c.name} loading="lazy" />
+              <figcaption>
+                <b>{c.name}</b>
+                <small>
+                  #{c.id} · {c.as}
+                </small>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
 
 function BoardTab({ save, onHold }) {
   const [wallets, setWallets] = useState(1);
