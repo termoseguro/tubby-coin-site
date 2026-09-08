@@ -129,6 +129,7 @@ import {
   itemsFor,
   seatsFromLevel,
   unlockedItems,
+  SEAT_LEVELS,
 } from "../../lib/townFurniture";
 import { BUILDINGS, BUILDING_INFO, COTTAGE_IDS, nextUnlock, unlockedAt } from "../../lib/townConfig";
 import ResourceBar from "./town/ResourceBar";
@@ -1563,22 +1564,28 @@ export default function TubbyTown() {
   );
 
   /** Put a cat to work at a building. The player picks; nothing is automatic. */
+  /** Put a cat to work. Every refusal SAYS why and names the fix — this button
+   *  used to be disabled with the reason hidden in a `title`, which on touch is
+   *  no reason at all, and the whole thing read as broken. */
   const assignCat = useCallback(
     (buildingId, catKey = null) => {
       setSave((s) => {
         if (!s) return s;
+        const level = levelOf(s, buildingId);
         const here = Object.values(s.assign || {}).filter((b) => b === buildingId).length;
         if (here >= slotsAt(s, buildingId)) {
-          flash("This building has no free place — buy one for it.");
-          return s;
-        }
-        if (assignedCount(s) >= totalSlots(s)) {
-          flash("No villagers left — grow the Cat Hall.");
+          const next = SEAT_LEVELS.find((l) => l > level);
+          flash(
+            next
+              ? `Full. Another place opens at level ${next}.`
+              : "Full — three is the most any building takes."
+          );
           return s;
         }
         const key = catKey || idleCats(s)[0];
         if (!key) {
-          flash("Every cat already has a job.");
+          // Not "no villagers left" — the cats exist, they are all working.
+          flash("Every cat is already working. Raise a Cat Cottage for another.");
           return s;
         }
         return { ...s, assign: { ...s.assign, [key]: buildingId } };
@@ -2049,9 +2056,9 @@ export default function TubbyTown() {
             type="button"
             onClick={() => setPicked(growCottage)}
             title={
-              homesFree > 0
-                ? `${homesFree} empty bed${homesFree === 1 ? "" : "s"} — a cat will move in shortly`
-                : "Raise a Cat Cottage to make room for another villager"
+              idleCount > 0
+                ? `${idleCount} at home earning Gold. Raise a building to open another work place.`
+                : "Everyone is working. Raise a Cat Cottage for another villager."
             }
           >
             <span className="tt-cap-i">
@@ -2059,11 +2066,12 @@ export default function TubbyTown() {
             </span>
             <span className="tt-cap-n">
               <small>Cat villagers</small>
-              {/* IDLE CATS, not empty beds. The two are different numbers and
-                  showing the wrong one told the player they had five villagers
-                  to place when they had none. */}
+              {/* "18 idle of 24" reads as a fault the player must fix, and it
+                  is not one: seats inside buildings come from those buildings'
+                  levels, so a healthy town always has more residents than jobs.
+                  They are at home earning Gold. Say that instead. */}
               <b className="mono">
-                {idleCount} idle <em>of {villagerCount}</em>
+                {assignedCount(save)} working <em>· {idleCount} at home</em>
               </b>
             </span>
           </button>
@@ -2538,7 +2546,7 @@ function TownTab({
           idle={idleCats(save).map((k) => ({ key: k, ...save.cats[k] }))}
           slotsUsed={assignedCount(save)}
           slotsTotal={totalSlots(save)}
-          villagersFree={totalSlots(save) - assignedCount(save)}
+          villagersFree={idleCats(save).length}
 
           boostUntil={save.boosts?.[picked] || 0}
           onUpgrade={() => onUpgrade(picked)}

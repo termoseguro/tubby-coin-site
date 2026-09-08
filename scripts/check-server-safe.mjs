@@ -181,6 +181,19 @@ ok("furniture raises output, beds and Gold", () => {
   assert.equal(villagerCap(levelsOf(s), s), 2, "a fitted bed houses one more cat");
 });
 
+ok("a cat at home is never wasted — it earns Gold", () => {
+  // Seats inside buildings come from those buildings' levels, so a healthy town
+  // ALWAYS has more residents than jobs. Reported as "18 idle of 24" that reads
+  // as a fault; paid as Gold it is the reason to keep building cottages, and it
+  // is why Kingshot's Houses are its second-biggest source of idle Gold.
+  const cats = {};
+  for (let i = 0; i < 10; i++) cats["c" + i] = { rarity: "common", art: "a" + i };
+  const busy = { cats, assign: Object.fromEntries(Object.keys(cats).map((k) => [k, "kitchen"])) };
+  const home = { cats, assign: {} };
+  assert.equal(economy.residentGold(busy), 0, "a working cat earns resources, not Gold");
+  assert.ok(economy.residentGold(home) > 0, "a cat at home earns Gold");
+});
+
 ok("a villager place inside a building comes from the building's own level", () => {
   // Kingshot's Kitchen reads "+1 Working Survivor" at levels 1, 4 and 7 and
   // stops at three. A town with eleven beds and a level-2 Kitchen can still

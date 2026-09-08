@@ -2374,3 +2374,27 @@
 }
 .ttown .tt-palis-card b { display: block; font-size: 13px; color: #b03a55; margin-bottom: 4px; }
 .ttown .tt-palis-card small { display: block; font-size: 11.5px; color: #8a5a6c; line-height: 1.45; }
+
+/* The seat this building does not have yet. Drawn rather than hidden, because
+   a cap the player cannot see is a cap they experience as a broken button. */
+.ttown .tt-crew-next {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 9px;
+}
+.ttown .tt-crew-ghost {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 2px dashed #e0c9d8;
+  display: grid;
+  place-items: center;
+  color: #d3b6c8;
+  font-size: 18px;
+  font-weight: 800;
+}
+.ttown .tt-crew-next small { font-size: 11.5px; color: #a4809a; }
+/* An empty seat with nobody to fill it still looks pressable, and pressing it
+   explains itself. */
+.ttown .tt-crew-empty.waiting { opacity: 0.75; }

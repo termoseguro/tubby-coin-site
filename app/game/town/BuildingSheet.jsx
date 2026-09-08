@@ -15,6 +15,7 @@ import { EFFECTS, itemCap, itemCost, itemSeconds } from "../../../lib/townFurnit
 import { MAX_HELPS_PER_JOB, helpReduction, helpsLeft } from "../../../lib/townAlliance";
 import { HELPS_TO_CLEAR, PROBLEMS, fixCost as palisFixCost, fixReward as palisFixReward } from "../../../lib/palis";
 import { TRAINERS, topTier } from "../../../lib/troops";
+import { SEAT_LEVELS } from "../../../lib/townFurniture";
 import {
   PRODUCERS,
   REFINERS,
@@ -140,6 +141,8 @@ export default function BuildingSheet({
   // Same cost, same timer, same builder — only the words change, because to
   // the player raising a building and raising a field are different feelings.
   const verb = plot ? "Build" : "Upgrade to level " + (level + 1);
+  // The next level that grants another villager place here, or null at three.
+  const nextSeatAt = SEAT_LEVELS.find((l) => l > level) || null;
   const cost = upgradeCostFor(id, level);
   const missing = shortfall(cost, res);
   const canAfford = Object.keys(missing).length === 0;
@@ -292,7 +295,7 @@ export default function BuildingSheet({
             <div className="tt-crew-head">
               <small>Cat villagers · ×{staffing(power).toFixed(2)} output</small>
               <b className="mono">
-                {villagersFree} free in town
+                {villagersFree} at home
               </b>
             </div>
             <div className="tt-crew-row">
@@ -314,36 +317,41 @@ export default function BuildingSheet({
                     </button>
                   );
                 }
-                const canAdd = idle.length > 0 && villagersFree > 0;
+                // NEVER DISABLED. A disabled button with the reason hidden in
+                // a `title` is a button that does nothing and says nothing —
+                // there is no tooltip on touch, and on a desktop you have to
+                // hover and wait for it. Tapping now always answers.
                 return (
                   <button
                     key={i}
                     type="button"
-                    className="tt-crew-empty"
-                    onClick={() => canAdd && onAssign(idle[0]?.key)}
-                    disabled={!canAdd}
-                    title={
-                      idle.length === 0
-                        ? "Every cat already has a job"
-                        : villagersFree <= 0
-                          ? "The Cat Hall has no more villagers to give"
-                          : "Put a cat villager to work here"
-                    }
+                    className={"tt-crew-empty" + (idle.length ? "" : " waiting")}
+                    onClick={() => onAssign(idle[0]?.key)}
                   >
                     +
                   </button>
                 );
               })}
             </div>
+            {/* The seat this building does not have yet, drawn as a ghost with
+                the level that opens it. A cap the player cannot see is a cap
+                they experience as a broken button. */}
+            {nextSeatAt && (
+              <div className="tt-crew-next">
+                <span className="tt-crew-ghost">+</span>
+                <small>
+                  A {slotsHere === 1 ? "second" : "third"} place opens at level {nextSeatAt}
+                </small>
+              </div>
+            )}
+
             {slotPriceUsd != null && (
               <button className="tt-mini gold tt-crew-buy" type="button" onClick={onBuySlot}>
-                Another place here · ${slotPriceUsd.toFixed(2)}
+                Open it now · ${slotPriceUsd.toFixed(2)}
               </button>
             )}
             <p className="tt-sheet-note tt-crew-note">
-              {villagersFree <= 0
-                ? "Every villager is already working. Raise a Cat Cottage to house another."
-                : "Places belong to this building. Cat Cottages decide how many villagers exist at all."}
+              {`Places here come from this building's level — one now, a second at level 4, a third at level 7. Cats with no place are at home earning Gold, so nobody is ever wasted.`}
             </p>
           </div>
         )}
