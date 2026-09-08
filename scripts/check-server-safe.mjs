@@ -181,6 +181,17 @@ ok("furniture raises output, beds and Gold", () => {
   assert.equal(villagerCap(levelsOf(s), s), 2, "a fitted bed houses one more cat");
 });
 
+ok("a villager place inside a building comes from the building's own level", () => {
+  // Kingshot's Kitchen reads "+1 Working Survivor" at levels 1, 4 and 7 and
+  // stops at three. A town with eleven beds and a level-2 Kitchen can still
+  // only put ONE cat in that Kitchen, which is the cap the UI has to explain.
+  assert.equal(furniture.seatsFromLevel(1), 1);
+  assert.equal(furniture.seatsFromLevel(3), 1);
+  assert.equal(furniture.seatsFromLevel(4), 2);
+  assert.equal(furniture.seatsFromLevel(7), 3);
+  assert.equal(furniture.seatsFromLevel(30), 3);
+});
+
 ok("an item cannot outgrow the building holding it", () => {
   const it = furniture.itemsFor("lumber")[0];
   assert.equal(furniture.itemCap(it, 1), 1);

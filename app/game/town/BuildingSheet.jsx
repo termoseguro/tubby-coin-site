@@ -14,6 +14,7 @@ import { BUILDINGS, BUILDING_INFO } from "../../../lib/townConfig";
 import { EFFECTS, itemCap, itemCost, itemSeconds } from "../../../lib/townFurniture";
 import { MAX_HELPS_PER_JOB, helpReduction, helpsLeft } from "../../../lib/townAlliance";
 import { HELPS_TO_CLEAR, PROBLEMS, fixCost as palisFixCost, fixReward as palisFixReward } from "../../../lib/palis";
+import { TRAINERS, topTier } from "../../../lib/troops";
 import {
   PRODUCERS,
   REFINERS,
@@ -118,6 +119,8 @@ export default function BuildingSheet({
   onUpgradeItem,
   onAskHelp,
   onFixProblem,
+  onOpenStudy,
+  onOpenTraining,
   buildersTotal = 2,
   builderPrice = 500,
   locked = false,
@@ -214,6 +217,20 @@ export default function BuildingSheet({
               Go to the Cat Hall →
             </button>
           </div>
+        )}
+
+        {/* A building that runs a SYSTEM gets a door into it, right under the
+            description. Burying research two taps deep inside an upgrade panel
+            is how a tech tree goes unnoticed for a week. */}
+        {!locked && !plot && id === "study" && (
+          <button className="tt-btn" type="button" onClick={onOpenStudy}>
+            Open the research trees
+          </button>
+        )}
+        {!locked && !plot && TRAINERS[id] && (
+          <button className="tt-btn" type="button" onClick={onOpenTraining}>
+            Train {TRAINERS[id].unit.toLowerCase()}s · up to T{topTier(level)}
+          </button>
         )}
 
         {/* THE CHAIN — what goes in, what comes out, what it unblocks.

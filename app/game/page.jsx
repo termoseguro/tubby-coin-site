@@ -45,6 +45,29 @@ import LuckyLitter from "./town/LuckyLitter";
 import HeroesTab from "./town/HeroesTab";
 import SpinReel from "./town/SpinReel";
 import Conquest from "./town/Conquest";
+import ResearchPanel from "./town/ResearchPanel";
+import TrainingPanel from "./town/TrainingPanel";
+import {
+  TECH_BY_ID,
+  effectiveSeconds,
+  researchBonuses,
+  techBlocked,
+  techCost,
+  techLevel,
+  MAX_TECH_LEVEL,
+} from "../../lib/research";
+import {
+  TRAINERS,
+  armyPower,
+  capacity as troopCapacity,
+  deployCap,
+  emptyArmy,
+  promoteCost,
+  promoteSeconds,
+  topTier,
+  trainSeconds,
+  troopCost,
+} from "../../lib/troops";
 import {
   LINEUP_SIZE,
   idleGoldMultiplier,
@@ -54,7 +77,7 @@ import {
 } from "../../lib/conquest";
 import catPool from "../../lib/catPool.json";
 import { HERO_BY_ID } from "../../lib/heroes";
-import { pickVillager } from "../../lib/villagers";
+import { makeVillager, pickVillager } from "../../lib/villagers";
 import {
   HELPS_TO_CLEAR,
   PROBLEMS,
@@ -199,6 +222,16 @@ function freshSave() {
     keys: { silver: 3, gold: 1 },
     litter: { startedAt: Date.now(), spins: 0, pity: { silver: 0, gold: 0 }, claimed: {}, lastFreeAt: 0 },
 
+    // ---- THE STUDY ----
+    // One research at a time, which is what makes the order a decision.
+    tech: {},
+    research: null,
+
+    // ---- TROOPS ----
+    // { guard: { 1: 40 }, slinger: {}, runner: {} } and one job per building.
+    army: { guard: {}, slinger: {}, runner: {} },
+    training: {},
+
     // ---- PALIS ----
     // Not a boss you attack: what goes wrong while you are away. `problems` is
     // the mess waiting to be sorted; `lastVisitAt` is when he was last through.
@@ -301,6 +334,38 @@ function clampCrew(s) {
   return { ...s, assign };
 }
 
+/** VILLAGERS MOVE IN ON THEIR OWN.
+ *
+ *  Kingshot: "as you upgrade the Houses and the furniture inside them, the
+ *  amount of Residents that CAN JOIN your town increases". They join. You do not
+ *  pull them, you make room for them.
+ *
+ *  Ours did not, and it produced exactly the bug it deserved: the villager chip
+ *  counted BEDS while the game counted CATS, so a town with three homes and one
+ *  cat cheerfully reported "3 free" and then did nothing when asked to put
+ *  somebody to work. There was nobody to put.
+ *
+ *  So an empty bed fills itself. The cottage is the decision; the cat arriving
+ *  is the payoff for having made it. The gacha's common slot still matters —
+ *  it sends a BETTER villager than the one who would have wandered in, and
+ *  rarity is what a villager is worth at work. */
+function fillVillagers(s) {
+  const beds = totalSlots(s);
+  const have = Object.keys(s.cats || {}).length;
+  if (have >= beds) return s;
+
+  const cats = { ...s.cats };
+  const taken = new Set(Object.values(cats).map((c) => c.art));
+  const free = catPool.cats.filter((c) => c.rarity === "common" && !taken.has(c.art));
+  let moved = 0;
+  for (let i = have; i < beds && free.length; i++) {
+    const v = makeVillager(free.splice(Math.floor(Math.random() * free.length), 1)[0]);
+    cats[catKey(v)] = v;
+    moved++;
+  }
+  return moved ? { ...s, cats, movedIn: moved } : s;
+}
+
 /** Cats with no job yet — the pool the assign picker draws from. */
 function idleCats(s) {
   return Object.keys(s.cats).filter((k) => !s.assign?.[k]);
@@ -320,8 +385,10 @@ function rateAt(s, id, now = Date.now(), cats = null) {
   // the Kitchen. Folded in here so a hero's card and the building's stated
   // rate can never disagree.
   const roster = rosterBonuses(s);
+  const tech = researchBonuses(s);
   const res = PRODUCERS[id].res;
-  const fromHeroes = (roster.produce[res] || 0) + roster.allProduce;
+  const fromHeroes =
+    (roster.produce[res] || 0) + roster.allProduce + (tech.produce[res] || 0) + tech.allProduce;
   // Whatever Palis left behind. A ransacked building makes nothing at all; a
   // spooked one works at half speed. It is never permanent and it never takes
   // anything already banked — see lib/palis.js.
@@ -347,7 +414,8 @@ function townRates(s, now = Date.now()) {
   }
   const levels = levelsOf(s);
   const roster = rosterBonuses(s);
-  const gold = goldPerHour(s, levels) * (1 + roster.gold / 100);
+  const tech = researchBonuses(s);
+  const gold = goldPerHour(s, levels) * (1 + (roster.gold + tech.gold) / 100);
   if (gold > 0) out.coin = (out.coin || 0) + gold;
   return out;
 }
@@ -390,7 +458,8 @@ function applyProduction(s, now = Date.now()) {
 
   const levels = levelsOf(s);
   const roster = rosterBonuses(s);
-  const gold = producedOver(goldPerHour(s, levels) * (1 + roster.gold / 100), secs);
+  const tech = researchBonuses(s);
+  const gold = producedOver(goldPerHour(s, levels) * (1 + (roster.gold + tech.gold) / 100), secs);
   if (gold > 0) gains.coin = (gains.coin || 0) + gold;
 
   let res = { ...s.res };
@@ -501,6 +570,9 @@ function migrate(s) {
   // Retired: Palis stopped being a raid you launch and became the thing that
   // goes wrong while you are away (lib/palis.js). Old saves keep the fields
   // harmlessly; nothing reads them.
+  if (!s.tech) s.tech = {};
+  if (!s.army) s.army = { guard: {}, slinger: {}, runner: {} };
+  if (!s.training) s.training = {};
   if (!s.problems) s.problems = [];
   if (!s.lastVisitAt) s.lastVisitAt = Date.now();
   if (s.tokens == null) s.tokens = 0;
@@ -566,6 +638,8 @@ export default function TubbyTown() {
   const [welcomeBack, setWelcomeBack] = useState(null);
   const [litterOpen, setLitterOpen] = useState(false);
   const [alleyOpen, setAlleyOpen] = useState(false);
+  const [studyOpen, setStudyOpen] = useState(false);
+  const [trainOpen, setTrainOpen] = useState(null);
   const [spinResult, setSpinResult] = useState(null);
   const [toast, setToast] = useState(null);
   // A once-a-second clock. Production accrues against wall time now, so the
@@ -593,6 +667,7 @@ export default function TubbyTown() {
     // Palis first: what he took, he took BEFORE the town produced it back.
     const visit = runPalis(s);
     s = visit.save;
+    s = fillVillagers(s);
     s = applyUpkeep(s);
     s = applyProduction(s);
     if (away > 120) {
@@ -648,8 +723,32 @@ export default function TubbyTown() {
         const now = Date.now();
         // Resources first, so a build that finishes this tick is paid for out
         // of a stockpile that already includes the seconds it took.
-        let next = applyProduction(s, now);
+        let next = fillVillagers(applyProduction(s, now));
         // complete any build whose time is up
+        // Research and training finish on their own, like builds do.
+        if (next.research && next.research.finishesAt <= now) {
+          const r = next.research;
+          flash(`${TECH_BY_ID[r.tech].name} researched.`);
+          next = {
+            ...next,
+            tech: { ...next.tech, [r.tech]: (next.tech[r.tech] || 0) + 1 },
+            research: null,
+          };
+        }
+        const doneTraining = Object.entries(next.training || {}).filter(
+          ([, j]) => j.finishesAt <= now
+        );
+        if (doneTraining.length) {
+          const army = { ...next.army };
+          const training = { ...next.training };
+          for (const [bid, j] of doneTraining) {
+            const cls = TRAINERS[bid].cls;
+            army[cls] = { ...army[cls], [j.tier]: (army[cls][j.tier] || 0) + j.count };
+            delete training[bid];
+          }
+          next = { ...next, army, training };
+        }
+
         const done = Object.entries(s.jobs || {}).filter(([, j]) => j.finishesAt <= now);
         if (done.length) {
           const jobs = { ...s.jobs };
@@ -899,7 +998,14 @@ export default function TubbyTown() {
         }
         const res = { ...s.res };
         for (const [k, v] of Object.entries(cost)) res[k] -= v;
-        const secs = buildSecondsFor(id, level);
+        // Research shortens builds; Palis's string lengthens them.
+        const tech = researchBonuses(s);
+        const secs = Math.max(
+          3,
+          Math.round(
+            (buildSecondsFor(id, level) / (1 + tech.build / 100)) / buildMultiplier(s.problems)
+          )
+        );
         return {
           ...s,
           res,
@@ -974,6 +1080,126 @@ export default function TubbyTown() {
           ...s,
           jobs: { ...s.jobs, [id]: next },
           tokens: (s.tokens || 0) + TOKENS_PER_HELP,
+        };
+      });
+    },
+    [flash]
+  );
+
+  // ---- THE STUDY --------------------------------------------------------
+
+  /** Start a research. One at a time — that constraint IS the tech tree. */
+  const startResearch = useCallback(
+    (techId) => {
+      setSave((s) => {
+        if (s.research) {
+          flash("Something is already being researched.");
+          return s;
+        }
+        const t = TECH_BY_ID[techId];
+        const why = techBlocked(s, t, levelOf(s, "study"));
+        if (why) {
+          flash(why);
+          return s;
+        }
+        const level = techLevel(s, techId);
+        const cost = techCost(t, level);
+        if (!canAfford(cost, s.res)) {
+          const short = Object.keys(shortfall(cost, s.res)).map((k) => RESOURCES[k].short).join(", ");
+          flash(`Short on ${short}.`);
+          return s;
+        }
+        const res = { ...s.res };
+        for (const [k, v] of Object.entries(cost)) res[k] -= v;
+        const secs = effectiveSeconds(t, level, researchBonuses(s));
+        return {
+          ...s,
+          res,
+          research: {
+            tech: techId,
+            level,
+            startedAt: Date.now(),
+            finishesAt: Date.now() + secs * 1000,
+          },
+        };
+      });
+    },
+    [flash]
+  );
+
+  const rushResearch = useCallback(() => {
+    setSave((s) => {
+      if (!s.research) return s;
+      const left = Math.max(0, (s.research.finishesAt - Date.now()) / 1000);
+      const price = Math.max(1, Math.ceil(left / 45));
+      if ((s.res.gold || 0) < price) {
+        flash(`Need ${price} Golden Fish.`);
+        return s;
+      }
+      return {
+        ...s,
+        res: { ...s.res, gold: s.res.gold - price },
+        research: { ...s.research, finishesAt: Date.now() },
+      };
+    });
+  }, [flash]);
+
+  // ---- TROOPS -----------------------------------------------------------
+
+  /** Train a batch, or promote one up a tier. Same job slot per building,
+   *  because a barracks doing two things at once is not a barracks. */
+  const startTraining = useCallback(
+    (buildingId, tier, count, promote = false) => {
+      setSave((s) => {
+        if (s.training?.[buildingId]) {
+          flash("Already training.");
+          return s;
+        }
+        const level = levelOf(s, buildingId);
+        if (tier > topTier(level)) {
+          flash(`${TRAINERS[buildingId].name} is not high enough for T${tier}.`);
+          return s;
+        }
+        const n = Math.max(1, Math.min(count, troopCapacity(level)));
+        const cls = TRAINERS[buildingId].cls;
+        if (promote && (s.army?.[cls]?.[tier - 1] || 0) < n) {
+          flash(`Not enough T${tier - 1} to promote.`);
+          return s;
+        }
+        const speed = researchBonuses(s).research;
+        const cost = promote ? promoteCost(tier, n) : troopCost(tier, n);
+        if (!canAfford(cost, s.res)) {
+          const short = Object.keys(shortfall(cost, s.res)).map((k) => RESOURCES[k].short).join(", ");
+          flash(`Short on ${short}.`);
+          return s;
+        }
+        const res = { ...s.res };
+        for (const [k, v] of Object.entries(cost)) res[k] -= v;
+
+        // Promotion takes the lower-tier cats off the books NOW, so they cannot
+        // also be marching while they are being promoted.
+        let army = s.army;
+        if (promote) {
+          army = {
+            ...army,
+            [cls]: { ...army[cls], [tier - 1]: (army[cls][tier - 1] || 0) - n },
+          };
+        }
+        const secs = promote
+          ? promoteSeconds(tier, n, level, speed)
+          : trainSeconds(tier, n, level, speed);
+        return {
+          ...s,
+          res,
+          army,
+          training: {
+            ...s.training,
+            [buildingId]: {
+              tier, count: n, promote,
+              startedAt: Date.now(),
+              finishesAt: Date.now() + secs * 1000,
+            },
+          },
         };
       });
     },
@@ -1717,7 +1943,9 @@ export default function TubbyTown() {
   const rented = (save.rentedUntil || 0) > Date.now() ? 1 : 0;
   const buildersTotal = save.builders + rented;
   const buildersFree = buildersTotal - Object.keys(save.jobs || {}).length;
-  const workersFree = totalSlots(save) - assignedCount(save);
+  const villagerCount = Object.keys(save.cats || {}).length;
+  const idleCount = idleCats(save).length;
+  const homesFree = Math.max(0, totalSlots(save) - villagerCount);
   const levelsTop = levelsOf(save);
   const coming = nextUnlock(levelsTop.hall);
 
@@ -1817,18 +2045,25 @@ export default function TubbyTown() {
           </div>
 
           <button
-            className={"tt-cap" + (workersFree === 0 ? " busy" : "")}
+            className={"tt-cap" + (idleCount === 0 ? " busy" : "")}
             type="button"
             onClick={() => setPicked(growCottage)}
-            title="Cat Cottages are where villagers live — raise one for another cat"
+            title={
+              homesFree > 0
+                ? `${homesFree} empty bed${homesFree === 1 ? "" : "s"} — a cat will move in shortly`
+                : "Raise a Cat Cottage to make room for another villager"
+            }
           >
             <span className="tt-cap-i">
               <IconPaw size={18} />
             </span>
             <span className="tt-cap-n">
               <small>Cat villagers</small>
+              {/* IDLE CATS, not empty beds. The two are different numbers and
+                  showing the wrong one told the player they had five villagers
+                  to place when they had none. */}
               <b className="mono">
-                {workersFree} free <em>of {totalSlots(save)}</em>
+                {idleCount} idle <em>of {villagerCount}</em>
               </b>
             </span>
           </button>
@@ -1899,6 +2134,8 @@ export default function TubbyTown() {
             onUpgradeItem={upgradeItem}
             onAskHelp={askForHelp}
             onFixProblem={fixProblem}
+            onOpenStudy={() => setStudyOpen(true)}
+            onOpenTraining={(id) => setTrainOpen(id)}
             moving={moving}
             onStartMove={(id) => {
               setMoving(id);
@@ -2024,6 +2261,28 @@ export default function TubbyTown() {
         </Modal>
       )}
 
+      {studyOpen && (
+        <ResearchPanel
+          save={save}
+          studyLevel={levelOf(save, "study")}
+          onStart={startResearch}
+          onRush={rushResearch}
+          onClose={() => setStudyOpen(false)}
+        />
+      )}
+
+      {trainOpen && (
+        <TrainingPanel
+          buildingId={trainOpen}
+          level={levelOf(save, trainOpen)}
+          save={save}
+          researchSpeed={researchBonuses(save).research}
+          onTrain={(b, t, n) => startTraining(b, t, n, false)}
+          onPromote={(b, t, n) => startTraining(b, t, n, true)}
+          onClose={() => setTrainOpen(null)}
+        />
+      )}
+
       {alleyOpen && (
         <Conquest
           save={save}
@@ -2137,6 +2396,8 @@ function TownTab({
   onUpgradeItem,
   onAskHelp,
   onFixProblem,
+  onOpenStudy,
+  onOpenTraining,
   moving,
   onStartMove,
   onMoved,
@@ -2255,6 +2516,8 @@ function TownTab({
           gate={buildingState[picked]?.gate || []}
           problem={buildingState[picked]?.problem || null}
           onFixProblem={() => onFixProblem(buildingState[picked].problem.id)}
+          onOpenStudy={onOpenStudy}
+          onOpenTraining={() => onOpenTraining(picked)}
           items={itemsFor(picked)}
           itemLevels={save.furniture?.[picked] || {}}
           bonuses={bonusesAt(save, picked, levelOf(save, picked))}

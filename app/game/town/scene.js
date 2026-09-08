@@ -307,6 +307,12 @@ export async function createTown(host, cats, opts = {}) {
   // size. Doing it this way means the renderer draws at NATIVE resolution —
   // stretching the canvas with CSS (object-fit) resamples the bitmap, which is
   // exactly what "blurry and cut off" looks like.
+  // Pixi only walks the display list for events when the stage says it may.
+  // Without this the whole scene is inert to taps while the canvas still
+  // receives raw DOM pointer events, which is exactly the confusing half-broken
+  // state to end up in: dragging works, tapping does nothing, console is silent.
+  app.stage.eventMode = "static";
+
   const root = new Container();
   app.stage.addChild(root);
 
@@ -372,6 +378,13 @@ export async function createTown(host, cats, opts = {}) {
 
   // Drag to pan. A drag must not also count as a tap on a building, so we only
   // treat it as a drag once the pointer has actually moved.
+  /** How far a pointer may wander and still count as a tap. Declared up here
+   *  with the rest of the pointer state, not beside wasDrag where it reads
+   *  better: onMove goes live before createTown has finished awaiting its art,
+   *  and a `const` further down the function would be in its temporal dead zone
+   *  for any pointer that moves during loading. */
+  const DRAG_THRESHOLD = 8;
+
   const pointers = new Map();
   let dragging = false;
   let moved = 0;
@@ -390,7 +403,29 @@ export async function createTown(host, cats, opts = {}) {
   // set by beginMove once everything is built, so it needs no such treatment.
   let moving = null;
 
+  // A DROPPED POINTERUP MUST NOT BRICK THE MAP.
+  //
+  // Browsers lose pointerup all the time — alt-tab mid-drag, a context menu, a
+  // cancelled touch, a devtools pause. When that happens the id stays in
+  // `pointers` forever, the next press looks like a second finger, the pinch
+  // branch sets moved = 99, and from then on EVERY tap is read as a drag. The
+  // town stops responding to clicks entirely and nothing in the console says
+  // why. That is what happened here.
+  //
+  // So a press that arrives long after the last one starts a clean gesture.
+  // Nobody holds a finger down for two seconds and then expects the press
+  // before it to still count.
+  let lastPointerAt = 0;
+  const STALE_MS = 2000;
+
   const onDown = (e) => {
+    const now = Date.now();
+    if (now - lastPointerAt > STALE_MS) {
+      pointers.clear();
+      pinchDist = 0;
+      moved = 0;
+    }
+    lastPointerAt = now;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.size === 1) {
       dragging = true;
@@ -403,6 +438,7 @@ export async function createTown(host, cats, opts = {}) {
   };
   const onMove = (e) => {
     if (!pointers.has(e.pointerId)) return;
+    lastPointerAt = Date.now();
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (pointers.size === 2) {
@@ -437,13 +473,27 @@ export async function createTown(host, cats, opts = {}) {
     const dx = e.clientX - last.x;
     const dy = e.clientY - last.y;
     moved += Math.abs(dx) + Math.abs(dy);
-    if (moved > 8) cam.touched = true;
+    last = { x: e.clientX, y: e.clientY };
+
+    // DO NOT PAN UNTIL IT IS ACTUALLY A DRAG.
+    //
+    // Panning on every pixel of movement looks harmless and breaks tapping
+    // outright: a click carries a stray move between pointerdown and pointerup,
+    // the map slides a pixel or two, the release lands on something else, and
+    // Pixi emits pointertap on the nearest COMMON ANCESTOR — the stage — rather
+    // than on the building. Hit-testing looked perfect the whole time; the
+    // scene was simply not sitting still long enough to be tapped.
+    //
+    // Below the threshold the movement is remembered and not applied, so the
+    // moment it becomes a real drag the map catches up in one step.
+    if (moved <= DRAG_THRESHOLD) return;
+    cam.touched = true;
     cam.x += dx;
     cam.y += dy;
-    last = { x: e.clientX, y: e.clientY };
     clamp();
   };
   const onUp = (e) => {
+    lastPointerAt = Date.now();
     pointers.delete(e.pointerId);
     if (pointers.size < 2) pinchDist = 0;
     if (pointers.size === 0) {
@@ -455,13 +505,24 @@ export async function createTown(host, cats, opts = {}) {
       }
     }
   };
+  /** Anything that can interrupt a gesture ends it cleanly. */
+  const resetGesture = () => {
+    pointers.clear();
+    dragging = false;
+    pinchDist = 0;
+    moved = 0;
+    last = null;
+  };
+
   canvas.addEventListener("pointerdown", onDown);
   window.addEventListener("pointermove", onMove);
   window.addEventListener("pointerup", onUp);
   window.addEventListener("pointercancel", onUp);
+  window.addEventListener("blur", resetGesture);
+  document.addEventListener("visibilitychange", resetGesture);
 
   /** True when the gesture that just ended was a drag, not a tap. */
-  const wasDrag = () => moved > 8;
+  const wasDrag = () => moved > DRAG_THRESHOLD;
 
   layout();
 
@@ -676,6 +737,13 @@ export async function createTown(host, cats, opts = {}) {
   world.sortableChildren = true;
   root.addChild(world);
 
+  // The sky, land, roads and greenery are scenery. Marking them inert keeps
+  // every tap going to a building and saves Pixi walking them on every move.
+  for (const layer of [sky, sun, clouds, land, road, lane, decoBack]) {
+    layer.eventMode = "none";
+    if ("interactiveChildren" in layer) layer.interactiveChildren = false;
+  }
+
   // NAME PLATES LIVE IN THEIR OWN LAYER, ABOVE EVERY BUILDING.
   //
   // They used to be children of the building they name, which meant a big
@@ -688,6 +756,11 @@ export async function createTown(host, cats, opts = {}) {
   // In their own layer, no building can ever cover a name, at any spacing.
   const labels = new Container();
   labels.zIndex = 99998;
+  // Decoration is never a click target. Pixi hit-tests every branch it is not
+  // told to skip, and this one sits ABOVE every building by design — so it has
+  // to be explicitly inert or it stands between the player and the town.
+  labels.eventMode = "none";
+  labels.interactiveChildren = false;
   world.addChild(labels);
 
   // Real art first, drawn placeholder only where a file is still missing — so
@@ -1271,6 +1344,8 @@ export async function createTown(host, cats, opts = {}) {
     destroy() {
       try {
         ro.disconnect();
+    window.removeEventListener("blur", resetGesture);
+    document.removeEventListener("visibilitychange", resetGesture);
         canvas.removeEventListener("wheel", onWheel);
         canvas.removeEventListener("pointerdown", onDown);
         window.removeEventListener("pointermove", onMove);
