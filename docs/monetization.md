@@ -2,6 +2,15 @@
 
 > Governed by **the three rules** in `roadmap.md`: profit, nothing
 > hackable, healthy ecosystem — in that order.
+>
+> ⚠ **`token-economy.md` sits above this document.** This one is the shop
+> catalogue, ported faithfully from the reference games. That one decides
+> how hard to lean on the shop at all — and the answer is: less than this
+> document assumes, because the shop earns roughly a tenth of the fee
+> income and a hundredth of the token position. **Where the two disagree,
+> `token-economy.md` wins.** It re-prices §3.2 (the whale tiers are gone),
+> changes the token revenue split in §2.5, and splits the season pool in
+> §4 into a Dividend and a Cup.
 
 **The rule above every rule: profit.** Everything here is built to serve that.
 Which is exactly why some of it says "do not do X" — the failure modes below
