@@ -115,9 +115,16 @@ first target clears fast on purpose: the project needs a real photo of real
 supplies as early as possible, because until that photo exists the whole thing
 is a paragraph.
 
-⚠ The `items` string on each milestone **is a commitment**. Set it from a real
-quote, never an estimate, and under-promise — the seeds in `config.js` assume a
-SOL/BRL rate that will be wrong by launch.
+⚠ **A milestone never states a quantity.** Not "400 diapers", not "30 food
+baskets". What a given amount of SOL buys depends on the SOL price that day, on
+what the shops have, and on what the institution is short of that week — none of
+which is knowable in advance. Write the *kind* of run instead: "a supply run for
+one home — diapers, formula and hygiene".
+
+The exact counts are published **after** the run, in `care.deliveries`, where
+they are receipts instead of forecasts. A number promised in advance is a number
+someone screenshots, and the first delivery that lands under it becomes the
+story instead of the delivery.
 
 ---
 
@@ -144,6 +151,24 @@ is a *better* photo. Shoot the supplies, the delivery, the handshake.
 
 Get written authorisation from the institution before any photo is taken on
 their premises, every time, even of empty rooms.
+
+**Redaction is not the authorisation.** Covering a face is necessary and it is
+not sufficient — the room, the equipment and a wheelchair can still identify a
+child and disclose health status. What makes publication lawful is the written
+grant from the institution; the redaction is what keeps it decent. Record which
+grant each asset is published under, next to the asset
+(`drives[].authorisation` in `lib/config.js`), and keep the signed copy
+off-repo.
+
+**Anything committed under `/public` is served publicly**, whether or not a page
+links to it. A config flag that hides a photo from the page does not hide the
+file — the URL still resolves. Un-cleared material stays out of git entirely,
+not behind a boolean.
+
+The best frames have no people in them at all. The single most useful photo from
+the first drive is a trolley of plush cats parked under the institution's own
+street sign: it names the recipient, dates the visit, and shows the goods, with
+nobody's privacy in the frame.
 
 ### Language that is never used
 

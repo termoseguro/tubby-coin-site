@@ -4,6 +4,7 @@ import { FundProvider } from "./components/FundContext";
 import { BuyProvider, BuyButton } from "./components/BuyModal";
 import CareFund from "./components/CareFund";
 import CatStrip from "./components/CatStrip";
+import DriveClips from "./components/DriveClips";
 import LiveTicker from "./components/LiveTicker";
 import ScrollFX from "./components/ScrollFX";
 import CopyCA from "./components/CopyCA";
@@ -233,6 +234,32 @@ export default function Page() {
                           <span>📦 {d.items}</span>
                         </div>
                         <p>{d.note}</p>
+                        {d.orgWhat && (
+                          <p className="drive-org">
+                            {d.orgUrl ? (
+                              <a href={d.orgUrl} target="_blank" rel="noopener">
+                                {d.org}
+                              </a>
+                            ) : (
+                              d.org
+                            )}{" "}
+                            is {d.orgWhat}.
+                          </p>
+                        )}
+
+                        <div className="drive-media">
+                          {d.photos.slice(1).map((src, i) => (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={src}
+                              alt="Supplies bought for the drive"
+                              key={i}
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          ))}
+                          <DriveClips clips={d.clips} />
+                        </div>
 
                         {care.publishPeoplePhotos && d.people && d.people.length > 0 && (
                           <div className="drive-gallery">
@@ -260,6 +287,26 @@ export default function Page() {
                 permission — kids in care are the most protected people in Brazilian law, and that is
                 exactly as it should be.
               </p>
+            </div>
+          </section>
+
+          {/* the art that pays for all of it — and the bridge into the numbers */}
+          <section className="coin-band" aria-label="Tubby chocolate coins">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/coin-banner.webp"
+              alt="A pile of gold-wrapped tubby chocolate coins"
+              width={2560}
+              height={846}
+              loading="lazy"
+              decoding="async"
+            />
+            <div className="coin-band-cap">
+              <b>Every trade drops a coin in the basket</b>
+              <span>
+                The fee is paid by the protocol, split on-chain into five wallets, and one of those
+                slices never passes through our hands on the way to the shelves.
+              </span>
             </div>
           </section>
 
