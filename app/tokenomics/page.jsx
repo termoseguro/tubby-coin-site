@@ -3,6 +3,14 @@ import { useEffect, useState } from "react";
 import { config } from "../../lib/config";
 import "./tokenomics.css";
 
+// Pre-launch the wallets are "{{WALLET_CARE}}" placeholders. Printing those raw
+// on the one page whose entire argument is "do not trust us, audit it" is the
+// worst possible place to leak a template token, so they read as a promise of
+// what lands at launch instead.
+function walletText(w) {
+  return !w || w.startsWith("{") ? "published at launch" : w;
+}
+
 export default function Tokenomics() {
   const [market, setMarket] = useState({ price: "—", mcap: "—", vol: "—", liq: "—" });
   const [supply, setSupply] = useState("1,000,000,000");
@@ -234,27 +242,27 @@ export default function Tokenomics() {
           <div className="slice">
             <div className="head"><span className="swatch" style={{background: 'var(--pink-deep)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>🧡 Tubby Cares</h3><span className="pct">{config.feeSplit.care}%</span></div>
             <p>Buys diapers, formula, medicine, food and hygiene supplies for children&apos;s shelters in Rio de Janeiro. Goods, never cash — every run published with the institution, its CNPJ, the item list, the funding tx and photos of the supplies.</p>
-            <div className="wallet"><span>{config.wallets.care}</span><span className="bal">bal: <b id="balCare">{balCare}</b></span></div>
+            <div className="wallet"><span>{walletText(config.wallets.care)}</span><span className="bal">bal: <b id="balCare">{balCare}</b></span></div>
           </div>
           <div className="slice">
             <div className="head"><span className="swatch" style={{background: 'var(--choco)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>⚙️ Ops &amp; Team</h3><span className="pct">{config.feeSplit.ops}%</span></div>
             <p>Funds infrastructure, developers, servers, and the team operating the project day-to-day.</p>
-            <div className="wallet"><span>{config.wallets.ops}</span><span className="bal">bal: <b id="balOps">{balOps}</b></span></div>
+            <div className="wallet"><span>{walletText(config.wallets.ops)}</span><span className="bal">bal: <b id="balOps">{balOps}</b></span></div>
           </div>
           <div className="slice">
             <div className="head"><span className="swatch" style={{background: 'var(--pink-soft)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>🎁 Treats</h3><span className="pct">{config.feeSplit.treats}%</span></div>
             <p>The game&apos;s reward pool — the season board, prizes, and community rewards. Rewards out never exceed fees in.</p>
-            <div className="wallet"><span>{config.wallets.treats}</span><span className="bal">bal: <b id="balTreats">{balTreats}</b></span></div>
+            <div className="wallet"><span>{walletText(config.wallets.treats)}</span><span className="bal">bal: <b id="balTreats">{balTreats}</b></span></div>
           </div>
           <div className="slice">
             <div className="head"><span className="swatch" style={{background: 'var(--ink)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>🔥 The Bite</h3><span className="pct">{config.feeSplit.bite}%</span></div>
             <p>The deflationary fund. Used exclusively for buyback &amp; burn at every completed milestone.</p>
-            <div className="wallet"><span>{config.wallets.bite}</span><span className="bal">bal: <b id="balBite">{balBite}</b></span></div>
+            <div className="wallet"><span>{walletText(config.wallets.bite)}</span><span className="bal">bal: <b id="balBite">{balBite}</b></span></div>
           </div>
           <div className="slice">
             <div className="head"><span className="swatch" style={{background: 'var(--gold)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>🎨 Art Fund</h3><span className="pct">{config.feeSplit.art}%</span></div>
             <p>Flows back to the tubby cats brand to fund new art, products and merch for the universe the coin comes from. CC0 forever.</p>
-            <div className="wallet"><span>{config.wallets.art}</span><span className="bal">bal: <b id="balArt">{balArt}</b></span></div>
+            <div className="wallet"><span>{walletText(config.wallets.art)}</span><span className="bal">bal: <b id="balArt">{balArt}</b></span></div>
           </div>
         </div>
       </div>
