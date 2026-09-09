@@ -2681,3 +2681,201 @@
 /* the per-hour rate in the top bar sits on a saturated pink chip */
 .ttown .tt-resbar-rate { color: #0c5b3f; }
 .ttown .tt-resbar-rate.over { color: #8c1226; }
+
+/* ==========================================================================
+   THE TOWN BOOK — a bound book, not an accordion
+   ==========================================================================
+   Chapters arrive one at a time, which is the whole reason they are chapters.
+   The cover swings open once on mount; changing chapter turns a page. Both are
+   short, because an animation you wait for twice stops being charming.
+   ========================================================================== */
+
+.ttown .tt-book2 {
+  position: relative;
+  width: min(940px, 96vw);
+  max-height: 88vh;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #fffaf2, #fff3e4);
+  border: 3px solid #d9a86a;
+  box-shadow: 0 22px 48px rgba(74, 30, 62, 0.34), inset 0 0 0 2px #fff;
+  overflow: hidden;
+  /* The book opens: a slight rotate about its left edge, as if the front board
+     is swinging toward you. Perspective has to be on the element itself —
+     the wrapper is a flex centring box and re-parenting would break it. */
+  transform-origin: left center;
+  transform: perspective(1600px) rotateY(-16deg) scale(0.94);
+  opacity: 0;
+  transition: transform 460ms cubic-bezier(0.22, 0.9, 0.3, 1), opacity 260ms ease;
+}
+.ttown .tt-book2.open { transform: perspective(1600px) rotateY(0) scale(1); opacity: 1; }
+
+/* the front board, which slides away and then stops existing */
+.ttown .tt-book2-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #8a5a3c, #6d4229 60%, #5a3521);
+  color: #ffe8c2;
+  transform-origin: left center;
+  transition: transform 460ms cubic-bezier(0.6, 0, 0.3, 1), opacity 300ms ease 160ms;
+  pointer-events: none;
+}
+.ttown .tt-book2-cover b { font-size: 1.5rem; font-weight: 900; letter-spacing: 0.02em; }
+.ttown .tt-book2-crest {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 226, 168, 0.16);
+  border: 2.5px solid #e8bc72;
+}
+.ttown .tt-book2.open .tt-book2-cover {
+  transform: perspective(1400px) rotateY(-115deg);
+  opacity: 0;
+}
+
+.ttown .tt-book2-inner {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  max-height: 88vh;
+}
+/* the gutter: two pages, and the shadow where they meet */
+.ttown .tt-book2-inner::before {
+  content: "";
+  position: absolute;
+  left: 260px;
+  top: 0;
+  bottom: 0;
+  width: 22px;
+  transform: translateX(-11px);
+  background: linear-gradient(90deg, rgba(139, 94, 60, 0), rgba(139, 94, 60, 0.16), rgba(139, 94, 60, 0));
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ---- left page: the spine ---- */
+.ttown .tt-book2-spine {
+  padding: 20px 16px 18px;
+  background: linear-gradient(180deg, #fdf1dd, #f8e6cd);
+  border-right: 2px solid #eccfa4;
+  overflow-y: auto;
+  color: var(--ink);
+}
+.ttown .tt-book2-spine h3 { font-size: 1.2rem; font-weight: 900; color: #6d4229; }
+.ttown .tt-book2-spine > p { font-size: 0.8rem; color: #96694a; margin: 2px 0 12px; }
+.ttown .tt-book2-list { list-style: none; display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
+.ttown .tt-book2-tab {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #6d4229;
+  text-align: left;
+  cursor: pointer;
+}
+.ttown .tt-book2-tab:hover:not(:disabled) { background: rgba(255, 255, 255, 0.7); }
+.ttown .tt-book2-tab.on { background: #fff; border-color: #e8bc72; box-shadow: 0 2px 0 #e0b268; }
+.ttown .tt-book2-tab em {
+  font-style: normal;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  background: #e8d3b0;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+.ttown .tt-book2-tab.on em { background: #f2b33d; color: #4a2d12; }
+.ttown .tt-book2-tab span { flex: 1; min-width: 0; }
+.ttown .tt-book2-tab i { font-style: normal; font-size: 0.7rem; flex: none; }
+.ttown .tt-book2-frac { color: #a8825e; }
+.ttown .tt-book2-dot {
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #e0483f;
+  color: #fff;
+  font-weight: 900;
+  font-size: 0.68rem;
+}
+.ttown .tt-book2-tab.done { opacity: 0.62; }
+.ttown .tt-book2-tab.done span { text-decoration: line-through; }
+/* A locked chapter is SHOWN. A book you cannot see the length of gives you
+   nothing to look forward to. */
+.ttown .tt-book2-tab.locked { opacity: 0.5; cursor: not-allowed; }
+
+/* ---- right page ---- */
+.ttown .tt-book2-page {
+  padding: 22px 22px 26px;
+  overflow-y: auto;
+  color: var(--ink);
+  transform-origin: left center;
+}
+.ttown .tt-book2-page.turn-fwd { animation: tt-page-fwd 400ms ease; }
+.ttown .tt-book2-page.turn-back { animation: tt-page-back 400ms ease; }
+@keyframes tt-page-fwd {
+  0% { transform: perspective(1400px) rotateY(-34deg); opacity: 0; }
+  100% { transform: perspective(1400px) rotateY(0); opacity: 1; }
+}
+@keyframes tt-page-back {
+  0% { transform: perspective(1400px) rotateY(34deg); opacity: 0; }
+  100% { transform: perspective(1400px) rotateY(0); opacity: 1; }
+}
+.ttown .tt-book2-head { margin-bottom: 14px; }
+.ttown .tt-book2-head small {
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #b58a5e;
+}
+.ttown .tt-book2-head h4 { font-size: 1.3rem; font-weight: 900; color: #5a3521; margin: 2px 0 4px; }
+.ttown .tt-book2-head p { font-size: 0.86rem; color: var(--ink-soft); max-width: 56ch; }
+.ttown .tt-book2-tasks { display: flex; flex-direction: column; gap: 8px; }
+.ttown .tt-book2-next {
+  margin-top: 14px;
+  font-size: 0.8rem;
+  color: #a8825e;
+  text-align: center;
+  font-style: italic;
+}
+.ttown .tt-book2 .tt-claimall { width: 100%; margin-top: 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* The cover still gets out of the way — it has to, or the book is unusable —
+     it just does not swing. */
+  .ttown .tt-book2,
+  .ttown .tt-book2-cover { transition-duration: 1ms; }
+  .ttown .tt-book2-page.turn-fwd,
+  .ttown .tt-book2-page.turn-back { animation: none; }
+}
+
+@media (max-width: 760px) {
+  .ttown .tt-book2-inner { grid-template-columns: 1fr; }
+  .ttown .tt-book2-inner::before { display: none; }
+  .ttown .tt-book2-spine { border-right: 0; border-bottom: 2px solid #eccfa4; max-height: 40vh; }
+  .ttown .tt-book2-list { flex-direction: row; overflow-x: auto; padding-bottom: 4px; }
+  .ttown .tt-book2-tab { width: auto; white-space: nowrap; }
+}
+
+/* Reward chips: the icon is the colour, the amount is ink. */
+.ttown .tt-q-reward { color: var(--ink); font-weight: 800; }
+.ttown .tt-q-reward span { display: inline-flex; align-items: center; gap: 3px; }

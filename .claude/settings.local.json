@@ -541,7 +541,10 @@
       "Bash(sed -n '/export function stageReward/,/^}/p' lib/conquest.js)",
       "Bash(sed -n '/export function goldPerHour/,/^}/p' lib/townEconomy.js)",
       "Bash(rm -f scripts/.sweep.mjs scripts/.tune.mjs)",
-      "Bash(node -e \"const p=require\\('./package.json'\\); p.scripts.project='node scripts/project-players.mjs'; require\\('fs'\\).writeFileSync\\('package.json',JSON.stringify\\(p,null,2\\)+'\\\\n'\\);\")"
+      "Bash(node -e \"const p=require\\('./package.json'\\); p.scripts.project='node scripts/project-players.mjs'; require\\('fs'\\).writeFileSync\\('package.json',JSON.stringify\\(p,null,2\\)+'\\\\n'\\);\")",
+      "WebFetch(domain:docs.claude.com)",
+      "Bash(sed -n '/^function hero\\(/,/^}/p' lib/heroes.js)",
+      "Bash(sed -n '/^function skill\\(/,/^}/p' lib/heroes.js)"
     ]
   }
 }

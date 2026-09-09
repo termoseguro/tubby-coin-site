@@ -115,6 +115,7 @@ import {
   rosterBonuses,
   rosterPower,
   starsFor,
+  starterHeroes,
 } from "../../lib/heroProgress";
 import { claimableCount } from "../../lib/townQuests";
 import {
@@ -218,7 +219,7 @@ function freshSave() {
     shards: 0,
   };
   return {
-    v: 5,
+    v: 6,
     // Kingshot-shaped economy: five gathered resources plus the premium one,
     // each produced by its own building and capped by the Storehouse.
     // Kingshot opens you with almost nothing and the Sawmill. Ours matches:
@@ -235,7 +236,7 @@ function freshSave() {
     // Deliberately separate from `cats`, which is the villager pool. Heroes are
     // named, have stars and skills, and never work inside a building.
     // { biscuit: { steps, level, shards } }
-    heroes: {},
+    heroes: starterHeroes(),
     // shards banked toward a hero not yet recruited
     pendingShards: {},
     // hero ids currently on patrol — only these count for anything
@@ -651,6 +652,18 @@ function migrate(s) {
   if ((s.v || 0) < 3) {
     s = migrateToCottages(s);
     s.v = 3;
+  }
+
+  // ---- v6: the day-one hero roster -----------------------------------------
+  // A new account used to start with no heroes at all, so the Conquest screen
+  // was unusable until a gacha happened to be kind. Kingshot hands out a
+  // Legendary at launch. Existing saves get the same gift rather than being
+  // punished for having started earlier — but only the heroes they are missing,
+  // so nobody's progress is overwritten.
+  if ((s.v || 0) < 6) {
+    const gift = starterHeroes();
+    s.heroes = { ...gift, ...(s.heroes || {}) };
+    s.v = 6;
   }
 
   // ---- v4: a villager is a token id, not a picture --------------------------
