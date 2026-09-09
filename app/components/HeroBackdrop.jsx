@@ -22,22 +22,25 @@ import { CATS, pick } from "../../lib/siteArt";
 // Hand-spread rather than random: a random walk clumps, and a clump reads as a
 // bug. Every coin carries its own lane, size, speed, sway and spin.
 //
+// THE LANES STAY IN THE GUTTERS — nothing between 24% and 76%. The cascade is
+// there to fill the empty pink on either side of the centred column, and a coin
+// tumbling up through the headline competes with the one thing the hero is
+// actually for.
+//
 // `delay` is NEGATIVE on purpose — it starts each coin mid-flight, so the
 // cascade is already running when the page paints instead of taking twenty
-// seconds to fill up from an empty screen.
+// seconds to fill from an empty screen.
 const COINS = [
-  { x: "4%", s: 34, d: 19, delay: -2, sway: 18, rot: 200, o: 0.42 },
-  { x: "11%", s: 52, d: 24, delay: -11, sway: 26, rot: -260, o: 0.5 },
-  { x: "18%", s: 26, d: 16, delay: -7, sway: 14, rot: 320, o: 0.34 },
-  { x: "26%", s: 44, d: 21, delay: -16, sway: 22, rot: -180, o: 0.46 },
-  { x: "35%", s: 30, d: 26, delay: -4, sway: 30, rot: 240, o: 0.3 },
-  { x: "44%", s: 58, d: 23, delay: -19, sway: 20, rot: -300, o: 0.4 },
-  { x: "53%", s: 28, d: 17, delay: -9, sway: 16, rot: 280, o: 0.32 },
-  { x: "62%", s: 46, d: 25, delay: -14, sway: 28, rot: -220, o: 0.48 },
-  { x: "70%", s: 32, d: 18, delay: -1, sway: 15, rot: 200, o: 0.36 },
-  { x: "78%", s: 56, d: 22, delay: -12, sway: 24, rot: -340, o: 0.5 },
-  { x: "87%", s: 30, d: 20, delay: -6, sway: 19, rot: 260, o: 0.34 },
-  { x: "94%", s: 42, d: 27, delay: -17, sway: 25, rot: -200, o: 0.44 },
+  { x: "3%", s: 34, d: 19, delay: -2, sway: 16, rot: 200, o: 0.42 },
+  { x: "8%", s: 52, d: 24, delay: -11, sway: 22, rot: -260, o: 0.5 },
+  { x: "13%", s: 26, d: 16, delay: -7, sway: 13, rot: 320, o: 0.34 },
+  { x: "18%", s: 44, d: 21, delay: -16, sway: 19, rot: -180, o: 0.46 },
+  { x: "23%", s: 30, d: 26, delay: -4, sway: 24, rot: 240, o: 0.3 },
+  { x: "77%", s: 32, d: 23, delay: -19, sway: 24, rot: -300, o: 0.32 },
+  { x: "82%", s: 46, d: 25, delay: -14, sway: 19, rot: -220, o: 0.48 },
+  { x: "87%", s: 28, d: 18, delay: -1, sway: 13, rot: 200, o: 0.34 },
+  { x: "92%", s: 56, d: 22, delay: -12, sway: 22, rot: -340, o: 0.5 },
+  { x: "97%", s: 38, d: 27, delay: -17, sway: 16, rot: -200, o: 0.44 },
 ];
 
 export default function HeroBackdrop() {
