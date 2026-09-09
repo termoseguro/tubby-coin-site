@@ -29,7 +29,7 @@ function fmt(n) {
   return String(n);
 }
 
-export default function ResourceBar({ res, rates = {}, storehouseLevel, unlocked, onBuy }) {
+export default function ResourceBar({ res, rates = {}, storehouseLevel, hallLevel = 1, unlocked, onBuy }) {
   // Tap a resource to find out what it is FOR. A number with no stated purpose
   // is a number the player ignores.
   const [open, setOpen] = useState(null);
@@ -39,7 +39,7 @@ export default function ResourceBar({ res, rates = {}, storehouseLevel, unlocked
       {RESOURCE_ORDER.filter((id) => unlocked.includes(id)).map((id) => {
         const Icon = ICON[id];
         const have = res[id] || 0;
-        const cap = storeCap(storehouseLevel, id);
+        const cap = storeCap(storehouseLevel, id, hallLevel);
         const full = have >= cap;
         return (
           <button

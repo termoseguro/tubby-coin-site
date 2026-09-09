@@ -871,3 +871,8 @@
 .ttown .tt-lock-b small { font-size: 10px; }
 .ttown .tt-lock .tt-shard-bar { margin: 3px 0 1px; }
 .ttown .tt-wide { width: 100%; margin-top: 12px; }
+
+/* The purse fills to a twelve-hour cap. When it is full it is losing money,
+   so it stops being a number and starts being a warning. */
+.ttown .tt-alley-idle.full i { color: #ffd76b; }
+.ttown .tt-alley-idle.full small { color: #ffd76b; opacity: 1; font-weight: 800; }

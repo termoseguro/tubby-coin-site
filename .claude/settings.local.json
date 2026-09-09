@@ -531,7 +531,17 @@
       "Bash(echo \"pushed: $?\")",
       "Bash(node scripts/pull-all-cats.mjs --conc 3)",
       "Bash(node -e \"console.log\\('manifest:', require\\('./lib/catPool.json'\\).pulled\\)\")",
-      "Bash(node --input-type=module -e \"import {HEROES} from './lib/heroes.js'; console.log\\(HEROES.slice\\(0,6\\).map\\(h=>h.id+':'+h.rarity+':'+h.cls\\).join\\('\\\\n'\\)\\)\")"
+      "Bash(node --input-type=module -e \"import {HEROES} from './lib/heroes.js'; console.log\\(HEROES.slice\\(0,6\\).map\\(h=>h.id+':'+h.rarity+':'+h.cls\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(nohup node scripts/pull-all-cats.mjs --conc 3)",
+      "Bash(echo \"started pid $!\")",
+      "Bash(node scripts/project-players.mjs 30)",
+      "Bash(node scripts/.sweep.mjs)",
+      "Bash(node scripts/.pp2.mjs 30)",
+      "Bash(python3 -)",
+      "Bash(sed -n '/export function stageReward/,/^}/p' lib/conquest.js)",
+      "Bash(sed -n '/export function goldPerHour/,/^}/p' lib/townEconomy.js)",
+      "Bash(rm -f scripts/.sweep.mjs scripts/.tune.mjs)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); p.scripts.project='node scripts/project-players.mjs'; require\\('fs'\\).writeFileSync\\('package.json',JSON.stringify\\(p,null,2\\)+'\\\\n'\\);\")"
     ]
   }
 }

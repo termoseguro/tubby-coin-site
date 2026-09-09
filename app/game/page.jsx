@@ -69,7 +69,8 @@ import {
 } from "../../lib/troops";
 import {
   LINEUP_SIZE,
-  idleGoldMultiplier,
+  ALLEY_IDLE_CAP_HOURS,
+  alleyPending,
   isBoss,
   simulate as simulateStage,
   stageReward,
@@ -244,7 +245,7 @@ function freshSave() {
     // and it permanently multiplies the town's idle Gold — which is where that
     // mechanic belongs, and why it is no longer bolted onto the Palis raid.
     // `bossHp` remembers a wounded boss between attempts.
-    conquest: { stage: 1, cleared: 0, bossHp: null, lineup: [] },
+    conquest: { stage: 1, cleared: 0, bossHp: null, lineup: [], collectedAt: Date.now() },
     keys: { silver: 3, gold: 1 },
     litter: { startedAt: Date.now(), spins: 0, pity: { silver: 0, gold: 0 }, claimed: {}, lastFreeAt: 0 },
 
@@ -489,7 +490,7 @@ function applyProduction(s, now = Date.now()) {
 
   let res = { ...s.res };
   for (const [k, v] of Object.entries(spend)) res[k] = Math.max(0, (res[k] || 0) - v);
-  const capped = addCapped(res, gains, levelOf(s, "storehouse"));
+  const capped = addCapped(res, gains, levelOf(s, "storehouse"), levelOf(s, "hall"));
   return { ...s, res: capped.res, lastProd: now, overflow: capped.wasted > 0 };
 }
 
@@ -544,6 +545,19 @@ function runPalis(s, now = Date.now()) {
 /** Cats eat. This is why Fish is not just another number, and why the Kitchen
  *  is not optional — run out and the whole town drops to a quarter speed. */
 function applyUpkeep(s, now = Date.now()) {
+  // NOTHING EATS BEFORE THERE IS A KITCHEN.
+  //
+  // This was a hard soft-lock and it took a simulation to find. The Kitchen
+  // unlocks at Cat Hall 2, so a Cat Hall 1 town has NO fish income at all —
+  // and the Cat Hall 1 -> 2 upgrade costs 360 fish out of the 400 you start
+  // with. At 26 fish an hour the window to make that upgrade was TWO HOURS
+  // from opening the game for the first time. Miss it, and the save was
+  // unwinnable forever with no message explaining why.
+  //
+  // A town cannot be charged upkeep for a building the ladder has not given it
+  // yet. Upkeep starts with the Kitchen, which is also when it starts being a
+  // decision rather than a trap.
+  if (levelOf(s, "kitchen") < 1) return { ...s, lastUpkeep: now };
   const since = s.lastUpkeep || s.lastSeen || now;
   const hours = Math.max(0, (now - since) / 3_600_000);
   if (hours <= 0) return s;
@@ -600,7 +614,7 @@ function poolIdFor(key, rarity) {
 
 function migrate(s) {
   if (!s.res) {
-    s.res = { fish: 400, wood: 400, stone: 60, catnip: 0, treats: Math.floor(s.treats || 0), gold: 30 };
+    s.res = { fish: 600, wood: 400, stone: 60, catnip: 0, treats: Math.floor(s.treats || 0), gold: 30 };
   } else if (s.treats != null) {
     s.res = { ...s.res, treats: Math.max(s.res.treats || 0, Math.floor(s.treats)) };
   }
@@ -618,6 +632,7 @@ function migrate(s) {
   if (!s.pendingShards) s.pendingShards = {};
   if (!s.patrol) s.patrol = [];
   if (!s.conquest) s.conquest = { stage: 1, cleared: 0, bossHp: null, lineup: [] };
+  if (!s.conquest.collectedAt) s.conquest.collectedAt = Date.now();
   if (!s.keys) s.keys = { silver: 3, gold: 1 };
   if (!s.litter) {
     s.litter = { startedAt: Date.now(), spins: 0, pity: { silver: 0, gold: 0 }, claimed: {}, lastFreeAt: 0 };
@@ -702,6 +717,7 @@ export default function TubbyTown() {
   const [welcomeBack, setWelcomeBack] = useState(null);
   const [litterOpen, setLitterOpen] = useState(false);
   const [alleyOpen, setAlleyOpen] = useState(false);
+
   const [studyOpen, setStudyOpen] = useState(false);
   const [trainOpen, setTrainOpen] = useState(null);
   const [spinResult, setSpinResult] = useState(null);
@@ -841,6 +857,33 @@ export default function TubbyTown() {
     setToast(msg);
     setTimeout(() => setToast(null), 2200);
   }, []);
+
+  /** Empty the Alley's purse into the town.
+   *
+   *  Opening the Alley collects first and fights second, which is deliberate:
+   *  Kingshot's own advice is to collect twice a day and never let the timer
+   *  cap out, and a reward you have to remember to press a second button for
+   *  is a reward players lose. */
+  const collectAlley = useCallback(() => {
+    setSave((s) => {
+      if (!s) return s;
+      const p = alleyPending(s);
+      const now = Date.now();
+      if (p.coin < 1) return { ...s, conquest: { ...s.conquest, collectedAt: now } };
+      const { res, wasted } = addCapped(
+        s.res,
+        { coin: p.coin },
+        levelOf(s, "storehouse"),
+        levelOf(s, "hall")
+      );
+      flash(
+        wasted > 0
+          ? `+${fmt(p.coin - wasted)} Gold from the Alley — the rest did not fit.`
+          : `+${fmt(p.coin)} Gold from the Alley.`
+      );
+      return { ...s, res, conquest: { ...s.conquest, collectedAt: now } };
+    });
+  }, [flash]);
 
   // ---- derived -------------------------------------------------------------
   const tier = save ? holdTier(save.hold) : game.holdTiers[0];
@@ -1277,7 +1320,7 @@ export default function TubbyTown() {
         const reward = palisFixReward(p, level);
         let res = { ...s.res };
         for (const [k, v] of Object.entries(cost)) res[k] -= v;
-        const out = addCapped(res, reward, levelOf(s, "storehouse"));
+        const out = addCapped(res, reward, levelOf(s, "storehouse"), levelOf(s, "hall"));
         flash(`Sorted — +${Math.floor(reward.coin || 0)} Gold`);
         return {
           ...s,
@@ -1416,7 +1459,7 @@ export default function TubbyTown() {
         const r = stageReward(cq.stage);
         const keys = { ...s.keys };
         for (const [k, n] of Object.entries(r.keys || {})) keys[k] = (keys[k] || 0) + n;
-        const { res } = addCapped(s.res, { coin: r.coin }, levelOf(s, "storehouse"));
+        const { res } = addCapped(s.res, { coin: r.coin }, levelOf(s, "storehouse"), levelOf(s, "hall"));
         next = {
           ...next,
           res,
@@ -1793,7 +1836,7 @@ export default function TubbyTown() {
     (id, reward) => {
       setSave((s) => {
         if (!s || s.claimed?.[id]) return s;
-        const { res } = addCapped(s.res, reward, levelOf(s, "storehouse"));
+        const { res } = addCapped(s.res, reward, levelOf(s, "storehouse"), levelOf(s, "hall"));
         // Golden Fish is never capped by the Storehouse
         if (reward.gold) res.gold = (s.res.gold || 0) + reward.gold;
         flash("Reward claimed.");
@@ -1870,7 +1913,8 @@ export default function TubbyTown() {
         const { res, wasted } = addCapped(
           { ...s.res, gold: s.res.gold - price },
           { [PRODUCERS[id].res]: amount },
-          levelOf(s, "storehouse")
+          levelOf(s, "storehouse"),
+          levelOf(s, "hall")
         );
         flash(
           wasted > 0
@@ -2121,6 +2165,7 @@ export default function TubbyTown() {
         res={save.res}
         rates={rates}
         storehouseLevel={levelOf(save, "storehouse")}
+        hallLevel={levelsTop.hall}
         unlocked={unlockedResources}
         onBuy={() => setTab("shop")}
       />
@@ -2276,7 +2321,10 @@ export default function TubbyTown() {
                 onLevel={levelHero}
                 onPatrol={togglePatrol}
                 onOpenLitter={() => setLitterOpen(true)}
-                onOpenAlley={() => setAlleyOpen(true)}
+                onOpenAlley={() => {
+                  collectAlley();
+                  setAlleyOpen(true);
+                }}
               />
             )}
             {tab === "shop" && <ShopTab onBuy={mockBuy} onReset={hardReset} />}

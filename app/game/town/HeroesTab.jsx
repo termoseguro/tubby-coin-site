@@ -37,7 +37,8 @@ import {
   LINEUP_SIZE,
   chapterOf,
   bossName,
-  idleGoldMultiplier,
+  alleyIdleRate,
+  alleyPending,
   isBoss,
 } from "../../../lib/conquest.js";
 import { HERO_BLURB } from "../../../lib/villagers.js";
@@ -73,7 +74,7 @@ export default function HeroesTab({
   const conquest = save.conquest || { stage: 1, cleared: 0, lineup: [] };
   const stage = conquest.stage || 1;
   const cleared = conquest.cleared || 0;
-  const idleBonus = Math.round((idleGoldMultiplier(cleared) - 1) * 100);
+  const purse = alleyPending(save);
   const toBoss = isBoss(stage) ? 0 : CHAPTER_LENGTH - (stage % CHAPTER_LENGTH);
 
   const mine = HEROES.filter((h) => owned[h.id]).sort(
@@ -110,11 +111,15 @@ export default function HeroesTab({
           </span>
         </span>
         <span className="tt-alley-r">
-          <span className="tt-alley-idle">
-            <i>+{idleBonus}%</i>
-            <small>idle Gold</small>
+          {/* THE PURSE, and how full it is. Kingshot's Conquest accrues its own
+              reward pool at a rate set by your deepest stage and caps at twelve
+              hours — "collect twice daily, do not let it cap out". That cap is
+              the retention hook, so the number has to be visible from here. */}
+          <span className={"tt-alley-idle" + (purse.full ? " full" : "")}>
+            <i>{purse.coin.toLocaleString("en-US")}</i>
+            <small>{purse.full ? "Gold · FULL" : `Gold · ${purse.rate}/h`}</small>
           </span>
-          <span className="tt-alley-go">March</span>
+          <span className="tt-alley-go">{purse.coin > 0 ? "Collect" : "March"}</span>
         </span>
       </button>
 

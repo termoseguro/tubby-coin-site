@@ -24,7 +24,7 @@ import {
   bossName,
   chapterOf,
   enemiesFor,
-  idleGoldMultiplier,
+  alleyIdleRate,
   isBoss,
   lineupAdvice,
   stageReward,
@@ -139,10 +139,10 @@ export default function Conquest({
         <div className="tt-cq-why">
           <IconGold size={22} />
           <div>
-            <b>Clearing this raises your Gold forever</b>
+            <b>Clearing this pays you while you are away</b>
             <small>
-              now ×{idleGoldMultiplier(cq.cleared || 0).toFixed(2)} → ×
-              {idleGoldMultiplier(stage).toFixed(2)} · plus {fmt(reward.coin)} Gold
+              the Alley earns {fmt(alleyIdleRate(cq.cleared || 0))}/h now →{" "}
+              {fmt(alleyIdleRate(stage))}/h · plus {fmt(reward.coin)} Gold on the spot
               {reward.shards ? ` and ${reward.shards} shards` : ""}
             </small>
           </div>
@@ -236,7 +236,8 @@ export default function Conquest({
             <b>{battle.won ? "Stage cleared" : "Driven back"}</b>
             {battle.won ? (
               <p>
-                Gold is now ×{idleGoldMultiplier(stage).toFixed(2)} — and it stays that way.
+                The Alley now earns <b>{fmt(alleyIdleRate(stage))} Gold an hour</b> while you are
+                away — and it stays that way.
               </p>
             ) : boss && battle.bossHp != null ? (
               <p>

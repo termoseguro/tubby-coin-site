@@ -24,7 +24,8 @@
     "cats:pull": "node scripts/pull-cats.mjs",
     "cats:index": "node scripts/index-cats.mjs",
     "check:progress": "node scripts/check-progress.mjs",
-    "cats:all": "node scripts/pull-all-cats.mjs"
+    "cats:all": "node scripts/pull-all-cats.mjs",
+    "project": "node scripts/project-players.mjs"
   },
   "dependencies": {
     "next": "^14.2.35",
