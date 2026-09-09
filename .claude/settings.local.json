@@ -547,7 +547,13 @@
       "Bash(sed -n '/^function skill\\(/,/^}/p' lib/heroes.js)",
       "Bash(node -e \"const p=require\\('./package.json'\\); p.scripts['check:alley']='node scripts/check-alley.mjs'; p.scripts['check:all']='npm run check:server && npm run check:progress && npm run check:alley && npm run check:layout && npm run check'; require\\('fs'\\).writeFileSync\\('package.json',JSON.stringify\\(p,null,2\\)+'\\\\n'\\);\")",
       "Bash(node scripts/check-alley.mjs)",
-      "Bash(rm -f scripts/.alley-tmp.mjs)"
+      "Bash(rm -f scripts/.alley-tmp.mjs)",
+      "Bash(git grep *)",
+      "Bash(grep -c \"^SUPABASE_SERVICE_ROLE_KEY=$\" .env.local)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); p.scripts['check:api']='node scripts/check-api.mjs'; require\\('fs'\\).writeFileSync\\('package.json',JSON.stringify\\(p,null,2\\)+'\\\\n'\\);\")",
+      "Bash(node scripts/check-api.mjs)",
+      "Bash(node --input-type=module *)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); p.scripts['check:all']='npm run check:server && npm run check:progress && npm run check:alley && npm run check:layout && npm run check:rls && npm run check'; require\\('fs'\\).writeFileSync\\('package.json',JSON.stringify\\(p,null,2\\)+'\\\\n'\\);\")"
     ]
   }
 }

@@ -38,6 +38,10 @@ const TABLES = [
   "players", "wallets", "wallet_nonces", "towns", "town_events",
   "shop_items", "orders", "payments", "hold_snapshots",
   "seasons", "season_scores", "prize_claims",
+  // Added by 20260909120000_server_authority.sql. A table that is not in this
+  // list is a table nobody is attacking, which is how one ships open.
+  "sessions", "idempotency_keys", "gacha_seeds", "gacha_rolls",
+  "town_actions", "rate_limits",
 ];
 
 // What an attacker would actually try, not a generic row. Each of these is a
