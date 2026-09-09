@@ -94,17 +94,17 @@ export default function Page() {
             <div className="wrap">
               <HeroMascot />
               <h1>
-                A memecoin that <em>buys diapers</em>
+                TUBBY CATS <em>COIN</em>
               </h1>
               <p className="lead">
-                {token.ticker} is the community coin of the tubby cats universe on Solana — 20,000
-                hand-drawn cats, public domain since 2022. <b>{feeSplit.care}% of every creator fee</b>{" "}
-                buys food, medicine and supplies for children&apos;s shelters in Rio de Janeiro.
+                The community coin of the tubby cats universe on Solana — 20,000 hand-drawn cats,
+                public domain since 2022. And <b>a share of every creator fee</b> helps orphanages and
+                children&apos;s care centres in Brazil.
               </p>
               <div className="hero-cta">
                 <BuyButton className="btn">Buy {token.ticker}</BuyButton>
                 <a className="btn ghost" href="#cares">
-                  See where it goes
+                  How it gives back
                 </a>
               </div>
               <CopyCA />
@@ -120,20 +120,20 @@ export default function Page() {
 
               <div className="trust-strip">
                 <div className="trust-cell reveal" data-i="0">
-                  <div className="n">{feeSplit.care}%</div>
-                  <div className="l">to shelters</div>
+                  <div className="n">20K</div>
+                  <div className="l">cats, CC0</div>
                 </div>
                 <div className="trust-cell reveal" data-i="1">
                   <div className="n">0%</div>
                   <div className="l">presale &amp; team</div>
                 </div>
                 <div className="trust-cell reveal" data-i="2">
-                  <div className="n">20K</div>
-                  <div className="l">cats, CC0</div>
+                  <div className="n">0%</div>
+                  <div className="l">transfer tax</div>
                 </div>
                 <div className="trust-cell reveal" data-i="3">
-                  <div className="n">2022</div>
-                  <div className="l">collection minted</div>
+                  <div className="n">{feeSplit.care}%</div>
+                  <div className="l">gives back</div>
                 </div>
               </div>
             </div>
@@ -205,10 +205,60 @@ export default function Page() {
                 </div>
               </div>
 
+              {/* the portfolio: this is not a plan, it already happened */}
+              {care.drives && care.drives.length > 0 && (
+                <div style={{ marginTop: 78 }}>
+                  <div className="sec-head">
+                    <span className="super">📸 this already happened</span>
+                    <h2 style={{ fontSize: "clamp(2rem,4.4vw,3rem)" }}>
+                      We were doing this before the coin
+                    </h2>
+                    <p>
+                      Out of our own pockets, with no token attached and nobody watching. The coin
+                      does not start the cause — it funds the part we could never afford.
+                    </p>
+                  </div>
+
+                  {care.drives.map((d) => (
+                    <div className="drive reveal" key={d.title}>
+                      <div className="drive-shot">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={d.photos[0]} alt={d.items} loading="lazy" decoding="async" />
+                      </div>
+                      <div className="drive-body">
+                        <h3>{d.title}</h3>
+                        <div className="drive-meta">
+                          <span>🗓️ {d.when}</span>
+                          <span>📍 {d.org}</span>
+                          <span>📦 {d.items}</span>
+                        </div>
+                        <p>{d.note}</p>
+
+                        {care.publishPeoplePhotos && d.people && d.people.length > 0 && (
+                          <div className="drive-gallery">
+                            {d.people.map((src, i) => (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={src}
+                                alt="A child at the centre with one of the plush cats"
+                                key={i}
+                                loading="lazy"
+                                decoding="async"
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <p className="care-note">
-                We photograph the supplies, the delivery and the staff — never the children&apos;s
-                faces. Kids in institutional care are the most protected people in Brazilian law, and
-                that is exactly as it should be.
+                We photograph the supplies, the delivery and the staff. Where a child appears, the
+                face is covered and the photo is published only with the institution&apos;s written
+                permission — kids in care are the most protected people in Brazilian law, and that is
+                exactly as it should be.
               </p>
             </div>
           </section>

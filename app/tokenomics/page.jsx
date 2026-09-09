@@ -116,10 +116,9 @@ export default function Tokenomics() {
 
   return (
     <div id="tk-page">
-      <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
       <header className="bar">
   <div className="bar-in">
-    <a className="logo" href="/"><img src="https://www.tubbycatscoin.com/coin.jpg" alt=""  /> $TUBBY</a>
+    <a className="logo" href="/"><img src="/coin-96.webp" alt="" width={34} height={34} /> $TUBBY</a>
     <nav>
       <a href="/#cares">Tubby Cares</a>
       <a href="/tokenomics" className="active">Tokenomics</a>

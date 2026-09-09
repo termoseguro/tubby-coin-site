@@ -18,3 +18,12 @@
 # manifest itself (lib/catPool.json) IS committed; it is the part the game reads.
 /public/cats/
 /data/
+
+# Donation photos that show the children themselves. Faces are covered, but
+# anything committed under /public is SERVED PUBLICLY whether or not a page
+# links to it — so committing these would put them on the open web and the
+# `care.publishPeoplePhotos` switch in lib/config.js would stop nothing.
+# They stay local until the institution gives written permission for public
+# online use (see docs/tubby-cares.md §5). To publish: remove this rule,
+# `git add -f` them, and flip publishPeoplePhotos to true.
+/public/cares/drive-01-kid-*.webp

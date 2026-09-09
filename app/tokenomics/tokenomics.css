@@ -13,7 +13,7 @@
   --shadow:6px 6px 0 var(--ink);
   --shadow-sm:4px 4px 0 var(--ink);
 
-  font-family:'Nunito',sans-serif;
+  font-family:var(--tk-body),'Nunito',sans-serif;
   background:var(--pink);
   color:var(--ink);
   line-height:1.55;
@@ -21,23 +21,23 @@
   scroll-behavior:smooth;
 
   ::selection{background:var(--gold);color:var(--ink)}
-  h1,h2,h3{font-family:'Lilita One',cursive;font-weight:400;letter-spacing:.5px}
+  h1,h2,h3{font-family:var(--tk-display),'Lilita One',cursive;font-weight:400;letter-spacing:.5px}
   a{color:inherit}
   img{max-width:100%;display:block}
-  .mono{font-family:'IBM Plex Mono',monospace}
+  .mono{font-family:var(--tk-mono),'IBM Plex Mono',monospace}
   .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
   section{padding:68px 0}
 
   /* ---------- top bar (matches home) ---------- */
   .bar{position:sticky;top:0;z-index:50;background:var(--pink);border-bottom:var(--border);color:var(--ink)}
   .bar-in{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 20px;max-width:1080px;margin:0 auto}
-  .logo{font-family:'Lilita One',cursive;font-size:1.3rem;text-decoration:none;display:flex;align-items:center;gap:10px}
+  .logo{font-family:var(--tk-display),'Lilita One',cursive;font-size:1.3rem;text-decoration:none;display:flex;align-items:center;gap:10px}
   .logo img{width:34px;height:34px;border-radius:50%;border:2px solid var(--ink);object-fit:cover;background:var(--gold)}
   .bar nav{display:flex;gap:16px;align-items:center}
   .bar nav a{font-weight:800;text-decoration:none;font-size:.93rem}
   .bar nav a:hover{color:var(--cream)}
   .bar nav a.active{background:var(--cream);border:2px solid var(--ink);border-radius:999px;padding:4px 14px;box-shadow:2px 2px 0 var(--ink)}
-  .btn{display:inline-block;font-family:'Lilita One',cursive;font-size:1rem;background:var(--gold);color:var(--ink);text-decoration:none;padding:11px 24px;border:var(--border);border-radius:999px;box-shadow:var(--shadow-sm);transition:transform .12s ease,box-shadow .12s ease;cursor:pointer}
+  .btn{display:inline-block;font-family:var(--tk-display),'Lilita One',cursive;font-size:1rem;background:var(--gold);color:var(--ink);text-decoration:none;padding:11px 24px;border:var(--border);border-radius:999px;box-shadow:var(--shadow-sm);transition:transform .12s ease,box-shadow .12s ease;cursor:pointer}
   .btn:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
   .btn:focus-visible,a:focus-visible{outline:3px dashed var(--ink);outline-offset:3px}
   @media(max-width:760px){.bar nav a:not(.btn){display:none}}
@@ -57,7 +57,7 @@
 
   /* ---------- marquee (home pattern) ---------- */
   .marquee{border-top:var(--border);border-bottom:var(--border);background:var(--gold);overflow:hidden;white-space:nowrap;padding:11px 0}
-  .marquee-track{display:inline-block;font-family:'Lilita One',cursive;font-size:1rem}
+  .marquee-track{display:inline-block;font-family:var(--tk-display),'Lilita One',cursive;font-size:1rem}
   @media(prefers-reduced-motion:no-preference){
     .marquee-track{animation:scroll 30s linear infinite}
     @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
@@ -74,7 +74,7 @@
   .board{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:20px}
   @media(max-width:900px){.board{grid-template-columns:repeat(2,1fr)}}
   .tile{background:var(--cream);border:var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:18px 14px;text-align:center}
-  .tile .v{font-family:'Lilita One',cursive;font-size:1.5rem;line-height:1.1;overflow-wrap:anywhere}
+  .tile .v{font-family:var(--tk-display),'Lilita One',cursive;font-size:1.5rem;line-height:1.1;overflow-wrap:anywhere}
   .tile .k{font-size:.76rem;font-weight:800;margin-top:7px;text-transform:lowercase}
   .board-note{font-size:.78rem;font-weight:700;margin-top:14px;opacity:.85;text-align:center}
 
@@ -82,7 +82,7 @@
   .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
   @media(max-width:900px){.stat-row{grid-template-columns:repeat(2,1fr)}}
   .stat{background:var(--cream);border:var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:20px 16px;text-align:center}
-  .stat .n{font-family:'Lilita One',cursive;font-size:1.9rem;line-height:1}
+  .stat .n{font-family:var(--tk-display),'Lilita One',cursive;font-size:1.9rem;line-height:1}
   .stat .l{font-size:.82rem;font-weight:800;margin-top:8px;text-transform:lowercase}
 
   /* ---------- supply ---------- */
@@ -91,7 +91,7 @@
   .donut{position:relative;width:min(290px,80vw);aspect-ratio:1;margin:0 auto;border-radius:50%;border:var(--border);box-shadow:var(--shadow)}
   .donut::after{content:"";position:absolute;inset:23%;background:var(--cream);border:var(--border);border-radius:50%}
   .donut .center-label{position:absolute;inset:23%;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;text-align:center;padding:10px}
-  .donut .center-label b{font-family:'Lilita One',cursive;font-size:1.1rem;line-height:1.15}
+  .donut .center-label b{font-family:var(--tk-display),'Lilita One',cursive;font-size:1.1rem;line-height:1.15}
   .donut .center-label span{font-size:.7rem;font-weight:800;margin-top:4px}
   .donut.supply-donut{background:conic-gradient(var(--gold) 0 100%)}
   /* care 20 · ops 30 · treats 25 · bite 15 · art 10 — cumulative stops.
@@ -110,7 +110,7 @@
   .tier:nth-child(1) .bar-viz{height:110px}
   .tier:nth-child(2) .bar-viz{height:70px;background:var(--pink-soft)}
   .tier:nth-child(3) .bar-viz{height:36px;background:var(--choco)}
-  .tier .pct{font-family:'Lilita One',cursive;font-size:1.5rem}
+  .tier .pct{font-family:var(--tk-display),'Lilita One',cursive;font-size:1.5rem}
   .tier .st{font-size:.85rem;font-weight:800;margin-top:4px}
   .tier .d{font-size:.85rem;font-weight:600;margin-top:8px}
 
@@ -125,10 +125,10 @@
   .slice .head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
   .slice .swatch{width:18px;height:18px;border-radius:6px;border:2px solid var(--ink);flex:none}
   .slice h3{font-size:1.05rem}
-  .slice .pct{font-family:'Lilita One',cursive;font-size:1.5rem;margin-left:auto}
+  .slice .pct{font-family:var(--tk-display),'Lilita One',cursive;font-size:1.5rem;margin-left:auto}
   .slice p{font-size:.88rem;font-weight:600}
   .sw-gold{background:var(--gold)} .sw-ink{background:var(--ink)}
-  .wallet{font-family:'IBM Plex Mono',monospace;font-size:.72rem;background:var(--cream);border:2px solid var(--ink);border-radius:10px;padding:6px 9px;margin-top:10px;overflow-wrap:anywhere;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .wallet{font-family:var(--tk-mono),'IBM Plex Mono',monospace;font-size:.72rem;background:var(--cream);border:2px solid var(--ink);border-radius:10px;padding:6px 9px;margin-top:10px;overflow-wrap:anywhere;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
   .wallet .bal{font-weight:600;white-space:nowrap}
   .enforced{background:var(--white);border:var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;font-weight:700;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
   .enforced .ic{font-size:1.6rem}
@@ -143,11 +143,11 @@
   .bite-hero p{font-weight:600;font-size:.97rem}
   .bite-hero .big{font-size:3rem;margin-bottom:6px}
   .bite-hero .burned{margin-top:16px;background:rgba(255,244,228,.12);border:2px solid var(--cream);border-radius:14px;padding:12px 16px}
-  .bite-hero .burned .v{font-family:'Lilita One',cursive;font-size:1.6rem;color:var(--gold)}
+  .bite-hero .burned .v{font-family:var(--tk-display),'Lilita One',cursive;font-size:1.6rem;color:var(--gold)}
   .bite-hero .burned .k{font-size:.75rem;font-weight:800}
   .bite-steps{display:flex;flex-direction:column;gap:14px}
   .bite-step{background:var(--cream);border:var(--border);border-radius:16px;box-shadow:var(--shadow-sm);padding:14px 18px;font-weight:700;font-size:.93rem;display:flex;gap:12px;align-items:center}
-  .bite-step .num{width:32px;height:32px;border-radius:50%;background:var(--gold);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-family:'Lilita One',cursive;flex:none}
+  .bite-step .num{width:32px;height:32px;border-radius:50%;background:var(--gold);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-family:var(--tk-display),'Lilita One',cursive;flex:none}
 
   /* ---------- 9 lives ---------- */
   .lives-track{position:relative;max-width:760px;margin:0 auto}
@@ -157,7 +157,7 @@
   .life.locked .paw{background:var(--cream)}
   .life .body{background:var(--cream);border:var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:18px 20px}
   .life h3{font-size:1.05rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .life .tag{font-family:'IBM Plex Mono',monospace;font-size:.68rem;font-weight:600;background:var(--white);border:2px solid var(--ink);border-radius:999px;padding:3px 10px}
+  .life .tag{font-family:var(--tk-mono),'IBM Plex Mono',monospace;font-size:.68rem;font-weight:600;background:var(--white);border:2px solid var(--ink);border-radius:999px;padding:3px 10px}
   .life p{font-size:.9rem;font-weight:600;margin-top:6px}
   .life .state{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;border:2px solid var(--ink);border-radius:8px;padding:2px 8px;margin-left:auto}
   .life .state.on{background:var(--gold)}
@@ -169,13 +169,13 @@
   table{width:100%;border-collapse:separate;border-spacing:0;background:var(--cream);border:var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;min-width:560px}
   th,td{padding:14px 18px;font-size:.9rem;text-align:left;border-bottom:2px solid var(--ink)}
   tr:last-child td{border-bottom:none}
-  th{font-family:'Lilita One',cursive;font-size:.95rem;background:var(--gold);border-bottom:var(--border)}
+  th{font-family:var(--tk-display),'Lilita One',cursive;font-size:.95rem;background:var(--gold);border-bottom:var(--border)}
   td:first-child{font-weight:800}
   td.yes{background:var(--white);font-weight:700}
 
   /* ---------- faq ---------- */
   details{background:var(--cream);border:var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:14px;overflow:hidden}
-  summary{cursor:pointer;padding:18px 22px;font-family:'Lilita One',cursive;font-size:1.05rem;list-style:none}
+  summary{cursor:pointer;padding:18px 22px;font-family:var(--tk-display),'Lilita One',cursive;font-size:1.05rem;list-style:none}
   summary::-webkit-details-marker{display:none}
   summary::after{content:"+";float:right;font-size:1.3rem}
   details[open] summary::after{content:"–"}
@@ -183,7 +183,7 @@
 
   /* ---------- footer (home pattern) ---------- */
   footer{background:var(--ink);color:var(--cream);padding:52px 0 38px;margin-top:40px}
-  footer .kick{font-family:'Lilita One',cursive;color:var(--pink-soft);margin-bottom:8px}
+  footer .kick{font-family:var(--tk-display),'Lilita One',cursive;color:var(--pink-soft);margin-bottom:8px}
   footer h3{font-size:1.15rem;margin-bottom:10px;color:var(--gold)}
   footer p{font-size:.85rem;line-height:1.7;opacity:.9;max-width:56rem}
   footer .fine{border-top:2px dashed rgba(255,244,228,.35);margin-top:26px;padding-top:16px;font-size:.78rem;opacity:.75}
