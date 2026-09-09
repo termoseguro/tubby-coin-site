@@ -9,6 +9,7 @@ import LiveTicker from "./components/LiveTicker";
 import ScrollFX from "./components/ScrollFX";
 import CopyCA from "./components/CopyCA";
 import HeroMascot from "./components/HeroMascot";
+import HeroBackdrop from "./components/HeroBackdrop";
 import NavBar from "./components/NavBar";
 import Band from "./components/Band";
 import Footer from "./components/Footer";
@@ -92,6 +93,7 @@ export default function Page() {
         <main id="top">
           {/* ============ HERO ============ */}
           <section className="hero">
+            <HeroBackdrop />
             <div className="wrap">
               <HeroMascot />
               <h1>

@@ -86,6 +86,8 @@ img{max-width:100%;display:block}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(90,224,138,.55)}70%{box-shadow:0 0 0 11px rgba(90,224,138,0)}100%{box-shadow:0 0 0 0 rgba(90,224,138,0)}}
 @keyframes toastIn{from{opacity:0;transform:translateY(22px) scale(.94)}to{opacity:1;transform:none}}
 @keyframes toastOut{to{opacity:0;transform:translateY(-10px) scale(.96)}}
+@keyframes railUp{from{transform:translateY(0)}to{transform:translateY(-50%)}}
+@keyframes drift{0%,100%{transform:translateY(0) rotate(-7deg)}50%{transform:translateY(-24px) rotate(7deg)}}
 
 /* ---------- scroll reveal ---------- */
 .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
@@ -221,8 +223,50 @@ img{max-width:100%;display:block}
 /* ============================================================================
    HERO
    ========================================================================== */
-.hero{padding:14px 0 62px;text-align:center;position:relative;color:#fff}
-.hero-mascot{width:min(280px,58vw);aspect-ratio:1;margin:6px auto 4px;position:relative}
+.hero{padding:14px 0 62px;text-align:center;position:relative;color:#fff;isolation:isolate}
+.hero > .wrap{position:relative;z-index:2}
+
+/* ---- what fills the gutters (see HeroBackdrop.jsx) ---- */
+.hero-fx{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.hero-glow{
+  position:absolute;left:50%;top:2%;width:min(720px,94vw);aspect-ratio:1;
+  transform:translateX(-50%);border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.4) 0%,rgba(255,255,255,.13) 44%,transparent 68%);
+}
+.hero-rail{
+  position:absolute;top:-60px;bottom:-60px;width:120px;opacity:.46;
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 16%,#000 84%,transparent);
+  mask-image:linear-gradient(180deg,transparent,#000 16%,#000 84%,transparent);
+}
+.hero-rail.l{left:1.5vw}
+.hero-rail.r{right:1.5vw}
+.hero-rail-track{display:flex;flex-direction:column;gap:16px}
+.hero-rail img{
+  width:120px;height:120px;border-radius:26px;object-fit:cover;
+  background:rgba(255,255,255,.14);box-shadow:var(--sh-sm);
+}
+/* below this the centred column uses the full width — there is no gutter left
+   to decorate, and rails would collide with the trust strip */
+@media(max-width:1240px){.hero-rail{display:none}}
+
+.hero-coin{
+  position:absolute;border-radius:50%;opacity:.5;
+  filter:drop-shadow(0 10px 16px rgba(46,10,28,.4));
+}
+.hero-coin.c1{left:13%;top:16%;width:56px;height:56px}
+.hero-coin.c2{right:15%;top:31%;width:44px;height:44px}
+.hero-coin.c3{left:19%;bottom:19%;width:64px;height:64px}
+@media(max-width:860px){.hero-coin{display:none}}
+
+@media(prefers-reduced-motion:no-preference){
+  .hero-rail.l .hero-rail-track{animation:railUp 52s linear infinite}
+  .hero-rail.r .hero-rail-track{animation:railUp 64s linear infinite reverse}
+  .hero-coin.c1{animation:drift 9s ease-in-out infinite}
+  .hero-coin.c2{animation:drift 12s ease-in-out infinite reverse}
+  .hero-coin.c3{animation:drift 14s ease-in-out infinite}
+}
+
+.hero-mascot{width:min(320px,62vw);aspect-ratio:1;margin:6px auto 4px;position:relative}
 .hero-mascot img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 26px 34px rgba(46,10,28,.42))}
 .hero-mascot::after{
   content:"";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
