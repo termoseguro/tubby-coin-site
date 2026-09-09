@@ -1,35 +1,34 @@
 // npm run cats:index — build lib/catPool.json from the art already on disk.
 //
-// Separate from pull-cats.mjs on purpose, because the two halves of the job
-// fail in different ways and for different reasons:
+// Separate from the pull scripts on purpose, because the two halves of the job
+// fail in different ways: art comes from a gateway that rate-limits hard, and a
+// single script that does both stalls on the images and leaves the manifest
+// unwritten. That is exactly what happened once — 130 cats downloaded and a
+// manifest still describing 24 — so pulling and indexing are separate commands
+// and indexing works entirely from what is already paid for.
 //
-//   IMAGES come from a gateway that serves this CID and rate-limits hard
-//     (Pinata answers 429 after a few hundred requests).
-//   METADATA is served by several gateways, and a different one to the images.
-//
-// A single script that does both stalls on the images and leaves the metadata
-// unwritten, which is exactly what happened: 130 cats downloaded and a manifest
-// still describing 24. So pulling and indexing are now separate commands, and
-// indexing works entirely from what is already paid for.
+// IT READS THE TRAITS CACHE FIRST. pull-all-cats.mjs writes every token's
+// metadata to data/cat-traits.ndjson as it arrives. Without using that, this
+// script re-fetched all of it: 950 cats on disk meant 950 more gateway
+// requests through the same throttle that made the pull slow in the first
+// place, which is why the manifest sat at 375 while the disk held 950.
 //
 // Rarity is computed from TRAIT FREQUENCY across whatever is indexed, so a cat
-// wearing things nobody else wears ranks high. That is the same thing the NFT
-// market prices, arrived at independently — and it means the pool re-ranks
-// itself sensibly however many cats there happen to be.
+// wearing things nobody else wears ranks high. Same thing the NFT market
+// prices, arrived at independently — and it re-ranks itself sensibly however
+// many cats there happen to be.
 
-import { readdirSync, writeFileSync } from "node:fs";
+import { createReadStream, existsSync, readdirSync, writeFileSync } from "node:fs";
+import { createInterface } from "node:readline";
 
 const META_CID = "QmeN7ZdrTGpbGoo8URqzvyiDtcgJxwoxULbQowaTGhTeZc";
 const OUT_DIR = new URL("../public/cats/", import.meta.url);
+const TRAITS = new URL("../data/cat-traits.ndjson", import.meta.url);
 const MANIFEST = new URL("../lib/catPool.json", import.meta.url);
 
-// Tried in order. Rotating spreads the load and survives any one of them
-// going down or throttling, which they all do eventually.
-const GATEWAYS = [
-  "https://ipfs.raribleuserdata.com/ipfs",
-  "https://gateway.pinata.cloud/ipfs",
-  "https://ipfs.filebase.io/ipfs",
-];
+// Tried in order, for the stragglers the cache does not cover. Most public
+// gateways answer 410 for these CIDs now; these two still serve them.
+const GATEWAYS = ["https://gateway.pinata.cloud/ipfs", "https://4everland.io/ipfs"];
 
 const TIERS = [
   { id: "mythic", take: (n) => Math.max(3, Math.round(n * 0.02)) },
@@ -45,7 +44,24 @@ const ids = readdirSync(OUT_DIR)
   .filter((n) => Number.isFinite(n))
   .sort((a, b) => a - b);
 
-console.log(`Indexing ${ids.length} cats already on disk…`);
+// ---- the cache -------------------------------------------------------------
+const cached = new Map();
+if (existsSync(TRAITS)) {
+  const rl = createInterface({ input: createReadStream(TRAITS), crlfDelay: Infinity });
+  for await (const line of rl) {
+    if (!line.trim()) continue;
+    try {
+      const j = JSON.parse(line);
+      if (j && j.id != null) cached.set(j.id, j.traits || {});
+    } catch {}
+  }
+}
+
+const missing = ids.filter((id) => !cached.has(id));
+console.log(
+  `Indexing ${ids.length} cats on disk — ${ids.length - missing.length} from cache, ` +
+    `${missing.length} to fetch.`
+);
 
 async function meta(id) {
   for (const gw of GATEWAYS) {
@@ -56,52 +72,58 @@ async function meta(id) {
         });
         if (r.ok) return await r.json();
         if (r.status === 429) await new Promise((s) => setTimeout(s, 1500));
+        else break;
       } catch {}
     }
   }
   return null;
 }
 
-const cats = [];
-const CONC = 5;
-for (let i = 0; i < ids.length; i += CONC) {
-  const got = await Promise.all(ids.slice(i, i + CONC).map(meta));
+const CONC = 4;
+for (let i = 0; i < missing.length; i += CONC) {
+  const batch = missing.slice(i, i + CONC);
+  const got = await Promise.all(batch.map(meta));
   got.forEach((m, j) => {
     if (!m) return;
-    const id = ids[i + j];
     const traits = {};
     for (const a of m.attributes || []) {
       if (a.value === false || a.value === "" || a.value == null) continue;
       traits[a.trait_type] = String(a.value);
     }
-    cats.push({ id, name: String(m.name ?? id), traits });
+    cached.set(batch[j], traits);
   });
-  process.stdout.write(`\r  ${cats.length} of ${Math.min(i + CONC, ids.length)}`);
+  process.stdout.write(`\r  fetched ${Math.min(i + CONC, missing.length)} of ${missing.length}`);
 }
-console.log();
+if (missing.length) console.log();
+
+// A cat whose traits never arrived still belongs in the pool — it has art, it
+// can be adopted, and it is simply unranked. Dropping it is how the manifest
+// ends up smaller than the folder.
+const cats = ids.map((id) => ({ id, traits: cached.get(id) || null }));
 
 if (!cats.length) {
-  console.error("\n✗ No metadata came back. Every gateway is refusing — wait and retry.\n");
+  console.error("\n✗ No art on disk. Run `npm run cats:all` first.\n");
   process.exit(1);
 }
 
 // ---- rarity from the art itself -------------------------------------------
 const freq = {};
-for (const c of cats) {
+const ranked = cats.filter((c) => c.traits);
+for (const c of ranked) {
   for (const [k, v] of Object.entries(c.traits)) freq[`${k}=${v}`] = (freq[`${k}=${v}`] || 0) + 1;
 }
-for (const c of cats) {
+for (const c of ranked) {
   c.score = Object.entries(c.traits).reduce(
-    (a, [k, v]) => a + cats.length / (freq[`${k}=${v}`] || 1),
+    (a, [k, v]) => a + ranked.length / (freq[`${k}=${v}`] || 1),
     0
   );
 }
-cats.sort((a, b) => b.score - a.score);
+ranked.sort((a, b) => b.score - a.score);
 
 let cursor = 0;
 for (const t of TIERS) {
-  const n = t.take(cats.length);
-  for (let i = 0; i < n && cursor < cats.length; i++, cursor++) cats[cursor].rarity = t.id;
+  const n = t.take(ranked.length);
+  for (let i = 0; i < n && cursor < ranked.length; i++, cursor++) ranked[cursor].rarity = t.id;
 }
 for (const c of cats) if (!c.rarity) c.rarity = "common";
 
@@ -111,13 +133,15 @@ writeFileSync(
     {
       source: "tubby cats, CC0 — 0xca7ca7bcc765f77339be2d648ba53ce9c8a262bd",
       pulled: cats.length,
-      cats: cats.map((c) => ({
-        id: c.id,
-        name: c.name,
-        rarity: c.rarity,
-        art: `/cats/${c.id}.webp`,
-        traits: c.traits,
-      })),
+      // Sorted by id so the file diffs sanely as the pull grows.
+      cats: cats
+        .sort((a, b) => a.id - b.id)
+        .map((c) => ({
+          id: c.id,
+          name: String(c.id),
+          rarity: c.rarity,
+          art: `/cats/${c.id}.webp`,
+        })),
     },
     null,
     2

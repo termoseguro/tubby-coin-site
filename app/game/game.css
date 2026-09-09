@@ -2622,3 +2622,62 @@
    `.tt-stage` and so also hid the heading of every TAB drawn over the stage —
    including the one sentence explaining that villagers are not heroes. */
 .tt-stage .tt-panel-over .tt-shead { display: block; }
+
+/* ==========================================================================
+   THE PANEL IS A LIGHT SURFACE, SO ITS TEXT IS DARK
+   ==========================================================================
+   `.tt-panel-over` paints a near-white pink (rgba(255,248,252,.97)) and then
+   inherited WHITE text from the stage. White on white: every tab shipped
+   unreadable. White is right over the town — a sky and a canvas behind it —
+   and wrong the moment a panel is drawn on top.
+
+   So the panel resets the colour for everything inside it, once, rather than
+   each new screen remembering to. The rarity text gets a darker ramp for the
+   same reason: pastel #b3a3c4 on cream is a contrast ratio of 1.01.
+   ========================================================================== */
+
+.ttown {
+  /* The rarity ramp again, dark enough to BE TEXT on a cream card. The pastel
+     ramp above stays for fills, rings and bars, where it is a shape not a word. */
+  --ri-common: #4a3c5c;
+  --ri-rare: #0a4467;
+  --ri-epic: #5f1c97;
+  --ri-legendary: #6b4500;
+  --ri-mythic: #8d1c3e;
+}
+.r-common { --ric: var(--ri-common); }
+.r-rare { --ric: var(--ri-rare); }
+.r-epic { --ric: var(--ri-epic); }
+.r-legendary { --ric: var(--ri-legendary); }
+.r-mythic { --ric: var(--ri-mythic); }
+
+.tt-panel-over { color: var(--ink); }
+.tt-panel-over .tt-shead h2 {
+  color: var(--ink);
+  text-shadow: 0 2px 0 #fff;
+}
+.tt-panel-over .tt-shead p,
+.tt-panel-over .tt-sub,
+.tt-panel-over .tt-p,
+.tt-panel-over .tt-rules,
+.tt-panel-over .quiet {
+  color: var(--ink-soft);
+  opacity: 1;
+  text-shadow: none;
+}
+.tt-panel-over .tt-h3 {
+  color: var(--ink);
+  text-shadow: 0 1px 0 #fff;
+}
+.tt-panel-over .tt-rules b,
+.tt-panel-over .tt-p b { color: var(--ink); }
+
+/* the published odds table: the name and the multiplier are words, so they use
+   the ink ramp; the bar beside them keeps the pastel */
+.tt-odd-name,
+.tt-odd-mult { color: var(--ric, var(--ink)); }
+.tt-vcard-b small { color: var(--ric, var(--ink-soft)) !important; }
+
+/* the per-hour rate in the top bar sits on a saturated pink chip */
+.ttown .tt-resbar-rate { color: #0c5b3f; }
+.ttown .tt-resbar-rate.over { color: #8c1226; }

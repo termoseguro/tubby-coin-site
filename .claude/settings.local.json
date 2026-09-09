@@ -526,7 +526,12 @@
       "Bash(node -e \"const p=require\\('./lib/catPool.json'\\); console.log\\(p.pulled, JSON.stringify\\(p.cats[0]\\)\\)\")",
       "Bash(SP=C:/Users/Rafa/AppData/Local/Temp/claude/C--Users-Rafa-tubby-coin-site/72c6d889-dd40-4521-a842-e38fa8ba689c/scratchpad node -e ' *)",
       "Bash(echo \"progress exit: $?\")",
-      "Bash(echo \"layout exit: $?\")"
+      "Bash(echo \"layout exit: $?\")",
+      "Bash(git commit -q -m '@ *)",
+      "Bash(echo \"pushed: $?\")",
+      "Bash(node scripts/pull-all-cats.mjs --conc 3)",
+      "Bash(node -e \"console.log\\('manifest:', require\\('./lib/catPool.json'\\).pulled\\)\")",
+      "Bash(node --input-type=module -e \"import {HEROES} from './lib/heroes.js'; console.log\\(HEROES.slice\\(0,6\\).map\\(h=>h.id+':'+h.rarity+':'+h.cls\\).join\\('\\\\n'\\)\\)\")"
     ]
   }
 }

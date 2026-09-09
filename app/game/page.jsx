@@ -217,7 +217,7 @@ function freshSave() {
     shards: 0,
   };
   return {
-    v: 4,
+    v: 5,
     // Kingshot-shaped economy: five gathered resources plus the premium one,
     // each produced by its own building and capped by the Storehouse.
     // Kingshot opens you with almost nothing and the Sawmill. Ours matches:
@@ -585,6 +585,19 @@ function migrateToCottages(s) {
   return { ...s, buildings: b };
 }
 
+/** A real cat from the pool, chosen deterministically from an old save key.
+ *
+ *  Same key always gives the same cat, so a villager the player already knows
+ *  does not become somebody else on reload — and it is always a cat whose
+ *  artwork is on disk, which a hashed number is not. */
+function poolIdFor(key, rarity) {
+  const h = villagerIdFromKey(key);
+  const of = catPool.cats.filter((c) => c.rarity === rarity);
+  const list = of.length ? of : catPool.cats;
+  if (!list.length) return h;
+  return list[h % list.length].id;
+}
+
 function migrate(s) {
   if (!s.res) {
     s.res = { fish: 400, wood: 400, stone: 60, catnip: 0, treats: Math.floor(s.treats || 0), gold: 30 };
@@ -625,15 +638,20 @@ function migrate(s) {
     s.v = 3;
   }
 
-  // ---- v4: villagers stopped being pictures ---------------------------------
-  // Every villager now needs an id, because the id is both the name and the
-  // drawn face. Old saves keyed them by `rarity|art` with neither, so they are
-  // given one derived from that key — stable, so a cat the player already knows
-  // keeps its name across the change instead of being reshuffled.
-  if ((s.v || 0) < 4) {
+  // ---- v4: a villager is a token id, not a picture --------------------------
+  // Old saves keyed villagers by `rarity|art` and stored no id, so every one of
+  // them needs a real one.
+  //
+  // THE ID HAS TO BE A CAT THAT EXISTS. The first pass hashed the old key into
+  // the 0..19999 range, which is a valid-looking token number that almost never
+  // has art on disk — so the town filled up with the "no picture" fallback and
+  // the player got blobs with two eyes walking around. The id is drawn from the
+  // POOL instead: still deterministic from the old key, so a cat keeps its name
+  // across the change, but always one whose artwork is actually here.
+  if ((s.v || 0) < 5) {
     const cats = {};
     for (const [k, c] of Object.entries(s.cats || {})) {
-      const id = c.id ?? villagerIdFromKey(k);
+      const id = poolIdFor(k, c.rarity);
       const next = { ...c, id, name: c.name || villagerName(id) };
       delete next.art;
       cats[k] = next;
@@ -642,7 +660,7 @@ function migrate(s) {
     // The old Album's "send to work" list. Assignment is per building now, and
     // this array has driven nothing for a long time.
     delete s.slotted;
-    s.v = 4;
+    s.v = 5;
   }
 
   return clampCrew(s);
