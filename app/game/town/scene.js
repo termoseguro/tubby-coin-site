@@ -13,6 +13,25 @@
 //  plain list of cats. Production, stamina and timers belong to the server.
 // ============================================================================
 
+// PIXI WITHOUT eval(), AND IT HAS TO BE IMPORTED FIRST.
+//
+// Pixi 8 builds its batch shaders at runtime with `new Function()`, which a
+// Content-Security-Policy without 'unsafe-eval' refuses. Our CSP allows it in
+// development and not in production — so the town worked perfectly on this
+// machine and, on the live site, threw
+//
+//     Current environment does not allow unsafe-eval, please use
+//     pixi.js/unsafe-eval module to enable support.
+//
+// The page still rendered: the header, the resource bar and every panel were
+// there, and only the canvas was missing. It looked like a broken game rather
+// than a blocked script.
+//
+// The answer is NOT to allow unsafe-eval. `pixi.js/unsafe-eval` is Pixi's own
+// CSP-safe path — it installs pre-built shader generation instead of compiling
+// it — and it must be imported BEFORE anything creates an Application, which is
+// why it sits above the main import rather than beside the others.
+import "pixi.js/unsafe-eval";
 import { Application, Assets, Container, Graphics, Rectangle, Sprite, Text } from "pixi.js";
 import { BUILDINGS, FOCUS, HORIZON, PLAZA, RING_ROADS, WORLD, workSpot } from "../../../lib/townConfig";
 import { RARITIES } from "../../../lib/gameConfig";
