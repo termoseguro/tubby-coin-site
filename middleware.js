@@ -1,19 +1,35 @@
-// Security headers, and a Content-Security-Policy with a per-request nonce.
+// Security headers and the Content-Security-Policy.
 //
-// WHY A NONCE AND NOT `unsafe-inline`. Next.js injects inline scripts to
-// hydrate, so the lazy CSP is `script-src 'self' 'unsafe-inline'` — which
-// permits every inline script, including the one an attacker manages to
-// inject. That is a policy that looks like a policy and stops nothing.
+// THIS FILE TOOK THE PRODUCTION SITE DOWN ONCE. Read before changing it.
 //
-// A nonce is generated fresh per request, Next stamps it onto its own inline
-// scripts, and the browser refuses any script that does not carry it. An
-// injected `<script>` cannot guess a value that did not exist when the payload
-// was written.
+// The first version issued a per-request nonce and used 'strict-dynamic'. Two
+// things were wrong, and together they blocked every script on the live site —
+// the HTML still rendered, so it looked fine to anything that only checks for a
+// 200, while every visitor got an unhydrated page:
 //
-// This matters here specifically because of what the threat model says the
-// session will be: an httpOnly cookie. httpOnly stops XSS from READING the
-// cookie, but not from using the logged-in browser to send requests. CSP is
-// the layer that stops the injected script running in the first place.
+//   1. It passed the nonce to the app as `x-nonce`. Next does not read that.
+//      Next takes the nonce out of the `Content-Security-Policy` header on the
+//      REQUEST, parses `nonce-...` from script-src, and stamps that onto its
+//      own tags. Ours never reached it, so Next emitted un-nonced scripts.
+//   2. 'strict-dynamic' DISABLES 'self'. With no nonce on the tags and host
+//      allowlisting switched off, nothing was left that could load a chunk.
+//
+// And a per-request nonce cannot work here anyway: these pages are statically
+// prerendered, so their HTML is written once at build time while the nonce
+// changes every request. Nonces force dynamic rendering — which is a real cost
+// for a marketing site that is otherwise served straight from the edge.
+//
+// So: 'self' plus 'unsafe-inline' for scripts. That is weaker, and the weakness
+// is specific and bounded — an attacker who can already inject markup can run
+// it. What still holds: no script from any other origin, object-src none,
+// base-uri locked, form-action locked, frame-ancestors none.
+//
+// WHEN TO GO BACK TO A NONCE: the moment the game renders anything a player
+// typed — a name, a town label, a chat line. That is when injected markup stops
+// being hypothetical, and dynamic rendering becomes worth paying for. Do it by
+// setting the CSP on the REQUEST headers (see point 1) and verify by loading a
+// production build and confirming the chunks execute — not by reading the
+// header, which looked correct the whole time it was broken.
 //
 // See docs/security.md §4 "Ownership and identity".
 
@@ -42,20 +58,13 @@ const STATIC_HEADERS = {
 };
 
 export function middleware(request) {
-  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const dev = process.env.NODE_ENV !== "production";
 
   // `unsafe-eval` is a development-only concession: the Next dev overlay and
   // fast refresh need it, and shipping it would be handing an attacker eval().
-  const scriptSrc = [
-    "'self'",
-    `'nonce-${nonce}'`,
-    // Next's hydration scripts are nonce-stamped, but the framework also emits
-    // a couple of inline handlers that a nonce cannot cover; strict-dynamic
-    // lets a nonce'd loader pull in the chunks it needs and nothing else.
-    "'strict-dynamic'",
-    dev ? "'unsafe-eval'" : "",
-  ]
+  // No 'strict-dynamic' here — it turns OFF 'self', and without a nonce on the
+  // tags that leaves nothing able to load a chunk. See the note at the top.
+  const scriptSrc = ["'self'", "'unsafe-inline'", dev ? "'unsafe-eval'" : ""]
     .filter(Boolean)
     .join(" ");
 
@@ -83,11 +92,7 @@ export function middleware(request) {
     "upgrade-insecure-requests",
   ].join("; ");
 
-  const headers = new Headers(request.headers);
-  // Next reads this to stamp its own inline scripts.
-  headers.set("x-nonce", nonce);
-
-  const response = NextResponse.next({ request: { headers } });
+  const response = NextResponse.next();
   response.headers.set("Content-Security-Policy", csp);
   for (const [k, v] of Object.entries(STATIC_HEADERS)) response.headers.set(k, v);
   return response;
