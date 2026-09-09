@@ -560,7 +560,15 @@
       "Bash(curl -sI http://localhost:3000/game)",
       "Bash(sed -n '/const assignCat = useCallback/,+4p' app/game/page.jsx)",
       "Bash(sed -n '/const unassignCat = useCallback/,+4p' app/game/page.jsx)",
-      "Bash(node -e \"fetch\\('http://localhost:3000/game'\\).then\\(r=>console.log\\(r.headers.get\\('content-security-policy'\\).match\\(/worker-src[^;]*/\\)||'MISSING'\\)\\)\")"
+      "Bash(node -e \"fetch\\('http://localhost:3000/game'\\).then\\(r=>console.log\\(r.headers.get\\('content-security-policy'\\).match\\(/worker-src[^;]*/\\)||'MISSING'\\)\\)\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('deps:',JSON.stringify\\(p.dependencies\\)\\)\")",
+      "Bash(node -e \"console.log\\(Object.keys\\(require\\('./node_modules/pixi.js/package.json'\\).exports||{}\\).filter\\(k=>k.includes\\('unsafe'\\)\\)\\)\")",
+      "Bash(NEXT_DIST_DIR=.next-check npx next build)",
+      "Bash(NEXT_DIST_DIR=.next-check NODE_ENV=production npx next start -p 3100)",
+      "Bash(node -e \"fetch\\('http://localhost:3100/game'\\).then\\(r=>console.log\\(\\(r.headers.get\\('content-security-policy'\\)||''\\).match\\(/connect-src[^;]*/\\)?.[0]\\)\\)\")",
+      "Bash(NEXT_DIST_DIR=.next-check NODE_ENV=production npx next start -p 3200)",
+      "Bash(node -e \"fetch\\('http://localhost:3200/game'\\).then\\(r=>console.log\\(\\(r.headers.get\\('content-security-policy'\\)||''\\).match\\(/connect-src[^;]*/\\)?.[0]\\)\\)\")",
+      "Bash(git branch *)"
     ]
   }
 }

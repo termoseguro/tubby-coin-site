@@ -82,7 +82,12 @@ export function middleware(request) {
     "font-src 'self' data:",
     // Supabase for the game state, and the Solana RPC for reading balances and
     // verifying payments. Anything else is a data-exfiltration channel.
-    `connect-src 'self' ${process.env.NEXT_PUBLIC_SUPABASE_URL || ""} https://*.supabase.co wss://*.supabase.co ${process.env.NEXT_PUBLIC_SOLANA_RPC || "https://api.mainnet-beta.solana.com"}`,
+    // `data:` and `blob:` are on connect-src because PixiJS FETCHES a data:
+    // URI — a 1x1 PNG it uses as an empty texture. Without them the renderer
+    // throws "Refused to connect" and the town never starts. Neither scheme
+    // can reach another host, so this is not an exfiltration channel; it is
+    // the page reading bytes it already has.
+    `connect-src data: blob: 'self' ${process.env.NEXT_PUBLIC_SUPABASE_URL || ""} https://*.supabase.co wss://*.supabase.co ${process.env.NEXT_PUBLIC_SOLANA_RPC || "https://api.mainnet-beta.solana.com"}`,
     // WORKER-SRC, EXPLICITLY. PixiJS builds a worker from a blob: URL, and
     // worker-src falls back to SCRIPT-SRC when it is not set — which does not
     // allow blob:. The console said so and the town simply never loaded: the
