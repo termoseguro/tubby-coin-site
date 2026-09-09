@@ -14,7 +14,7 @@
     "check": "node scripts/check.mjs",
     "check:layout": "node scripts/check-layout.mjs",
     "check:server": "node scripts/check-server-safe.mjs",
-    "check:all": "npm run check:server && npm run check:progress && npm run check:layout && npm run check",
+    "check:all": "npm run check:server && npm run check:progress && npm run check:alley && npm run check:layout && npm run check",
     "db:link": "node scripts/db.mjs link",
     "db:push": "node scripts/db.mjs push",
     "db:diff": "node scripts/db.mjs diff",
@@ -25,7 +25,9 @@
     "cats:index": "node scripts/index-cats.mjs",
     "check:progress": "node scripts/check-progress.mjs",
     "cats:all": "node scripts/pull-all-cats.mjs",
-    "project": "node scripts/project-players.mjs"
+    "project": "node scripts/project-players.mjs",
+    "check:alley": "node scripts/check-alley.mjs",
+    "art:site": "node scripts/build-site-art.mjs"
   },
   "dependencies": {
     "next": "^14.2.35",

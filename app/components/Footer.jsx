@@ -20,6 +20,19 @@ export default function Footer() {
             </p>
           </div>
           <div>
+            <h3>The project</h3>
+            <div className="links">
+              <a className="chip" href="/#cares">Tubby Cares</a>
+              <a className="chip" href="/tokenomics">Tokenomics</a>
+              <a className="chip" href="/game">Tubby Town</a>
+              {isReal(config.brand.mediaKit) && (
+                <a className="chip" href={config.brand.mediaKit} target="_blank" rel="noopener">
+                  Media pack
+                </a>
+              )}
+            </div>
+          </div>
+          <div>
             <h3>Find the cats</h3>
             <div className="links">
               {isReal(links.coinX) && (

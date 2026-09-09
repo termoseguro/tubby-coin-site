@@ -121,12 +121,12 @@ export default function Tokenomics() {
   <div className="bar-in">
     <a className="logo" href="/"><img src="https://www.tubbycatscoin.com/coin.jpg" alt=""  /> $TUBBY</a>
     <nav>
-      <a href="/#find">Find $TUBBY</a>
+      <a href="/#cares">Tubby Cares</a>
       <a href="/tokenomics" className="active">Tokenomics</a>
-      <a href="/#nfts">NFTs</a>
-      <a href="/#merch">Merch</a>
+      <a href="/game">The Game</a>
+      <a href="/#collection">Collection</a>
       <a href="/#faq">FAQ</a>
-      <a className="btn" href="/#find">Buy</a>
+      <a className="btn" href="/#buy">Buy</a>
     </nav>
   </div>
 </header>
@@ -234,7 +234,7 @@ export default function Tokenomics() {
         <div className="slices">
           <div className="slice">
             <div className="head"><span className="swatch" style={{background: 'var(--pink-deep)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>🧡 Tubby Cares</h3><span className="pct">{config.feeSplit.care}%</span></div>
-            <p>Buys diapers, formula, medicine, food and hygiene supplies for children&apos;s shelters in Rio de Janeiro. Goods, never cash — every run published with the institution, its CNPJ, the item list, the funding tx and photos of the supplies. This slice came out of the art fund, which went from 30% to {config.feeSplit.art}%.</p>
+            <p>Buys diapers, formula, medicine, food and hygiene supplies for children&apos;s shelters in Rio de Janeiro. Goods, never cash — every run published with the institution, its CNPJ, the item list, the funding tx and photos of the supplies.</p>
             <div className="wallet"><span>{config.wallets.care}</span><span className="bal">bal: <b id="balCare">{balCare}</b></span></div>
           </div>
           <div className="slice">
@@ -254,7 +254,7 @@ export default function Tokenomics() {
           </div>
           <div className="slice">
             <div className="head"><span className="swatch" style={{background: 'var(--gold)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>🎨 Art Fund</h3><span className="pct">{config.feeSplit.art}%</span></div>
-            <p>Flows back to the tubby cats brand to fund new art, products and merch. Cut from 30% to {config.feeSplit.art}% to open the Tubby Cares slice — the donation came out of our own share.</p>
+            <p>Flows back to the tubby cats brand to fund new art, products and merch for the universe the coin comes from. CC0 forever.</p>
             <div className="wallet"><span>{config.wallets.art}</span><span className="bal">bal: <b id="balArt">{balArt}</b></span></div>
           </div>
         </div>
@@ -412,7 +412,7 @@ export default function Tokenomics() {
       </details>
       <details>
         <summary>Why {config.feeSplit.care}% to children&apos;s shelters?</summary>
-        <div className="a">Because a memecoin can afford to be useful. {config.feeSplit.care}% of every creator fee buys diapers, formula, medicine and food for shelters in Rio de Janeiro — in goods, delivered in person, never in cash. And it came out of our own slice: the art fund dropped from 30% to {config.feeSplit.art}% to make room. Nobody else&apos;s share moved 🧡</div>
+        <div className="a">Because a memecoin can afford to be useful. {config.feeSplit.care}% of every creator fee buys diapers, formula, medicine and food for children&apos;s shelters in Rio de Janeiro — in goods, bought and delivered in person, never in cash. Every run is published with the institution, its CNPJ, the item list, the funding transaction and photos of the supplies 🧡</div>
       </details>
       <details>
         <summary>Can the tokenomics ever change?</summary>

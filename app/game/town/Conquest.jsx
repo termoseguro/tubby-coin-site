@@ -32,8 +32,25 @@ import {
 } from "../../../lib/conquest.js";
 import { CLASSES, HERO_BY_ID, heroArt } from "../../../lib/heroes.js";
 import { IconGold, IconPaw } from "../icons";
+import MobFace from "../MobFace";
 
 const fmt = (n) => (n >= 1000 ? (n / 1000).toFixed(1) + "K" : String(Math.round(n)));
+
+/** One line of commentary for a log entry. The log is the source of truth for
+ *  the fight; this is the only place it is turned into English. */
+function sayEntry(e) {
+  const NB = " ";
+  if (!e) return NB;
+  if (e.down) return `${e.down} goes down`;
+  if (e.buff != null) return `${e.actor} — ${e.skill}! the team hits ${e.buff}% harder`;
+  if (e.shield != null) return `${e.actor} — ${e.skill}! shields the front rank for ${fmt(e.shield)}`;
+  if (e.heal != null && e.self) return `${e.actor} — ${e.skill}! heals itself for ${fmt(e.heal)}`;
+  if (e.heal != null) return `${e.actor} — ${e.skill}! heals the team for ${fmt(e.heal)}`;
+  if (e.drained) return `${e.target}'s charge is emptied`;
+  if (e.ult) return `${e.actor} — ${e.skill || "ultimate"}! ${fmt(e.dmg)} to ${e.target}`;
+  if (e.dmg != null) return `${e.actor} hits ${e.target} for ${fmt(e.dmg)}`;
+  return NB;
+}
 
 /** One combatant, on either side. */
 function Unit({ u, art, hp, max, hurt, down, boss }) {
@@ -41,7 +58,7 @@ function Unit({ u, art, hp, max, hurt, down, boss }) {
   return (
     <div className={"tt-cq-unit" + (down ? " down" : "") + (hurt ? " hurt" : "") + (boss ? " boss" : "")}>
       <div className={"tt-cq-face r-" + (u.rarity || "common")}>
-        {art ? <img src={art} alt="" /> : <span className="tt-cq-mob" aria-hidden="true" />}
+        {art ? <img src={art} alt="" /> : <MobFace name={u.name} boss={boss} size={boss ? 72 : 54} />}
         {hurt != null && hurt > 0 && <span className="tt-cq-dmg">−{fmt(hurt)}</span>}
       </div>
       <span className="tt-cq-name">{u.name}</span>
@@ -88,9 +105,31 @@ export default function Conquest({
     for (let i = 0; i < step && i < battle.log.length; i++) {
       const e = battle.log[i];
       if (e.down) continue;
-      const side = e.mine ? theirs : mine;
-      if (side[e.target]) side[e.target].hp = Math.max(0, side[e.target].hp - e.dmg);
-      if (i === step - 1) flash[e.target] = e.dmg;
+      const own = e.mine ? mine : theirs;
+      const foe = e.mine ? theirs : mine;
+
+      if (e.dmg != null && e.target && foe[e.target]) {
+        foe[e.target].hp = Math.max(0, foe[e.target].hp - e.dmg);
+        if (i === step - 1) flash[e.target] = e.dmg;
+      }
+
+      // HEALS AND SHIELDS HAVE TO REPLAY TOO. The frame is rebuilt from full
+      // health on every step, so an effect that is not applied here simply does
+      // not exist on screen — a Rally looked like nothing happened, and a
+      // Bulwark, which is the entire point of a Guard, was invisible.
+      if (e.heal != null || e.shield != null) {
+        const amount = e.heal ?? e.shield;
+        const standing = Object.values(own).filter((t) => t.hp > 0);
+        if (standing.length) {
+          const each = amount / standing.length;
+          for (const t of standing) {
+            // A shield can push a unit past its maximum; a heal cannot. That
+            // difference is why a Guard's ultimate is worth casting on a team
+            // that is already at full health.
+            t.hp = e.shield != null ? t.hp + each : Math.min(t.max, t.hp + each);
+          }
+        }
+      }
     }
     return { mine, theirs, flash, entry: battle.log[step - 1] };
   }, [battle, step]);
@@ -209,6 +248,16 @@ export default function Conquest({
             })}
           </div>
         </div>
+
+        {/* WHAT JUST HAPPENED, in words. The board shows bars moving; it cannot
+            show that Amadeu used Bulwark rather than hitting something. A fight
+            you cannot narrate is a fight you cannot learn from, and the reason
+            to build one hero over another is the skill it brings. */}
+        {battle && (
+          <p className={"tt-cq-say" + (frame?.entry?.ult ? " ult" : "")}>
+            {sayEntry(frame?.entry)}
+          </p>
+        )}
 
         {!battle && <p className="tt-cq-advice">{lineupAdvice(lineup, save)}</p>}
 

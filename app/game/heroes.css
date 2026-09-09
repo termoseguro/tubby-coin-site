@@ -876,3 +876,61 @@
    so it stops being a number and starts being a warning. */
 .ttown .tt-alley-idle.full i { color: #ffd76b; }
 .ttown .tt-alley-idle.full small { color: #ffd76b; opacity: 1; font-weight: 800; }
+
+/* ---------- the fighting kit, on the hero card ----------
+   The town skills below it are the economy. This is what the cat does when it
+   is actually in a fight, and it is the headline because Kingshot's own advice
+   is that the ultimate is the thing you build first. */
+.ttown .tt-hero-kit {
+  margin: 6px 0 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fff7e6, #ffeecd);
+  border: 2px solid #f0d9a8;
+}
+.ttown .tt-kit-ult {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 900;
+  color: #8a5a00;
+  letter-spacing: -0.01em;
+}
+.ttown .tt-kit-ult i { font-style: normal; color: #f0a92a; }
+.ttown .tt-hero-kit small { display: block; font-size: 11.5px; color: var(--ink-soft); margin-top: 1px; }
+.ttown .tt-kit-pass {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1.5px dashed #f0d9a8;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #6b4a1f;
+}
+.ttown .tt-kit-pass.locked { opacity: 0.55; }
+.ttown .tt-kit-pass em {
+  margin-left: auto;
+  font-style: normal;
+  font-weight: 900;
+  color: #b58a5e;
+}
+
+/* Enemies are drawn now — six creatures instead of one purple blob with two
+   dots. See app/game/MobFace.jsx. The old .tt-cq-mob silhouette is gone. */
+.ttown .tt-mobface { display: block; width: 100%; height: 100%; }
+.ttown .tt-cq-face { background: #f6eefc; }
+
+/* The commentary line under the board. It has to hold its height even when
+   empty, or the board jumps a row every time the log lands on a `down` entry. */
+.ttown .tt-cq-say {
+  min-height: 22px;
+  margin: 8px 0 2px;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.ttown .tt-cq-say.ult { color: #8a5a00; font-weight: 900; }

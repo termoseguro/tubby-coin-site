@@ -41,6 +41,7 @@ import {
   alleyPending,
   isBoss,
 } from "../../../lib/conquest.js";
+import { combatKit } from "../../../lib/heroCombat.js";
 import { HERO_BLURB } from "../../../lib/villagers.js";
 import { IconGold, IconPaw } from "../icons";
 
@@ -261,6 +262,7 @@ function HeroCard({ h, st, art, onDuty, onAscend, onLevel, onPatrol }) {
   const cap = levelCapFor(stars);
   const step = nextStepCost(st?.steps || 0);
   const shards = st?.shards || 0;
+  const kit = combatKit(h.id, stars);
 
   return (
     <article className={"tt-hero r-" + h.rarity}>
@@ -283,6 +285,22 @@ function HeroCard({ h, st, art, onDuty, onAscend, onLevel, onPatrol }) {
             Lv {st.level} / {cap}
           </em>
         </div>
+
+        {/* WHAT IT DOES IN A FIGHT, first. Kingshot's own line is "ultimate
+            skill is king, max it before any other Conquest skill" — so the
+            ultimate is the headline, not a footnote under the economy perks. */}
+        {kit && (
+          <div className="tt-hero-kit">
+            <b className="tt-kit-ult">
+              <i>★</i> {kit.ultName}
+            </b>
+            <small>{kit.ultText}</small>
+            <span className={"tt-kit-pass" + (kit.passiveLive ? "" : " locked")}>
+              {kit.passiveName}: {kit.passiveText}
+              {!kit.passiveLive && <em>{kit.passiveAt}★</em>}
+            </span>
+          </div>
+        )}
 
         <ul className="tt-hero-skills">
           {h.skills.map((sk, i) => {

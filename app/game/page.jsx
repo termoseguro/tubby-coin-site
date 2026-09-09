@@ -104,6 +104,8 @@ import {
   eventLeft,
   freeSpinsReady,
   nextMilestone,
+  keysAccrued,
+  nextKeyIn,
   spin as spinWheel,
 } from "../../lib/luckyLitter";
 import {
@@ -247,7 +249,8 @@ function freshSave() {
     // mechanic belongs, and why it is no longer bolted onto the Palis raid.
     // `bossHp` remembers a wounded boss between attempts.
     conquest: { stage: 1, cleared: 0, bossHp: null, lineup: [], collectedAt: Date.now() },
-    keys: { silver: 3, gold: 1 },
+    // Enough to feel the wheel on day one, and the faucet keeps it coming.
+    keys: { silver: 8, gold: 2, silverAt: Date.now(), goldAt: Date.now() },
     litter: { startedAt: Date.now(), spins: 0, pity: { silver: 0, gold: 0 }, claimed: {}, lastFreeAt: 0 },
 
     // ---- THE STUDY ----
@@ -545,6 +548,28 @@ function runPalis(s, now = Date.now()) {
 
 /** Cats eat. This is why Fish is not just another number, and why the Kitchen
  *  is not optional — run out and the whole town drops to a quarter speed. */
+/** Hand over the free keys that accrued while the player was away.
+ *
+ *  Kingshot's free player has six heroes after two days because Kingshot hands
+ *  out recruitment every day. Ours had one, because keys only came from bosses
+ *  and chapters — both of which need heroes you do not have yet. A faucet that
+ *  runs on a clock breaks that circle. See lib/luckyLitter.js. */
+function applyKeyFaucet(s, now = Date.now()) {
+  const keys = { ...(s.keys || {}) };
+  let gained = 0;
+  for (const kind of ["silver", "gold"]) {
+    const field = kind + "At";
+    if (!keys[field]) keys[field] = now;
+    const { got, at } = keysAccrued(kind, keys[field], now, keys[kind] || 0);
+    if (got > 0) {
+      keys[kind] = (keys[kind] || 0) + got;
+      gained += got;
+    }
+    keys[field] = at;
+  }
+  return gained > 0 ? { ...s, keys, keysGained: gained } : { ...s, keys };
+}
+
 function applyUpkeep(s, now = Date.now()) {
   // NOTHING EATS BEFORE THERE IS A KITCHEN.
   //
@@ -634,7 +659,9 @@ function migrate(s) {
   if (!s.patrol) s.patrol = [];
   if (!s.conquest) s.conquest = { stage: 1, cleared: 0, bossHp: null, lineup: [] };
   if (!s.conquest.collectedAt) s.conquest.collectedAt = Date.now();
-  if (!s.keys) s.keys = { silver: 3, gold: 1 };
+  if (!s.keys) s.keys = { silver: 8, gold: 2 };
+  if (!s.keys.silverAt) s.keys.silverAt = Date.now();
+  if (!s.keys.goldAt) s.keys.goldAt = Date.now();
   if (!s.litter) {
     s.litter = { startedAt: Date.now(), spins: 0, pity: { silver: 0, gold: 0 }, claimed: {}, lastFreeAt: 0 };
   }
@@ -761,7 +788,7 @@ export default function TubbyTown() {
     const visit = runPalis(s);
     s = visit.save;
     s = fillVillagers(s);
-    s = applyUpkeep(s);
+    s = applyKeyFaucet(applyUpkeep(s));
     s = applyProduction(s);
     if (away > 120) {
       const gained = Object.entries(s.res).reduce(
@@ -861,7 +888,7 @@ export default function TubbyTown() {
   useEffect(() => {
     const id = setInterval(() => {
       setClock((c) => c + 1);
-      setSave((s) => (s ? clampCrew(applyUpkeep(s)) : s));
+      setSave((s) => (s ? clampCrew(applyKeyFaucet(applyUpkeep(s))) : s));
     }, 1000);
     return () => clearInterval(id);
   }, []);
