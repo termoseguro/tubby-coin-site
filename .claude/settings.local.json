@@ -553,7 +553,14 @@
       "Bash(node -e \"const p=require\\('./package.json'\\); p.scripts['check:api']='node scripts/check-api.mjs'; require\\('fs'\\).writeFileSync\\('package.json',JSON.stringify\\(p,null,2\\)+'\\\\n'\\);\")",
       "Bash(node scripts/check-api.mjs)",
       "Bash(node --input-type=module *)",
-      "Bash(node -e \"const p=require\\('./package.json'\\); p.scripts['check:all']='npm run check:server && npm run check:progress && npm run check:alley && npm run check:layout && npm run check:rls && npm run check'; require\\('fs'\\).writeFileSync\\('package.json',JSON.stringify\\(p,null,2\\)+'\\\\n'\\);\")"
+      "Bash(node -e \"const p=require\\('./package.json'\\); p.scripts['check:all']='npm run check:server && npm run check:progress && npm run check:alley && npm run check:layout && npm run check:rls && npm run check'; require\\('fs'\\).writeFileSync\\('package.json',JSON.stringify\\(p,null,2\\)+'\\\\n'\\);\")",
+      "Bash(awk 'NR>=197 && NR<=310' app/game/page.jsx)",
+      "Bash(awk 'NR>=203 && NR<=320 && /^}/{print NR\": \"$0; exit}' app/game/page.jsx)",
+      "Bash(awk 'NR>=305 && NR<=316' app/game/page.jsx)",
+      "Bash(curl -sI http://localhost:3000/game)",
+      "Bash(sed -n '/const assignCat = useCallback/,+4p' app/game/page.jsx)",
+      "Bash(sed -n '/const unassignCat = useCallback/,+4p' app/game/page.jsx)",
+      "Bash(node -e \"fetch\\('http://localhost:3000/game'\\).then\\(r=>console.log\\(r.headers.get\\('content-security-policy'\\).match\\(/worker-src[^;]*/\\)||'MISSING'\\)\\)\")"
     ]
   }
 }

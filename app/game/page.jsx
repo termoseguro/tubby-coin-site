@@ -85,6 +85,9 @@ import {
   villagerName,
 } from "../../lib/villagers";
 import VillagerFace from "./VillagerFace";
+import { catKey, freshSave } from "../../lib/newTown";
+import WalletBar from "./WalletBar";
+import { useServerTown } from "./useServerTown";
 import {
   HELPS_TO_CLEAR,
   PROBLEMS,
@@ -205,104 +208,8 @@ const RARITY_AT_LEAST = (r, floor) =>
 const RUSH_HOURS = 4;
 const TICK_MS = 250;
 
-// A villager is identified by its rarity and its id, NOT by a picture: the
-// picture is drawn from the id now (lib/villagerLook.js), and keying on an
-// image path is what let a villager and a hero share an identity.
-const catKey = (c) => `${c.rarity}|${c.id ?? villagerIdFromKey(c.art || "")}`;
 
-function freshSave() {
-  // The first villager. A real cat with a real name from the first minute —
-  // the town is never staffed by an anonymous placeholder.
-  const starter = pickVillager(catPool.cats, "common") || {
-    rarity: "common",
-    id: 0,
-    name: villagerName(0),
-    level: 1,
-    shards: 0,
-  };
-  return {
-    v: 6,
-    // Kingshot-shaped economy: five gathered resources plus the premium one,
-    // each produced by its own building and capped by the Storehouse.
-    // Kingshot opens you with almost nothing and the Sawmill. Ours matches:
-    // enough Wood to make the first move, enough Fish that the one cat does not
-    // starve before the Kitchen exists at Cat Hall 2, and no Stone, Catnip or
-    // Treats at all — those resources have not been introduced yet, and a
-    // counter for a thing the player has never seen is noise.
-    res: { fish: 250, wood: 350, stone: 0, catnip: 0, treats: 0, coin: 120, gold: 20 },
-    // when production was last paid out into the stockpile
-    lastProd: Date.now(),
-    // furniture levels: { kitchen: { stove: 3, ... } }
-    furniture: {},
-    // ---- HERO CATS ----
-    // Deliberately separate from `cats`, which is the villager pool. Heroes are
-    // named, have stars and skills, and never work inside a building.
-    // { biscuit: { steps, level, shards } }
-    heroes: starterHeroes(),
-    // shards banked toward a hero not yet recruited
-    pendingShards: {},
-    // hero ids currently on patrol — only these count for anything
-    patrol: [],
-    // ---- THE LONG ALLEY (Kingshot's Conquest) ----
-    // The stage ladder the heroes climb. `cleared` is the deepest stage beaten
-    // and it permanently multiplies the town's idle Gold — which is where that
-    // mechanic belongs, and why it is no longer bolted onto the Palis raid.
-    // `bossHp` remembers a wounded boss between attempts.
-    conquest: { stage: 1, cleared: 0, bossHp: null, lineup: [], collectedAt: Date.now() },
-    // Enough to feel the wheel on day one, and the faucet keeps it coming.
-    keys: { silver: 8, gold: 2, silverAt: Date.now(), goldAt: Date.now() },
-    litter: { startedAt: Date.now(), spins: 0, pity: { silver: 0, gold: 0 }, claimed: {}, lastFreeAt: 0 },
 
-    // ---- THE STUDY ----
-    // One research at a time, which is what makes the order a decision.
-    tech: {},
-    research: null,
-
-    // ---- TROOPS ----
-    // { guard: { 1: 40 }, slinger: {}, runner: {} } and one job per building.
-    army: { guard: {}, slinger: {}, runner: {} },
-    training: {},
-
-    // ---- PALIS ----
-    // Not a boss you attack: what goes wrong while you are away. `problems` is
-    // the mess waiting to be sorted; `lastVisitAt` is when he was last through.
-    problems: [],
-    lastVisitAt: Date.now(),
-
-    cats: { [catKey(starter)]: starter },
-    slots: game.startSlots,
-    bowlHours: game.startBowlHours,
-    lastSeen: Date.now(),
-    pulls: 0,
-    pity: 0,
-    hold: 0, // simulated $TUBBY balance — replaced by a real RPC read later
-    skin: false,
-    // ---- city builder ----
-    // Levels per building, and the jobs currently occupying a builder.
-    // Empty on purpose: a building with no entry here sits at its start level,
-    // which is 1 for the six the town opens with and 0 (an empty plot) for
-    // everything else. Nothing is written until the player builds it.
-    // Timers are wall-clock here; the SERVER owns finishesAt once this is real
-    // (docs/security.md §4b — a timer the client can influence is free money).
-    buildings: {},
-    jobs: {},
-    // One builder to start. The second is the gateway purchase.
-    builders: 1,
-    // which building each cat works at — the player's decision, not a rota
-    assign: {},
-    // villager places bought for a SPECIFIC building: { kitchen: 1, ... }
-    buildingSlots: {},
-    // active building boosts: { [buildingId]: endsAt }
-    boosts: {},
-    // where the player has moved buildings to
-    positions: {},
-    // quest rewards already taken
-    claimed: {},
-    // Clowder tokens, earned by helping. Spent in the Guild Hall once it does
-    // something (lib/townAlliance.js).
-    tokens: 0,
-  };
-}
 
 /** A building's level. 0 means "an unbuilt plot" — only the handful of
  *  buildings the town opens with start at 1 (see townConfig `built`). */
@@ -755,6 +662,14 @@ export default function TubbyTown() {
   const [book, setBook] = useState(false);
   const [buying, setBuying] = useState(null);
   const [welcomeBack, setWelcomeBack] = useState(null);
+
+  // THE AUTHORITY, when there is one.
+  //
+  // `online === true` means a wallet signed in and the server owns this town.
+  // Everything below still renders from `save`; the difference is where `save`
+  // comes from and who is allowed to change it. See app/game/useServerTown.js
+  // for why both modes exist.
+  const server = useServerTown();
   const [litterOpen, setLitterOpen] = useState(false);
   const [alleyOpen, setAlleyOpen] = useState(false);
 
@@ -808,6 +723,17 @@ export default function TubbyTown() {
     s.lastSeen = Date.now();
     setSave(s);
   }, []);
+
+  // WHEN THE SERVER ANSWERS, IT WINS.
+  //
+  // The local save is loaded first so the game paints immediately rather than
+  // waiting on a round trip. If a session turns out to exist, the server's town
+  // replaces it — not merges with it. Merging two towns is how a player ends up
+  // with resources from one and buildings from the other.
+  useEffect(() => {
+    if (server.online !== true || !server.state) return;
+    setSave(migrate({ ...freshSave(), ...server.state }));
+  }, [server.online, server.state]);
 
   // ---- persist -------------------------------------------------------------
   useEffect(() => {
@@ -898,6 +824,29 @@ export default function TubbyTown() {
     setTimeout(() => setToast(null), 2200);
   }, []);
 
+  /** Route an action through the server when there is one.
+   *
+   *  Returns true if the server took it, false to fall through to the local
+   *  path. The two are NOT run together: doing the work locally as well would
+   *  double-spend on the screen and then be corrected a second later, which
+   *  reads as the game taking resources twice.
+   *
+   *  Intents the server does not implement yet fall through to local. On a
+   *  signed-in town that means those actions are not persisted server-side —
+   *  which is why the list below is the list, and why it is short and grows
+   *  deliberately rather than by accident. */
+  const viaServer = useCallback(
+    (intent, args) => {
+      if (server.online !== true) return false;
+      server.act(intent, args).then((r) => {
+        if (!r.ok && r.error) flash(r.error);
+      });
+      return true;
+    },
+    [server, flash]
+  );
+
+
   /** Empty the Alley's purse into the town.
    *
    *  Opening the Alley collects first and fights second, which is deliberate:
@@ -905,6 +854,7 @@ export default function TubbyTown() {
    *  cap out, and a reward you have to remember to press a second button for
    *  is a reward players lose. */
   const collectAlley = useCallback(() => {
+    if (viaServer("collect_alley", {})) return;
     setSave((s) => {
       if (!s) return s;
       const p = alleyPending(s);
@@ -1088,6 +1038,7 @@ export default function TubbyTown() {
 
   const startUpgrade = useCallback(
     (id) => {
+      if (viaServer("start_upgrade", { building: id })) return;
       setSave((s) => {
         if (!s) return s;
         if (s.jobs?.[id]) return s;
@@ -1699,6 +1650,11 @@ export default function TubbyTown() {
    *  no reason at all, and the whole thing read as broken. */
   const assignCat = useCallback(
     (buildingId, catKey = null) => {
+      // The server needs to be told WHICH cat. When the caller did not name
+      // one, the local path picks the first idle cat, so pick it here too
+      // rather than inventing a second rule on the server.
+      const chosen = catKey || idleCats(saveRef.current || {})[0];
+      if (chosen && viaServer("assign", { cat: chosen, building: buildingId })) return;
       setSave((s) => {
         if (!s) return s;
         const level = levelOf(s, buildingId);
@@ -1730,6 +1686,7 @@ export default function TubbyTown() {
   );
 
   const unassignCat = useCallback((catKey) => {
+    if (viaServer("unassign", { cat: catKey })) return;
     setSave((s) => {
       if (!s) return s;
       const assign = { ...s.assign };
@@ -2201,6 +2158,8 @@ export default function TubbyTown() {
       {/* ---------- resource bar ----------
           Always on screen, every resource with its cap. This is the single
           most-glanced-at element in a city builder. */}
+      <WalletBar online={server.online} onChanged={server.reload} />
+
       <ResourceBar
         res={save.res}
         rates={rates}

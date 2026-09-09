@@ -2879,3 +2879,39 @@
 /* Reward chips: the icon is the colour, the amount is ink. */
 .ttown .tt-q-reward { color: var(--ink); font-weight: 800; }
 .ttown .tt-q-reward span { display: inline-flex; align-items: center; gap: 3px; }
+
+/* ---------- the sign-in bar ----------
+   Honest about which of the two games the player is in. A guest's town lives
+   in their own browser and they should know that BEFORE they spend a week on
+   it, not after they clear their cookies. */
+.ttown .tt-wallet {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  margin: 0 auto 8px;
+  max-width: 1120px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  color: var(--ink);
+}
+.ttown .tt-wallet.on { border-color: #9fe0bd; background: #f2fbf6; }
+.ttown .tt-wallet-dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: #3faa74;
+  box-shadow: 0 0 0 3px rgba(63, 170, 116, 0.22);
+}
+.ttown .tt-wallet-dot.off { background: #c9a24a; box-shadow: 0 0 0 3px rgba(201, 162, 74, 0.22); }
+.ttown .tt-wallet-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ttown .tt-wallet-txt b { font-size: 0.84rem; }
+.ttown .tt-wallet-txt small { font-size: 0.74rem; color: var(--ink-soft); }
+.ttown .tt-wallet a.tt-mini { text-decoration: none; display: inline-flex; align-items: center; }
+
+@media (max-width: 620px) {
+  .ttown .tt-wallet { margin: 0 6px 6px; }
+  .ttown .tt-wallet-txt small { display: none; }
+}

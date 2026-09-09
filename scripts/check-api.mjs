@@ -266,9 +266,25 @@ console.log("\n  Response headers");
 {
   const page = await req("/game");
   const h = page.headers;
-  ok("Content-Security-Policy is set", !!h.get("content-security-policy"));
-  ok("CSP has no unsafe-inline on scripts", !/script-src[^;]*unsafe-inline/.test(h.get("content-security-policy") || ""));
-  ok("frame-ancestors is none", /frame-ancestors 'none'/.test(h.get("content-security-policy") || ""));
+  const csp = h.get("content-security-policy") || "";
+  const scriptSrc = (csp.match(/script-src([^;]*)/) || [])[1] || "";
+
+  ok("Content-Security-Policy is set", !!csp);
+
+  // NOT "no unsafe-inline". That assertion was here, and it was asserting a
+  // policy that took the live site down: a nonce plus 'strict-dynamic' blocked
+  // every chunk, and the page still returned 200 with no scripts running. The
+  // documented trade is in middleware.js — inline is allowed, foreign origins
+  // are not — so the test checks the part that actually holds.
+  ok(
+    "scripts cannot come from another origin",
+    /'self'/.test(scriptSrc) && !/https?:|\*/.test(scriptSrc),
+    scriptSrc.trim()
+  );
+  ok("object-src is none", /object-src 'none'/.test(csp));
+  ok("base-uri is locked", /base-uri 'self'/.test(csp));
+  ok("form-action is locked", /form-action 'self'/.test(csp));
+  ok("frame-ancestors is none", /frame-ancestors 'none'/.test(csp));
   ok("X-Content-Type-Options is nosniff", h.get("x-content-type-options") === "nosniff");
   ok("Referrer-Policy is set", !!h.get("referrer-policy"));
   ok("Permissions-Policy is set", !!h.get("permissions-policy"));
