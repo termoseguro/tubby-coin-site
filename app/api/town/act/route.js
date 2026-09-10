@@ -59,7 +59,17 @@ export async function POST(request) {
     }
 
     const out = await applyIntent(playerId, intent, args);
-    const response = { ok: true, state: out.state, version: out.version, result: out.result };
+    // `roll` carries the nonce and the seed id, which is the player's receipt:
+    // with them and the revealed seed they can recompute the spin themselves.
+    // Dropping it here made the whole commit-reveal chain unverifiable from
+    // the client, which is most of the point of having built it.
+    const response = {
+      ok: true,
+      state: out.state,
+      version: out.version,
+      result: out.result,
+      roll: out.roll ?? null,
+    };
     await storeIdempotentResponse(playerId, key, response);
     return NextResponse.json(response, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {

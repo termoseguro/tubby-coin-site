@@ -260,6 +260,121 @@ if (cookie) {
 }
 
 // ---------------------------------------------------------------------------
+//  3b. The gacha: the server rolls, the server counts, the server remembers
+// ---------------------------------------------------------------------------
+if (cookie) {
+  console.log();
+  console.log("  The wheel");
+
+  // A result in the body must not become the result.
+  const forged = await req("/api/town/act", {
+    method: "POST",
+    cookie,
+    body: {
+      intent: "spin",
+      args: { wheel: "silver", how: "key", rarity: "mythic", hero: "carlos", shards: 9999 },
+    },
+  });
+  ok(
+    "a result posted in the body is ignored",
+    forged.status !== 200 || forged.json?.result?.rarity !== "mythic" || forged.json?.result?.shards !== 9999,
+    JSON.stringify(forged.json?.result || forged.json?.error)
+  );
+
+  // Spinning a wheel you have no keys for.
+  const before = (await req("/api/town", { cookie })).json?.state || {};
+  const goldKeys = before.keys?.gold ?? 0;
+  const broke = await req("/api/town/act", {
+    method: "POST",
+    cookie,
+    body: { intent: "spin", args: { wheel: "gold", how: "key" } },
+  });
+  ok(
+    "spinning without a key is refused",
+    goldKeys > 0 ? broke.status === 200 : broke.status === 400,
+    `had ${goldKeys} gold keys, got ${broke.status}`
+  );
+
+  // A wheel that does not exist.
+  const junkWheel = await req("/api/town/act", {
+    method: "POST",
+    cookie,
+    body: { intent: "spin", args: { wheel: "diamond", how: "key" } },
+  });
+  ok("an invented wheel is refused", junkWheel.status === 400, `got ${junkWheel.status}`);
+
+  // A key IS spent, and exactly one.
+  const s0 = (await req("/api/town", { cookie })).json?.state || {};
+  const silver0 = s0.keys?.silver ?? 0;
+  if (silver0 > 0) {
+    const spun = await req("/api/town/act", {
+      method: "POST",
+      cookie,
+      body: { intent: "spin", args: { wheel: "silver", how: "key", clientSeed: "check" } },
+    });
+    const s1 = spun.json?.state || {};
+    ok(
+      "a spin costs exactly one key",
+      spun.status === 200 && (s1.keys?.silver ?? 0) === silver0 - 1,
+      `${silver0} -> ${s1.keys?.silver}`
+    );
+    ok("the spin came back with a rarity", !!spun.json?.result?.rarity, JSON.stringify(spun.json?.result));
+    ok("the roll got a nonce", typeof spun.json?.roll?.nonce === "number", JSON.stringify(spun.json?.roll));
+  } else {
+    skipped.push("the silver spin — the account had no keys");
+  }
+
+  // The pity counter is the server's. Sending one must not move it.
+  const withPity = await req("/api/town/act", {
+    method: "POST",
+    cookie,
+    body: { intent: "spin", args: { wheel: "silver", how: "key", pity: 999, litter: { pity: { silver: 999 } } } },
+  });
+  const after = (await req("/api/town", { cookie })).json?.state || {};
+  ok(
+    "a pity counter in the body is ignored",
+    (after.litter?.pity?.silver ?? 0) < 100,
+    `pity is ${after.litter?.pity?.silver}`
+  );
+
+  // Adoption: paying with Treats you do not have.
+  const poor = await req("/api/town/act", {
+    method: "POST",
+    cookie,
+    body: { intent: "adopt", args: { count: 10 } },
+  });
+  ok(
+    "adopting without Treats is refused",
+    (after.res?.treats ?? 0) >= 4000 ? poor.status === 200 : poor.status === 400,
+    `treats ${after.res?.treats}, got ${poor.status}`
+  );
+
+  // A negative count must be rejected, not multiplied.
+  const negative = await req("/api/town/act", {
+    method: "POST",
+    cookie,
+    body: { intent: "adopt", args: { count: -5 } },
+  });
+  ok("a negative count is refused", negative.status === 400, `got ${negative.status}`);
+
+  // Idempotency covers the wheel too: the same key must not spin twice.
+  const spinKey = "spin-" + Date.now();
+  const t0 = (await req("/api/town", { cookie })).json?.state?.keys?.silver ?? 0;
+  await req("/api/town/act", {
+    method: "POST",
+    cookie,
+    body: { intent: "spin", args: { wheel: "silver", how: "key" }, key: spinKey },
+  });
+  await req("/api/town/act", {
+    method: "POST",
+    cookie,
+    body: { intent: "spin", args: { wheel: "silver", how: "key" }, key: spinKey },
+  });
+  const t1 = (await req("/api/town", { cookie })).json?.state?.keys?.silver ?? 0;
+  ok("the same key does not spin twice", t0 === 0 || t0 - t1 <= 1, `${t0} -> ${t1}`);
+}
+
+// ---------------------------------------------------------------------------
 //  4. The headers the browser needs
 // ---------------------------------------------------------------------------
 console.log("\n  Response headers");

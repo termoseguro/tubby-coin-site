@@ -573,7 +573,9 @@
       "Bash(git pull *)",
       "Bash(git cherry-pick *)",
       "Bash(git stash *)",
-      "Bash(node --input-type=module -e \"const m=await import\\('./lib/server/town.js'\\).catch\\(\\(\\)=>null\\); \")"
+      "Bash(node --input-type=module -e \"const m=await import\\('./lib/server/town.js'\\).catch\\(\\(\\)=>null\\); \")",
+      "Bash(sed -n '/^export function spin/,/^}/p' lib/luckyLitter.js)",
+      "Bash(sed -n '/const doSpin = useCallback/,+40p' app/game/page.jsx)"
     ]
   }
 }
