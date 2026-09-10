@@ -3,7 +3,7 @@
 > Governed by **the three rules** in `roadmap.md`: profit, nothing hackable,
 > healthy ecosystem — in that order.
 
-**20% of every creator fee buys supplies for children's shelters in Rio de
+**20% of every creator fee buys supplies for children's care homes in Rio de
 Janeiro.** In goods — diapers, formula, medicine, food, hygiene — delivered in
 person, photographed, signed for. Never in cash.
 
@@ -19,7 +19,7 @@ Last updated: 2026-09-07
 
 | Bucket | % | Was | |
 |---|---|---|---|
-| 🧡 **care** | **20** | — | Tubby Cares. Supplies for shelters in Rio. |
+| 🧡 **care** | **20** | — | Tubby Cares. Supplies for care homes in Rio. |
 | ⚙️ **ops** | 30 | 30 | The team. The profit. |
 | 🎁 **treats** | 25 | 25 | The game's reward pool. |
 | 🔥 **bite** | 15 | 15 | Buyback & burn. |
@@ -151,6 +151,25 @@ is a *better* photo. Shoot the supplies, the delivery, the handshake.
 
 Get written authorisation from the institution before any photo is taken on
 their premises, every time, even of empty rooms.
+
+### Strip the file, not just the picture
+
+**Every published image goes through `-strip`.** A phone photo carries EXIF,
+and EXIF carries an embedded thumbnail — a copy the camera made at capture time
+that resizing does NOT regenerate. Redact a face in an editor and the visible
+pixels are covered while that thumbnail may still hold the original.
+
+This was found live: the first drive shipped 7–14 KB of EXIF per file, each with
+an embedded JPEG inside. Those particular thumbnails happened to show the hearts
+already applied, because the editing app re-saved them — which is the editing
+app's behaviour, not a property of the process, and not something to rely on
+next time. EXIF also carries GPS on many phones; none of this batch had it, and
+nothing was stopping it.
+
+    magick in.jpg -auto-orient -resize 1200x1200\> -quality 78 -strip out.webp
+
+Verify rather than assume: `magick identify -format "%[EXIF:*]" out.webp` must
+print nothing, and the file must contain no `ff d8 ff` JPEG header.
 
 **Redaction is not the authorisation.** Covering a face is necessary and it is
 not sufficient — the room, the equipment and a wheelchair can still identify a

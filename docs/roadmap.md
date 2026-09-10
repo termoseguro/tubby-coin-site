@@ -45,7 +45,8 @@ mostly rules about proof.
 | **Coin** | Not launched. `live: false`, CA is `TBA` in `lib/config.js` |
 | **Fee split** | care 20 / ops 30 / treats 25 / bite 15 / art 10 — five wallets |
 | **Site** | Live at tubbycatscoin.com (Vercel, deploys from `main`) |
-| **Game** | Prototype at `/game`, browser-only, on branch `feat/tubby-town-prototype` |
+| **Game** | Live at `/game`. Server-authoritative core built (see phase 3); guest mode still browser-only by design |
+| **Delivery log** | `/cares` — published, empty until the first run |
 | **Repo** | github.com/termoseguro/tubby-coin-site |
 
 ---
@@ -139,8 +140,14 @@ mostly rules about proof.
 Each phase is gated by the one before it. The ordering is not negotiable:
 phase 3 exists because everything after it is worthless without it.
 
-### Phase 3 · Server-authoritative core 🔒 **the gate**
-Nothing of value can be attached before this lands.
+### Phase 3 · Server-authoritative core 🔒 **the gate** — *substantially built*
+Nothing of value can be attached before this lands. Most of it now has:
+wallet sign-in with a pinned domain, httpOnly hashed sessions, server-owned
+town state behind an intent API, an optimistic version guard, server-side gacha
+with commit-reveal, RLS forced and the anon key revoked on every table, and
+rate limiting that increments in one statement. What is NOT done: the full
+intent surface (five intents are server-side, the rest still run in the
+browser), and payments have not started.
 
 - Supabase Postgres, **RLS default-deny on every table**, zero client writes
 - All state server-side: balances, production, timers, rolls
@@ -227,5 +234,7 @@ Do not relitigate these without a reason:
 - No fixed payout promises; launch rewards are scarcity, not cash.
 - VIP and cosmetics never buy leaderboard position.
 - Nothing is transferable between accounts. No trading, no gifting.
-- Ship at `tubbycatscoin.com/tubbytown`; register a Tubby Town domain
-  defensively and redirect for now.
+- ~~Ship at `tubbycatscoin.com/tubbytown`~~ — it shipped at `/game`, which is
+  where every link on the site and in the nav now points. Changing it would
+  break those for a cosmetic gain; `/tubbytown` can redirect to `/game` if the
+  name is still wanted. Register a Tubby Town domain defensively regardless.

@@ -10,7 +10,7 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { db } from "../../../../lib/server/db.js";
 import { errorBody, userError } from "../../../../lib/server/guard.js";
-import { isAddress, loginMessage } from "../../../../lib/server/solana.js";
+import { isAddress, loginMessage, signingDomain } from "../../../../lib/server/solana.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -26,7 +26,8 @@ export async function POST(request) {
 
     const nonce = randomBytes(24).toString("base64url");
     const issuedAt = new Date().toISOString();
-    const domain = new URL(request.url).host;
+    // Pinned, not derived from the request — see signingDomain().
+    const domain = signingDomain(request);
 
     // Stored WITHOUT a player id: the wallet has not proved anything yet. The
     // row exists so the nonce can be burned on use, and for nothing else.

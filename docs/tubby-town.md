@@ -52,7 +52,7 @@ narrative rather than bolted on afterwards.
 | Language | Never "investment", "yield", "returns" |
 | Top-rank prize | The ultra-rare collectible plushie, physically shipped |
 | Platform | Site first, Telegram Mini App wrapping the same build |
-| Domain | Ship at `tubbycatscoin.com/tubbytown`; register a Tubby Town domain defensively and redirect it for now |
+| Domain | Shipped at `tubbycatscoin.com/game` (the `/tubbytown` path was planned and never used — see `roadmap.md`). Register a Tubby Town domain defensively and redirect it for now |
 | Repo | Single project, single Vercel deploy — the game lives inside the site |
 
 ### Why site-first with Telegram as a wrapper

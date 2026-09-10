@@ -40,7 +40,7 @@ const BUCKETS = [
     ic: "🧡",
     name: "Tubby Cares",
     color: "#e0459a",
-    what: "Buys supplies for children's shelters in Rio de Janeiro. Goods, never cash — every run is published with the institution, the item list, the transaction and photos of the supplies.",
+    what: "Buys supplies for children's care homes in Rio de Janeiro. Goods, never cash — every run is published with the institution, the item list, the transaction and photos of the supplies.",
   },
   {
     k: "ops",
@@ -101,8 +101,8 @@ export default function Page() {
               </h1>
               <p className="lead">
                 The community coin of the tubby cats universe on Solana — 20,000 hand-drawn cats,
-                public domain since 2022. And <b>a share of every creator fee</b> helps orphanages and
-                children&apos;s care centres in Brazil.
+                public domain since 2022. And <b>a share of every creator fee</b> helps children&apos;s
+                care homes in Brazil.
               </p>
               <div className="hero-cta">
                 <BuyButton className="btn">Buy {token.ticker}</BuyButton>
@@ -157,11 +157,11 @@ export default function Page() {
                   <p style={{ fontSize: "1.06rem", marginTop: 18, opacity: 0.94 }}>
                     Every trade pays the coin&apos;s creator a protocol fee. One fifth of that fee
                     never reaches us — it is routed straight to a public wallet that buys what
-                    children&apos;s shelters in {care.city.split(",")[0]} actually run out of.
+                    children&apos;s care homes in {care.city.split(",")[0]} actually run out of.
                   </p>
                   <p style={{ fontSize: "1.06rem", marginTop: 14, opacity: 0.94 }}>
                     We have run drives like this before and gave plush toys. Toys are the easy
-                    donation, and they are the one thing shelters already have.{" "}
+                    donation, and they are the one thing these homes already have.{" "}
                     <b>This buys the boring things instead.</b>
                   </p>
                   <div className="basket" style={{ marginTop: 26 }}>
@@ -744,7 +744,7 @@ export default function Page() {
                     The community memecoin of the tubby cats universe on Solana — 20,000 hand-drawn
                     cats released into the public domain in 2022. It is an entertainment token with a
                     job: {feeSplit.care}% of every creator fee buys supplies for children&apos;s
-                    shelters in Rio de Janeiro.
+                    care homes in Rio de Janeiro.
                   </div>
                 </details>
 

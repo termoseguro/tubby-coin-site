@@ -15,7 +15,12 @@ import { NextResponse } from "next/server";
 import { db } from "../../../../lib/server/db.js";
 import { errorBody, token, userError } from "../../../../lib/server/guard.js";
 import { startSession } from "../../../../lib/server/session.js";
-import { isAddress, loginMessage, verifySignature } from "../../../../lib/server/solana.js";
+import {
+  isAddress,
+  loginMessage,
+  signingDomain,
+  verifySignature,
+} from "../../../../lib/server/solana.js";
 import { NONCE_TTL_MS } from "../nonce/route.js";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +48,17 @@ export async function POST(request) {
       throw bad("That sign-in request has expired. Try again.");
     }
 
-    const domain = new URL(request.url).host;
+    // ---- S3: issuedAt is checked, not just carried -------------------------
+    // It was signed and never validated. The nonce TTL was doing the real
+    // freshness work, so this was not exploitable — but a reader auditing the
+    // message assumes the field means something, and the day the nonce TTL is
+    // relaxed this silently becomes the only freshness check.
+    const issued = Date.parse(String(issuedAt || ""));
+    if (!Number.isFinite(issued) || Math.abs(Date.now() - issued) > NONCE_TTL_MS) {
+      throw bad("That sign-in request has expired. Try again.");
+    }
+
+    const domain = signingDomain(request);
     const message = loginMessage({ domain, address, nonce: n, issuedAt: String(issuedAt || "") });
     if (!verifySignature(address, message, signature)) {
       throw bad("That signature does not match the wallet.");

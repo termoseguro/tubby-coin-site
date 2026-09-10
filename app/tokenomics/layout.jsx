@@ -33,7 +33,7 @@ const plexMono = IBM_Plex_Mono({
 export const metadata = {
   title: "Tubbynomics — where every $TUBBY fee goes",
   description:
-    "Five public wallets, one protocol setting. 20% of every creator fee buys supplies for children's shelters in Rio de Janeiro. Read live from the Solana blockchain.",
+    "Five public wallets, one protocol setting. 20% of every creator fee buys supplies for children's care homes in Rio de Janeiro. Read live from the Solana blockchain.",
 };
 
 export default function TokenomicsLayout({ children }) {

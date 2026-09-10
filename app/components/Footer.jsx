@@ -55,7 +55,7 @@ export default function Footer() {
           pump.fun creator fee sharing into five public wallets — {feeSplit.care}% Tubby Cares,
           {" "}{feeSplit.ops}% operations, {feeSplit.treats}% game rewards, {feeSplit.bite}% buyback &amp; burn
           and {feeSplit.art}% art fund; all five go public in the receipts section at launch. Tubby Cares
-          donations are made in goods to children&apos;s shelters in Rio de Janeiro and are not a
+          donations are made in goods to children&apos;s care homes in Rio de Janeiro and are not a
           tax-deductible contribution by you. We will never DM you, never ask for your seed phrase, and
           never post a contract address anywhere before posting it here first.
         </p>

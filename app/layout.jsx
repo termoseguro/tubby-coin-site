@@ -26,12 +26,12 @@ export const metadata = {
   metadataBase: new URL("https://tubbycatscoin.com"),
   title: "$TUBBY — Tubby Cats Coin",
   description:
-    "$TUBBY is the community coin of the tubby cats universe on Solana — 20,000 hand-drawn CC0 cats, a fair launch with no presale or team allocation, and a share of every creator fee that helps orphanages and children's care centres in Brazil.",
+    "$TUBBY is the community coin of the tubby cats universe on Solana — 20,000 hand-drawn CC0 cats, a fair launch with no presale or team allocation, and a share of every creator fee that helps children's care homes in Brazil.",
   alternates: { canonical: "/" },
   openGraph: {
     title: "$TUBBY — Tubby Cats Coin",
     description:
-      "The community coin of the tubby cats universe on Solana. 20,000 CC0 cats, a fair launch, and a share of every creator fee that helps orphanages and children's care centres in Brazil.",
+      "The community coin of the tubby cats universe on Solana. 20,000 CC0 cats, a fair launch, and a share of every creator fee that helps children's care homes in Brazil.",
     url: "https://tubbycatscoin.com",
     siteName: "Tubby Cats Coin",
     images: [{ url: "/og.jpg", width: 1200, height: 630 }],
@@ -40,7 +40,7 @@ export const metadata = {
     card: "summary_large_image",
     title: "$TUBBY — Tubby Cats Coin",
     description:
-      "The community coin of the tubby cats universe on Solana. 20,000 CC0 cats, a fair launch, and a share of every creator fee that helps orphanages and children's care centres in Brazil.",
+      "The community coin of the tubby cats universe on Solana. 20,000 CC0 cats, a fair launch, and a share of every creator fee that helps children's care homes in Brazil.",
     images: ["/og.jpg"],
   },
 };

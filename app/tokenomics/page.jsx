@@ -11,6 +11,11 @@ function walletText(w) {
   return !w || w.startsWith("{") ? "published at launch" : w;
 }
 
+// The home page has always hidden links that are not filled in yet. This page
+// never got the helper, so it shipped four chips pointing at "#" — on the one
+// page whose own strip reads "Don't trust the pie — audit it".
+const isReal = (u) => Boolean(u) && u !== "#" && u !== "https://x.com/";
+
 export default function Tokenomics() {
   const [market, setMarket] = useState({ price: "—", mcap: "—", vol: "—", liq: "—" });
   const [supply, setSupply] = useState("1,000,000,000");
@@ -145,7 +150,7 @@ export default function Tokenomics() {
     <div className="wrap">
       <span className="kicker">Numbers, but make them cute</span>
       <h1>TUBBYNOMICS</h1>
-      <p>No taxes. No team bags. No gimmicks. $TUBBY&apos;s whole economy is the protocol fee pump.fun pays coin creators — your tokens are never touched. {config.feeSplit.care}% of it buys diapers, formula, medicine and food for children&apos;s shelters in Rio de Janeiro, and this page watches where every bit of it goes, straight from the Solana blockchain.</p>
+      <p>No taxes. No team bags. No gimmicks. $TUBBY&apos;s whole economy is the protocol fee pump.fun pays coin creators — your tokens are never touched. {config.feeSplit.care}% of it buys diapers, formula, medicine and food for children&apos;s care homes in Rio de Janeiro, and this page watches where every bit of it goes, straight from the Solana blockchain.</p>
 
       <div style={{marginTop: "30px"}}>
         <span id="liveBadge" className={`live-badge ${isLive ? "on" : ""}`}><span className="pulse"></span><span id="liveBadgeText">{isLive ? "Live — reading the chain" : "Preview — demo data"}</span></span>
@@ -162,8 +167,8 @@ export default function Tokenomics() {
 
   <div className="marquee" aria-hidden="true">
     <div className="marquee-track">
-      <span>tubbynomics</span><span>★</span><span>no taxes</span><span>★</span><span>no team bags</span><span>★</span><span>{config.feeSplit.care}% to children&apos;s shelters</span><span>★</span><span>goods, never cash</span><span>★</span><span>on-chain, not on-trust</span><span>★</span>
-      <span>tubbynomics</span><span>★</span><span>no taxes</span><span>★</span><span>no team bags</span><span>★</span><span>{config.feeSplit.care}% to children&apos;s shelters</span><span>★</span><span>goods, never cash</span><span>★</span><span>on-chain, not on-trust</span><span>★</span>
+      <span>tubbynomics</span><span>★</span><span>no taxes</span><span>★</span><span>no team bags</span><span>★</span><span>{config.feeSplit.care}% to children&apos;s care homes</span><span>★</span><span>goods, never cash</span><span>★</span><span>on-chain, not on-trust</span><span>★</span>
+      <span>tubbynomics</span><span>★</span><span>no taxes</span><span>★</span><span>no team bags</span><span>★</span><span>{config.feeSplit.care}% to children&apos;s care homes</span><span>★</span><span>goods, never cash</span><span>★</span><span>on-chain, not on-trust</span><span>★</span>
     </div>
   </div>
 
@@ -248,7 +253,7 @@ export default function Tokenomics() {
         <div className="slices">
           <div className="slice">
             <div className="head"><span className="swatch" style={{background: 'var(--pink-deep)', width: 18, height: 18, borderRadius: 6, border: '2px solid var(--ink)'}}></span><h3>🧡 Tubby Cares</h3><span className="pct">{config.feeSplit.care}%</span></div>
-            <p>Buys diapers, formula, medicine, food and hygiene supplies for children&apos;s shelters in Rio de Janeiro. Goods, never cash — every run published with the institution, its CNPJ, the item list, the funding tx and photos of the supplies.</p>
+            <p>Buys diapers, formula, medicine, food and hygiene supplies for children&apos;s care homes in Rio de Janeiro. Goods, never cash — every run published with the institution, its CNPJ, the item list, the funding tx and photos of the supplies.</p>
             <div className="wallet"><span>{walletText(config.wallets.care)}</span><span className="bal">bal: <b id="balCare">{balCare}</b></span></div>
           </div>
           <div className="slice">
@@ -276,9 +281,15 @@ export default function Tokenomics() {
       <div className="enforced">
         <span className="ic">🔍</span>
         <span>Don&apos;t trust the pie — audit it. The split is visible in the coin&apos;s fee configuration, and all five wallets are public forever.</span>
-        <a className="chip" href={config.links.feeConfig} target="_blank" rel="noopener">🧾 View fee config</a>
-        <a className="chip" href={config.links.deliveryLog} target="_blank" rel="noopener">🧡 Delivery log</a>
-        <a className="chip" href={config.links.reports} target="_blank" rel="noopener">📬 Updates</a>
+        {isReal(config.links.feeConfig) && (
+          <a className="chip" href={config.links.feeConfig} target="_blank" rel="noopener">🧾 View fee config</a>
+        )}
+        {isReal(config.links.deliveryLog) && (
+          <a className="chip" href={config.links.deliveryLog} target="_blank" rel="noopener">🧡 Delivery log</a>
+        )}
+        {isReal(config.links.reports) && (
+          <a className="chip" href={config.links.reports} target="_blank" rel="noopener">📬 Updates</a>
+        )}
       </div>
     </div>
   </section>
@@ -305,7 +316,7 @@ export default function Tokenomics() {
           <div className="bite-step"><span className="num">1</span> The Bite wallet fills with its {config.feeSplit.bite}% of every creator fee — public, on-chain, watch it fill up.</div>
           <div className="bite-step"><span className="num">2</span> A quest milestone unlocks → the wallet market-buys $TUBBY in the open, like anyone else.</div>
           <div className="bite-step"><span className="num">3</span> The tokens go to the burn address — gone from supply, permanently. Chomp.</div>
-          <div className="bite-step"><span className="num">4</span> The burn tx is posted to the public bite log. <a className="chip" href={config.links.burns} target="_blank" rel="noopener">Bite log 🧾</a></div>
+          <div className="bite-step"><span className="num">4</span> The burn tx is posted to the public bite log.{isReal(config.links.burns) && (<> <a className="chip" href={config.links.burns} target="_blank" rel="noopener">Bite log 🧾</a></>)}</div>
         </div>
       </div>
     </div>
@@ -346,7 +357,7 @@ export default function Tokenomics() {
           <div className="paw">🐾</div>
           <div className="body">
             <h3>Life 4 · The First Run <span className="tag">{config.milestones[0].sol} SOL in the Cares basket</span>{lives[4] ? <span className="state on">unlocked</span> : <span className="state off">locked</span>}</h3>
-            <p>The first Tubby Cares delivery goes out to a children&apos;s shelter in Rio — {config.milestones[0].items}, bought with trading fees. Signed receipt, CNPJ, funding tx and photos of every item, all published 🧡</p>
+            <p>The first Tubby Cares delivery goes out to a children&apos;s care home in Rio — {config.milestones[0].items}, bought with trading fees. Signed receipt, CNPJ, funding tx and photos of every item, all published 🧡</p>
           </div>
         </div>
         <div className={`life ${lives[5] ? "" : "locked"}`} data-life="5">
@@ -405,7 +416,7 @@ export default function Tokenomics() {
             <tr><td>Treasury source</td><td>none, or a quiet team bag</td><td className="yes">protocol creator fees — no bag to dump, ever</td></tr>
             <tr><td>Fee allocation</td><td>undisclosed</td><td className="yes">{config.feeSplit.care}/{config.feeSplit.ops}/{config.feeSplit.treats}/{config.feeSplit.bite}/{config.feeSplit.art} across five public wallets, enforced on-chain</td></tr>
             <tr><td>Deflation</td><td>arbitrary or none</td><td className="yes">milestone Bites 🍫 — every burn with a tx receipt</td></tr>
-            <tr><td>What fees build</td><td>—</td><td className="yes">supplies for children&apos;s shelters in Rio — plus a game, art and merch</td></tr>
+            <tr><td>What fees build</td><td>—</td><td className="yes">supplies for children&apos;s care homes in Rio — plus a game, art and merch</td></tr>
             <tr><td>Live transparency</td><td>screenshots, maybe</td><td className="yes">this page reads the chain itself, on refresh</td></tr>
           </tbody>
         </table>
@@ -425,8 +436,8 @@ export default function Tokenomics() {
         <div className="a">Because we can! Pump.fun allows splitting fees into up to 10 wallets, so we baked the exact allocations (Cares, Ops, Treats, Bite, Art) directly into the protocol&apos;s fee sharing. You don&apos;t have to trust us to move the money — and you especially don&apos;t have to trust us with the donation slice, because the contract routes it there before we ever see it. 💗</div>
       </details>
       <details>
-        <summary>Why {config.feeSplit.care}% to children&apos;s shelters?</summary>
-        <div className="a">Because a memecoin can afford to be useful. {config.feeSplit.care}% of every creator fee buys diapers, formula, medicine and food for children&apos;s shelters in Rio de Janeiro — in goods, bought and delivered in person, never in cash. Every run is published with the institution, its CNPJ, the item list, the funding transaction and photos of the supplies 🧡</div>
+        <summary>Why {config.feeSplit.care}% to children&apos;s care homes?</summary>
+        <div className="a">Because a memecoin can afford to be useful. {config.feeSplit.care}% of every creator fee buys diapers, formula, medicine and food for children&apos;s care homes in Rio de Janeiro — in goods, bought and delivered in person, never in cash. Every run is published with the institution, its CNPJ, the item list, the funding transaction and photos of the supplies 🧡</div>
       </details>
       <details>
         <summary>Can the tokenomics ever change?</summary>
@@ -463,7 +474,7 @@ export default function Tokenomics() {
       creator fee sharing into five public wallets — {config.feeSplit.care}% Tubby Cares,
       {" "}{config.feeSplit.ops}% operations, {config.feeSplit.treats}% game rewards,
       {" "}{config.feeSplit.bite}% buyback &amp; burn and {config.feeSplit.art}% art fund; all five are
-      published above. Tubby Cares donations are made in goods to children&apos;s shelters in Rio de
+      published above. Tubby Cares donations are made in goods to children&apos;s care homes in Rio de
       Janeiro and are not a tax-deductible contribution by you. We will never DM you, never ask for your
       seed phrase, and never post a contract address anywhere before posting it on the home page first.
     </p>

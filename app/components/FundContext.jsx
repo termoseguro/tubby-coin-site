@@ -71,7 +71,31 @@ export function FundProvider({ children }) {
     };
   }, [isLiveData, rpcUrl, careWallet, refreshMs, demoFundedSol]);
 
-  // ease the displayed number toward the target (the "counting up" wow effect)
+  // Re-run the easing when the tab becomes visible. Without this the effect
+  // below only ever fires on a target change, and a tab that was hidden when
+  // the value arrived never gets a second chance.
+  const [awake, setAwake] = useState(0);
+  useEffect(() => {
+    const onVisible = () => {
+      if (!document.hidden) setAwake((n) => n + 1);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
+
+  // Ease the displayed number toward the target — the "counting up" effect.
+  //
+  // THE ANIMATION IS AN ENHANCEMENT, NEVER THE SOURCE OF THE VALUE. It used to
+  // be the only thing that ever wrote `display`, and it runs on
+  // requestAnimationFrame, which does not fire in a background tab. So opening
+  // the site in a new tab — middle click, "open in new tab", clicking through
+  // from a thread while reading something else — left the headline number of
+  // the whole project reading 0.00 SOL, under a badge saying DEMO DATA, for
+  // the entire session. It never recovered, because the effect depended only
+  // on `target` and `target` had already arrived.
+  //
+  // Now: a hidden tab snaps straight to the value, and anything that stops the
+  // frames mid-flight is caught by a timer that snaps to the end.
   useEffect(() => {
     const start = display;
     const end = target;
@@ -79,6 +103,13 @@ export function FundProvider({ children }) {
       setDisplay(end);
       return;
     }
+    // Nobody is watching a hidden tab, and no frame will come. Be correct
+    // rather than animated.
+    if (typeof document !== "undefined" && document.hidden) {
+      setDisplay(end);
+      return;
+    }
+
     const dur = 1400;
     const t0 = performance.now();
     const step = (now) => {
@@ -89,9 +120,18 @@ export function FundProvider({ children }) {
     };
     cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(rafRef.current);
+
+    // The backstop: if the frames stop for any reason — throttling, the tab
+    // hiding mid-animation, a browser that pauses rAF we have not met yet —
+    // land on the real number anyway.
+    const failsafe = setTimeout(() => setDisplay(end), dur + 400);
+
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      clearTimeout(failsafe);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target]);
+  }, [target, awake]);
 
   return (
     <FundContext.Provider value={{ basketSol: display, live: isLiveData, loading }}>
