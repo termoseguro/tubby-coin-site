@@ -377,9 +377,14 @@ export async function createTown(host, cats, opts = {}) {
     const w = Math.max(320, host.clientWidth || WORLD.w);
     const h = Math.max(240, host.clientHeight || WORLD.h);
     app.renderer.resize(w, h);
-    // The smallest zoom that still fills the box — below this you would be
-    // looking at empty margins instead of your town.
-    cam.min = Math.min(w / WORLD.w, h / WORLD.h);
+    // COVER, NOT CONTAIN. This was Math.min — the zoom at which the whole
+    // world FITS INSIDE the box — under a comment claiming it was the zoom that
+    // fills it. On a desktop the two are close enough that nobody noticed. On a
+    // phone they are not: 375 / 3000 is 0.125 against 1030 / 1760 at 0.585, so
+    // the town shrank to a 375x220 strip with a dead band under it taking up
+    // a third of the screen. Math.max is the smallest zoom where neither axis
+    // has a gap, and clamp() already stops you dragging past the edges.
+    cam.min = Math.max(w / WORLD.w, h / WORLD.h);
     cam.max = Math.max(w / WORLD.w, h / WORLD.h) * 2.4;
     // Until the player actually moves the camera, keep snapping to the OPENING
     // SHOT — the built heart of the town filling the screen, not the whole

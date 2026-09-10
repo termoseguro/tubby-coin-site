@@ -2915,3 +2915,309 @@
   .ttown .tt-wallet { margin: 0 6px 6px; }
   .ttown .tt-wallet-txt small { display: none; }
 }
+
+/* ==========================================================================
+   THE PHONE
+   ==========================================================================
+   Most players arrive on a phone and the game was built at 1280px, so every
+   piece of chrome that "floats in a corner" on a desktop was sitting on top of
+   the town on a 375px screen. On an iPhone the three status chips covered half
+   the map, the six-tab bar wrapped onto three rows with the shop orphaned on
+   its own, and the map itself stopped short with a dead lilac band under it.
+
+   Nothing here is a shrink. Each rule moves a thing that OVERLAPS into a place
+   where it belongs, because the problem was never size — the document never
+   scrolled sideways. It was that a 1280px composition has room for floating
+   furniture and a 375px one does not.
+   ========================================================================== */
+@media (max-width: 620px) {
+  /* ---- the tab bar: six things, one row, no wrapping ---- */
+  .ttown .tt-tabs {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    flex-wrap: nowrap;
+  }
+  .ttown .tt-tab {
+    flex-direction: column;
+    gap: 3px;
+    padding: 7px 2px;
+    border-radius: 14px;
+    border-width: 2px;
+    box-shadow: 0 3px 0 var(--line-2);
+    min-width: 0;
+  }
+  /* The labels come BACK. `display:none` at 760px left six identical circles
+     and no way to tell Adoption from Album — an icon-only bar is only legible
+     when the icons are ones people already know, and a paw is not one. */
+  .ttown .tt-tab span {
+    display: block;
+    font-size: 9.5px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .ttown .tt-tab svg { width: 17px; height: 17px; }
+
+  /* ---- the status chips stop sitting on the town ---- */
+  .ttown .tt-caps {
+    position: static;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 5px;
+    padding: 0 8px 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ttown .tt-caps::-webkit-scrollbar { display: none; }
+  .ttown .tt-cap {
+    flex: 0 0 auto;
+    padding: 5px 8px 5px 5px;
+    gap: 6px;
+    border-radius: 13px;
+    border-width: 2px;
+    box-shadow: 0 3px 0 var(--line-2);
+  }
+  .ttown .tt-cap-i { width: 24px; height: 24px; flex-basis: 24px; border-radius: 8px; }
+  .ttown .tt-cap-i svg { width: 14px; height: 14px; }
+  .ttown .tt-cap small { font-size: 8.5px; letter-spacing: 0.06em; }
+  .ttown .tt-cap b { font-size: 11.5px; }
+  .ttown .tt-cap em { font-size: 10px; }
+
+  /* ---- the map gets the room that frees up ---- */
+  .ttown .tt-stage { margin: 4px 6px 0; border-radius: 16px; border-width: 2px; }
+
+  /* ---- the resource bar ---- */
+  .ttown .tt-resbar { gap: 4px; padding: 0 6px; }
+  .ttown .tt-resbar-item { padding: 5px 7px; border-radius: 11px; }
+  .ttown .tt-resbar-i { width: 21px; height: 21px; flex-basis: 21px; border-radius: 7px; }
+  .ttown .tt-resbar-n b { font-size: 12px; }
+  .ttown .tt-resbar-rate { font-size: 9px; }
+
+  /* ---- the header ---- */
+  .ttown .tt-bar { padding: 6px 8px 0; gap: 6px; }
+  .ttown .tt-title-main { font-size: 1.15rem; }
+
+  /* ---- the two floating buttons over the map ---- */
+  .ttown .tt-auto,
+  .ttown .tt-book-btn {
+    font-size: 11px;
+    padding: 8px 11px;
+    border-radius: 13px;
+  }
+  /* The "next action" pill sat ON the tab bar. It is advice, and advice that
+     covers the navigation is worse than no advice. */
+  .ttown .tt-collectall {
+    bottom: 8px;
+    font-size: 11px;
+    padding: 7px 12px;
+    max-width: calc(100vw - 32px);
+  }
+
+  /* ---- panels ---- */
+  .ttown .tt-panel-over { padding: 12px 10px 84px; }
+  .ttown .tt-vgrid { grid-template-columns: 1fr; }
+  .ttown .tt-hero-grid { grid-template-columns: 1fr; }
+  .ttown .tt-lockgrid { grid-template-columns: 1fr 1fr; }
+  .ttown .tt-album { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .ttown .tt-shead h2 { font-size: 1.25rem; }
+
+  /* ---- the sheets, which are the whole game on a phone ---- */
+  .ttown .tt-sheet { max-height: 86vh; border-radius: 20px 20px 0 0; }
+  .ttown .tt-cq-board { padding: 10px 8px; }
+  .ttown .tt-cq-side { gap: 6px; }
+  .ttown .tt-cq-face { width: 46px; height: 46px; }
+  .ttown .tt-cq-unit.boss .tt-cq-face { width: 58px; height: 58px; }
+  .ttown .tt-cq-name { font-size: 9px; }
+  .ttown .tt-alley { padding: 11px 12px; gap: 8px; }
+  .ttown .tt-alley-l b { font-size: 16px; }
+  .ttown .tt-alley-go { padding: 7px 12px; font-size: 12.5px; }
+  .ttown .tt-routes { grid-template-columns: 1fr; }
+}
+
+/* The very narrow end — an SE, or a phone with the text size turned up. */
+@media (max-width: 380px) {
+  .ttown .tt-tab span { font-size: 8.5px; }
+  .ttown .tt-tab { padding: 6px 1px; }
+  .ttown .tt-resbar-n b { font-size: 11px; }
+}
+
+@media (max-width: 620px) {
+  /* ---- the status chips, corrected ----
+     `position: static` moved them out of the way and out of SIGHT: the town
+     canvas is `position:absolute; inset:0` inside the same box, so a static
+     sibling paints underneath it. They go back to floating, but as one thin
+     scrollable strip across the top rather than a stack down the left — it
+     covers about forty pixels of empty sky instead of half the map. */
+  .ttown .tt-caps {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 6px;
+    padding: 0 6px;
+    z-index: 25;
+  }
+
+  /* ---- the bottom row stops piling up ----
+     "Auto-assign", "Town Book" and the next-action pill were all pinned to the
+     same corner and sat on each other. The pill goes above them. */
+  .ttown .tt-collectall { bottom: 52px; }
+  .ttown .tt-auto { left: 8px; bottom: 8px; }
+  .ttown .tt-book-btn { right: 8px; bottom: 8px; }
+}
+
+@media (max-width: 620px) {
+  /* The next-action pill is `.tt-next`, and it is positioned against a
+     different box than the two corner buttons — so `bottom: 8px` on them and
+     `bottom: 72px` on it still landed all three on the same line. Measured:
+     the pill needs ~112px to clear the taller of the two. */
+  .ttown .tt-next { bottom: 112px; }
+
+  /* The chips read as broken when the middle one is sliced mid-word. The
+     suffix goes; "0 of 2 working" says the thing and "· 1 at home" is the
+     detail that fits on a bigger screen. */
+  .ttown .tt-cap em { display: none; }
+  .ttown .tt-caps {
+    /* A fade at the right edge, so a strip that scrolls LOOKS like one. */
+    mask-image: linear-gradient(90deg, #000 88%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
+  }
+}
+
+@media (max-width: 620px) {
+  /* `max-width: calc(100% - 220px)` reserves room for the two corner buttons
+     that sit BESIDE it on a desktop. On a phone the pill is on its own line,
+     so the reservation only served to slice its own sentence in half — the
+     text read "1 reward in the Tow". */
+  .ttown .tt-next {
+    max-width: calc(100% - 24px);
+    font-size: 0.72rem;
+    padding: 7px 12px;
+  }
+}
+
+/* ==========================================================================
+   THE RESOURCE BAR, REDONE
+   ==========================================================================
+   It was five separate floating pills of different widths, each with a thin
+   grey cap bar under it, and the Golden Fish one styled differently enough to
+   break the row. Glanced at constantly, so what it looked like WAS what it
+   communicated — and what it communicated was "some unrelated buttons".
+
+   Now it is one bar. Equal cells, hairline dividers, the number big and the
+   rate small beneath it, and the cap drawn as a fill along the BOTTOM EDGE of
+   its own cell in that resource's colour — so "nearly full" is a shape you see
+   without reading, which is the only job that bar has.
+
+   The premium cell keeps its gold, because it is the one that is a button.
+   ========================================================================== */
+.ttown .tt-resbar {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  padding: 0;
+  margin: 12px auto 0;
+  width: min(1120px, calc(100% - 44px));
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fffdf8, var(--card-2));
+  border: 2.5px solid var(--line);
+  box-shadow: inset 0 2px 0 #fff, 0 4px 0 var(--line-2);
+  overflow: hidden;
+}
+.ttown .tt-resbar-item {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 8px 11px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  border-left: 1.5px solid var(--line);
+}
+.ttown .tt-resbar-item:first-child { border-left: 0; }
+.ttown .tt-resbar-item:hover { background: rgba(255, 255, 255, 0.6); }
+
+/* the cap, as a fill along the bottom edge of the cell */
+.ttown .tt-resbar-cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--line);
+  border-radius: 0;
+}
+.ttown .tt-resbar-cap i { display: block; height: 100%; transition: width 0.4s ease; }
+.ttown .tt-resbar-item.full { background: #fff1f4; }
+.ttown .tt-resbar-item.full .tt-resbar-cap i { background: #e0483f !important; }
+
+.ttown .tt-resbar-i {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  border-radius: 9px;
+  background: #fff;
+  border: 2px solid var(--line);
+}
+.ttown .tt-resbar-i svg { width: 16px; height: 16px; }
+.ttown .tt-resbar-n { align-items: flex-start; }
+.ttown .tt-resbar-n b { font-size: 0.95rem; letter-spacing: -0.02em; }
+
+/* The premium cell is the only one that DOES something, so it is the only one
+   that looks like a button. */
+.ttown .tt-resbar-item.gold {
+  flex: 0 0 auto;
+  padding-right: 10px;
+  background: linear-gradient(180deg, #fff6d8, #ffe8a8);
+  border-left: 1.5px solid var(--g3);
+}
+.ttown .tt-resbar-item.gold:hover { background: linear-gradient(180deg, #fffbe8, #ffedb8); }
+.ttown .tt-resbar-plus {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 7px;
+  background: var(--g2);
+  color: #5d2444;
+  font-weight: 900;
+  font-size: 14px;
+  line-height: 1;
+}
+
+@media (max-width: 620px) {
+  .ttown .tt-resbar {
+    width: calc(100% - 12px);
+    border-radius: 14px;
+    border-width: 2px;
+    margin-top: 8px;
+  }
+  .ttown .tt-resbar-item { padding: 6px 3px 8px; gap: 4px; flex-direction: column; }
+  .ttown .tt-resbar-i { width: 20px; height: 20px; flex-basis: 20px; border-radius: 6px; }
+  .ttown .tt-resbar-i svg { width: 12px; height: 12px; }
+  .ttown .tt-resbar-n { align-items: center; }
+  .ttown .tt-resbar-n b { font-size: 11.5px; }
+  .ttown .tt-resbar-rate { font-size: 8.5px; }
+  .ttown .tt-resbar-item.gold { flex: 1 1 0; padding-right: 3px; }
+  .ttown .tt-resbar-plus { width: 15px; height: 15px; font-size: 11px; border-radius: 5px; }
+
+  /* The chip strip ran UNDER the zoom buttons, which is why the third chip
+     looked sliced. It stops where they start. */
+  .ttown .tt-caps { right: 58px; }
+}
+
+@media (max-width: 620px) {
+  /* The premium cell stacks its "+" under the number when the cell goes
+     column — which reads as a stray button rather than part of the price. It
+     keeps its row. */
+  .ttown .tt-resbar-item.gold { flex-direction: row; gap: 5px; }
+}
