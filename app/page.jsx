@@ -548,11 +548,24 @@ export default function Page() {
                 <div className="card receipt reveal" data-i="0">
                   <span className="stamp">verify it</span>
                   <h3>Endorsed by the brand, on the record</h3>
-                  <p>
-                    The tubby cats brand publicly backs this coin: a post from the official account
-                    and a signed message from a project-linked wallet. The NFT channels stay dedicated
-                    to art; this account and site run the coin.
-                  </p>
+                  {isReal(links.endorsementPost) || isReal(links.signedMsg) ? (
+                    <p>
+                      The tubby cats brand publicly backs this coin: a post from the official account
+                      and a signed message from a project-linked wallet. The NFT channels stay
+                      dedicated to art; this account and site run the coin.
+                    </p>
+                  ) : (
+                    // Until at least one proof is live, this says what WILL be published rather
+                    // than claiming it already is. Asserting an unverifiable endorsement on the
+                    // one page that sells verifiability is the exact failure this section exists
+                    // to prevent — and it flips back automatically the moment a link is filled in.
+                    <p>
+                      Two proofs go up here before the coin is tradeable: a post from the official
+                      tubby cats account, and a message signed by a project-linked wallet. Until both
+                      are published and linked from this card, treat the endorsement as unproven —
+                      that is the standard we are asking you to hold us to.
+                    </p>
+                  )}
                   <div className="links">
                     {isReal(links.endorsementPost) && (
                       <a className="chip" href={links.endorsementPost} target="_blank" rel="noopener">

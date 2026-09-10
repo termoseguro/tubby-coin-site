@@ -201,28 +201,35 @@ export default function Tokenomics() {
       <div className="section-head">
         <span className="kicker">The treasury with no token bag</span>
         <h2>The fee engine ⚙️</h2>
-        <p>pump.fun pays coin creators a dynamic fee on every trade — set by the protocol, paid by the protocol, never deducted from your tokens. It starts high while the coin is a kitten and shrinks as it grows. That fee is $TUBBY's entire treasury: nothing to dump, nothing to unlock, nothing hiding.</p>
+        <p>pump.fun pays coin creators a fee on every trade — set by the protocol, paid by the protocol, never deducted from your tokens. It is flat while the coin is on the bonding curve, peaks just after graduation, then steps down as market cap climbs. That fee is $TUBBY&apos;s entire treasury: nothing to dump, nothing to unlock, nothing hiding.</p>
       </div>
       <div className="engine">
         <div className="tier">
           <div className="bar-viz" aria-hidden="true"></div>
-          <div className="pct">up to 0.95%</div>
-          <div className="st">kitten stage</div>
-          <div className="d">Small market cap — the fee is at its highest, feeding the project when it needs fuel the most.</div>
+          <div className="pct">0.30%</div>
+          <div className="st">on the curve</div>
+          <div className="d">Flat on every trade while the coin is still on the bonding curve — and for the first stretch after it graduates, up to 420 SOL market cap.</div>
         </div>
         <div className="tier">
           <div className="bar-viz" aria-hidden="true"></div>
-          <div className="pct">sliding ↓</div>
-          <div className="st">growing cat</div>
-          <div className="d">As the coin grows, the protocol steps the fee down automatically. Nothing for humans to fiddle with.</div>
+          <div className="pct">0.95%</div>
+          <div className="st">the peak</div>
+          <div className="d">Between 420 and 1,470 SOL market cap the creator fee hits its highest point on the whole schedule. The treasury fills fastest just after graduation, not at the start.</div>
         </div>
         <div className="tier">
           <div className="bar-viz" aria-hidden="true"></div>
           <div className="pct">0.05%</div>
-          <div className="st">chonk stage</div>
-          <div className="d">At full chonk, the fee is near-zero — the coin trades freely while the treasury keeps drip-feeding.</div>
+          <div className="st">full chonk</div>
+          <div className="d">From the peak it steps down bracket by bracket, reaching the 0.05% floor above 98,240 SOL. The coin trades cheaply while the treasury keeps drip-feeding.</div>
         </div>
       </div>
+      <p className="tier-note">
+        These are pump.fun&apos;s numbers, not ours — we cannot set them, change them or opt out, and
+        pump.fun can revise the schedule whenever it likes.{" "}
+        <a href={config.links.feeSchedule} target="_blank" rel="noopener">
+          Read the current fee schedule →
+        </a>
+      </p>
     </div>
   </section>
 
@@ -282,7 +289,7 @@ export default function Tokenomics() {
       <div className="section-head">
         <span className="kicker">Deflation, but delicious</span>
         <h2>The Bite 🍫</h2>
-        <p>Look at the coin. Someone already took a bite — it's chocolate under the gold. That's the mechanic: at quest milestones, the ops wallet buys $TUBBY on the open market and burns it. Each bite makes the coin a little scarcer, forever, with a receipt.</p>
+        <p>Look at the coin. Someone already took a bite — it&apos;s chocolate under the gold. That&apos;s the mechanic: at quest milestones, the Bite wallet buys $TUBBY on the open market and burns it. Its {config.feeSplit.bite}% arrives straight from the fee split and is spent on nothing else — ops never touches it. Each bite makes the coin a little scarcer, forever, with a receipt.</p>
       </div>
       <div className="bite-grid">
         <div className="bite-hero">
@@ -295,7 +302,7 @@ export default function Tokenomics() {
           </div>
         </div>
         <div className="bite-steps">
-          <div className="bite-step"><span className="num">1</span> A share of ops funds accrues for bites — the wallet is public, watch it fill up.</div>
+          <div className="bite-step"><span className="num">1</span> The Bite wallet fills with its {config.feeSplit.bite}% of every creator fee — public, on-chain, watch it fill up.</div>
           <div className="bite-step"><span className="num">2</span> A quest milestone unlocks → the wallet market-buys $TUBBY in the open, like anyone else.</div>
           <div className="bite-step"><span className="num">3</span> The tokens go to the burn address — gone from supply, permanently. Chomp.</div>
           <div className="bite-step"><span className="num">4</span> The burn tx is posted to the public bite log. <a className="chip" href={config.links.burns} target="_blank" rel="noopener">Bite log 🧾</a></div>
@@ -310,7 +317,7 @@ export default function Tokenomics() {
       <div className="section-head center">
         <span className="kicker">The quest log</span>
         <h2>The 9 Lives quest 🐾</h2>
-        <p>Cats get nine lives; so does this coin. Each life unlocks at a milestone nobody can fake — and each unlock is something fun we ship in public, receipts included. This is the roadmap, gamified.</p>
+        <p>Cats get nine lives; so does this coin. Each life unlocks on something that costs real money to move — traded volume, a graduation, a delivery that actually happened — never on a number anyone can inflate for the price of gas. Each unlock is something we ship in public, receipts included. This is the roadmap, gamified.</p>
       </div>
 
       <div className="lives-track" id="livesTrack">
@@ -324,7 +331,7 @@ export default function Tokenomics() {
         <div className={`life ${lives[2] ? "" : "locked"}`} data-life="2">
           <div className="paw">🐾</div>
           <div className="body">
-            <h3>Life 2 · First Treat <span className="tag">500 holders</span>{lives[2] ? <span className="state on">unlocked</span> : <span className="state off">locked</span>}</h3>
+            <h3>Life 2 · First Treat <span className="tag">5,000 SOL traded</span>{lives[2] ? <span className="state on">unlocked</span> : <span className="state off">locked</span>}</h3>
             <p>We buy a floor tubby cats NFT and give it away to a holder. The coin starts feeding the collection it came from 🍬</p>
           </div>
         </div>
@@ -345,7 +352,7 @@ export default function Tokenomics() {
         <div className={`life ${lives[5] ? "" : "locked"}`} data-life="5">
           <div className="paw">🐾</div>
           <div className="body">
-            <h3>Life 5 · The Contest <span className="tag">2,500 holders</span>{lives[5] ? <span className="state on">unlocked</span> : <span className="state off">locked</span>}</h3>
+            <h3>Life 5 · The Contest <span className="tag">25,000 SOL traded</span>{lives[5] ? <span className="state on">unlocked</span> : <span className="state off">locked</span>}</h3>
             <p>Community art contest — tubbies are CC0, so remix away. Winners rewarded, best entries pinned forever.</p>
           </div>
         </div>
@@ -359,7 +366,7 @@ export default function Tokenomics() {
         <div className={`life ${lives[7] ? "" : "locked"}`} data-life="7">
           <div className="paw">🐾</div>
           <div className="body">
-            <h3>Life 7 · Second Bite <span className="tag">5,000 holders</span>{lives[7] ? <span className="state on">unlocked</span> : <span className="state off">locked</span>}</h3>
+            <h3>Life 7 · Second Bite <span className="tag">100,000 SOL traded</span>{lives[7] ? <span className="state on">unlocked</span> : <span className="state off">locked</span>}</h3>
             <p>Bite #2 🍫 plus a 1/1 tubby art auction — proceeds flow back into the Project Fund. The flywheel feeds itself.</p>
           </div>
         </div>
@@ -373,12 +380,12 @@ export default function Tokenomics() {
         <div className={`life ${lives[9] ? "" : "locked"}`} data-life="9">
           <div className="paw">🐾</div>
           <div className="body">
-            <h3>Life 9 · The Ninth Life <span className="tag">10,000 holders</span>{lives[9] ? <span className="state on">unlocked</span> : <span className="state off">locked</span>}</h3>
+            <h3>Life 9 · The Ninth Life <span className="tag">500,000 SOL traded</span>{lives[9] ? <span className="state on">unlocked</span> : <span className="state off">locked</span>}</h3>
             <p>The community votes on a legacy project for the tubby universe — the biggest thing the fund can build. Nine lives, fully lived ✦</p>
           </div>
         </div>
       </div>
-      <p className="lives-note">Milestones are things we commit to ship, with receipts — the fun kind of roadmap 🐱</p>
+      <p className="lives-note">Volume figures are cumulative traded volume since launch. Nothing here is gated on holder count on purpose: a thousand wallets holding dust costs an attacker almost nothing, and a milestone somebody else can trigger is a milestone that spends our money on their schedule 🐱</p>
     </div>
   </section>
 
