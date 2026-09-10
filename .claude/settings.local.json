@@ -568,7 +568,12 @@
       "Bash(node -e \"fetch\\('http://localhost:3100/game'\\).then\\(r=>console.log\\(\\(r.headers.get\\('content-security-policy'\\)||''\\).match\\(/connect-src[^;]*/\\)?.[0]\\)\\)\")",
       "Bash(NEXT_DIST_DIR=.next-check NODE_ENV=production npx next start -p 3200)",
       "Bash(node -e \"fetch\\('http://localhost:3200/game'\\).then\\(r=>console.log\\(\\(r.headers.get\\('content-security-policy'\\)||''\\).match\\(/connect-src[^;]*/\\)?.[0]\\)\\)\")",
-      "Bash(git branch *)"
+      "Bash(git branch *)",
+      "Bash(git fetch *)",
+      "Bash(git pull *)",
+      "Bash(git cherry-pick *)",
+      "Bash(git stash *)",
+      "Bash(node --input-type=module -e \"const m=await import\\('./lib/server/town.js'\\).catch\\(\\(\\)=>null\\); \")"
     ]
   }
 }
